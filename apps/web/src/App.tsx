@@ -398,6 +398,12 @@ function componentGeometry(spec: ComponentSpec): {
 
 function compactComponentLabel(spec: ComponentSpec): string {
   const id = spec.id.toLowerCase();
+  if (id.includes("split4")) return "SPLIT";
+  if (id.includes("join4")) return "JOIN";
+  if (id === "builtin.const1.zero") return "0";
+  if (id === "builtin.const1.one") return "1";
+  if (id === "builtin.const4.zero") return "0000";
+  if (id === "builtin.const4.one") return "0001";
   if (id.includes("half-adder")) return "HA";
   if (id.includes("full-adder")) return "FA";
   if (id.includes("sr-latch")) return "SR";
