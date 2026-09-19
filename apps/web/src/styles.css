@@ -1661,7 +1661,7 @@ button:disabled {
   fill: none;
   stroke: transparent;
   stroke-width: 18;
-  cursor: pointer;
+  cursor: crosshair;
   pointer-events: stroke;
 }
 
