@@ -482,15 +482,9 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
   expect(draftX % 12).toBe(0);
   expect(draftY % 12).toBe(0);
 
-  const endBox = await draftEnd.boundingBox();
-  if (!endBox) throw new Error("missing draft wire node geometry");
-
-  await page.mouse.move(
-    endBox.x + endBox.width / 2,
-    endBox.y + endBox.height / 2,
-  );
+  await draftEnd.hover();
   await page.mouse.down();
-  await page.mouse.move(toX, toY, { steps: 8 });
+  await to.hover();
   await page.mouse.up();
 
   await expect(page.getByTestId("draft-wire-end")).toHaveCount(0);
