@@ -5,32 +5,127 @@
   "description": "SEL=0이면 A를, SEL=1이면 B를 출력하는 2:1 MUX를 만드세요.",
   "interface": {
     "inputs": [
-      { "id": "a", "name": "A", "width": 1 },
-      { "id": "b", "name": "B", "width": 1 },
-      { "id": "sel", "name": "SEL", "width": 1 }
+      {
+        "id": "a",
+        "name": "A",
+        "width": 1
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 1
+      },
+      {
+        "id": "sel",
+        "name": "SEL",
+        "width": 1
+      }
     ],
-    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 1
+      }
+    ]
   },
-  "allowedComponents": ["user.not", "user.and", "user.or"],
+  "allowedComponents": [
+    "user.not",
+    "user.and",
+    "user.or"
+  ],
   "validators": [
     {
       "type": "truthTable",
       "visibility": "visible",
       "cases": [
-        { "in": { "a": 0, "b": 1, "sel": 0 }, "out": { "out": 0 } },
-        { "in": { "a": 0, "b": 1, "sel": 1 }, "out": { "out": 1 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 1,
+            "sel": 0
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 0,
+            "b": 1,
+            "sel": 1
+          },
+          "out": {
+            "out": 1
+          }
+        }
       ]
     },
     {
       "type": "truthTable",
       "visibility": "hidden",
       "cases": [
-        { "in": { "a": 1, "b": 0, "sel": 0 }, "out": { "out": 1 } },
-        { "in": { "a": 1, "b": 0, "sel": 1 }, "out": { "out": 0 } },
-        { "in": { "a": 1, "b": 1, "sel": 0 }, "out": { "out": 1 } },
-        { "in": { "a": 1, "b": 1, "sel": 1 }, "out": { "out": 1 } }
+        {
+          "in": {
+            "a": 1,
+            "b": 0,
+            "sel": 0
+          },
+          "out": {
+            "out": 1
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 0,
+            "sel": 1
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 1,
+            "sel": 0
+          },
+          "out": {
+            "out": 1
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 1,
+            "sel": 1
+          },
+          "out": {
+            "out": 1
+          }
+        }
       ]
     }
   ],
-  "unlocks": ["arithmetic.half-adder"]
+  "unlocks": [
+    "arithmetic.half-adder"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "SEL이 어떤 경로를 열지 결정",
+      "body": "SEL=0일 때는 A 경로만 열리고, SEL=1일 때는 B 경로만 열리게 만들면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "두 선택 경로",
+      "body": "A는 NOT SEL과 AND하고, B는 SEL과 AND한 뒤 두 결과를 OR로 합쳐보세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "A·SEL̅ 경로와 B·SEL 경로를 두 AND로 만들고, 두 AND 출력을 OR에 연결해 OUT을 만드세요."
+    }
+  ]
 }
