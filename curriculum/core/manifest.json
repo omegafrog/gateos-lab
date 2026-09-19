@@ -1,0 +1,14 @@
+{
+  "schema": "gateos.curriculum/v1",
+  "id": "core.logic-v0",
+  "title": "From NAND to Full Adder",
+  "challenges": [
+    "logic.not",
+    "logic.and",
+    "logic.or",
+    "logic.xor",
+    "routing.mux2",
+    "arithmetic.half-adder",
+    "arithmetic.full-adder"
+  ]
+}
