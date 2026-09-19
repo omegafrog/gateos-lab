@@ -1,0 +1,24 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "logic.not",
+  "title": "NOT",
+  "description": "NAND 하나를 이용해 입력을 반전하는 NOT 게이트를 만드세요.",
+  "interface": {
+    "inputs": [{ "id": "in", "name": "IN", "width": 1 }],
+    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+  },
+  "allowedComponents": ["builtin.nand"],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [{ "in": { "in": 0 }, "out": { "out": 1 } }]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [{ "in": { "in": 1 }, "out": { "out": 0 } }]
+    }
+  ],
+  "unlocks": ["logic.and"]
+}
