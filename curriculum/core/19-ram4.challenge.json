@@ -1,0 +1,325 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "memory.ram4",
+  "title": "RAM4 — 4 words × 4 bits",
+  "description": "4개의 4-bit Register를 사용해 4-word RAM을 만드세요. ADDR가 읽을 word를 선택하고, LOAD=1인 rising edge에서는 선택된 word 하나에만 D를 저장해야 합니다. 읽기는 ADDR 변경에 따라 즉시 바뀝니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "d",
+        "name": "D",
+        "width": 4
+      },
+      {
+        "id": "addr",
+        "name": "ADDR",
+        "width": 2
+      },
+      {
+        "id": "load",
+        "name": "LOAD",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "q",
+        "name": "Q",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split2",
+    "user.decoder2to4",
+    "user.and",
+    "user.register4",
+    "user.mux4"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "d": 3,
+            "addr": 0,
+            "load": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 5,
+            "addr": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 10,
+            "addr": 2
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 12,
+            "addr": 3
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "addr": 0
+          }
+        },
+        {
+          "expect": {
+            "q": 3
+          }
+        },
+        {
+          "set": {
+            "addr": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 5
+          }
+        },
+        {
+          "set": {
+            "addr": 2
+          }
+        },
+        {
+          "expect": {
+            "q": 10
+          }
+        },
+        {
+          "set": {
+            "addr": 3
+          }
+        },
+        {
+          "expect": {
+            "q": 12
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "d": 1,
+            "addr": 0,
+            "load": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 7,
+            "addr": 2
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 9,
+            "addr": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "addr": 0
+          }
+        },
+        {
+          "expect": {
+            "q": 9
+          }
+        },
+        {
+          "set": {
+            "addr": 2
+          }
+        },
+        {
+          "expect": {
+            "q": 7
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 14
+      }
+    }
+  ],
+  "unlocks": [
+    "memory.ram16"
+  ],
+  "referenceTables": [
+    {
+      "id": "memory-operation",
+      "title": "RAM4 읽기 / 쓰기 동작",
+      "description": "ADDR는 항상 읽을 word를 선택합니다. Write는 LOAD=1인 상승 에지에서 선택된 word 하나에만 발생합니다.",
+      "timing": "Read는 조합논리처럼 즉시 반영되고, Write는 상승 에지(rising edge)에서만 저장됩니다.",
+      "columns": [
+        {
+          "id": "load",
+          "label": "LOAD",
+          "group": "input"
+        },
+        {
+          "id": "addr",
+          "label": "ADDR",
+          "group": "input"
+        },
+        {
+          "id": "edge",
+          "label": "CLK",
+          "group": "input"
+        },
+        {
+          "id": "action",
+          "label": "동작",
+          "group": "note"
+        },
+        {
+          "id": "q",
+          "label": "Q",
+          "group": "output"
+        }
+      ],
+      "rows": [
+        {
+          "load": "0",
+          "addr": "aa",
+          "edge": "—",
+          "action": "Read only",
+          "q": "RAM[aa]"
+        },
+        {
+          "load": "1",
+          "addr": "aa",
+          "edge": "↑",
+          "action": "RAM[aa] ← D",
+          "q": "RAM[aa]"
+        },
+        {
+          "load": "1",
+          "addr": "aa",
+          "edge": "↑ 없음",
+          "action": "저장 안 함",
+          "q": "RAM[aa]"
+        }
+      ],
+      "notes": [
+        "Decoder의 one-hot 출력으로 네 Register 중 하나의 LOAD만 활성화합니다.",
+        "읽기 경로는 네 Register의 Q 중 ADDR가 고른 하나를 MUX tree로 선택합니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "Write 선택과 Read 선택은 별도입니다",
+      "body": "Decoder는 어느 Register에 쓸지를 정하고, MUX tree는 어느 Register를 읽을지를 정합니다."
+    },
+    {
+      "level": 2,
+      "title": "네 Register에 D와 CLK는 공통",
+      "body": "D와 CLK는 Register4 네 개에 모두 연결하되, LOAD만 Decoder 출력과 외부 LOAD를 AND해서 각각 따로 만드세요. 읽기는 MUX4 세 개를 2단 tree로 구성합니다."
+    },
+    {
+      "level": 3,
+      "title": "구체적인 구조",
+      "body": "ADDR→Decoder2to4, LOAD·Y0~Y3→REG0~3.LOAD, D/CLK→모든 REG. Q0/Q1을 ADDR.B0로 MUX, Q2/Q3도 ADDR.B0로 MUX한 뒤 두 결과를 ADDR.B1로 마지막 MUX에서 선택해 Q로 연결하세요."
+    }
+  ]
+}
