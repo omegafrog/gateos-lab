@@ -4,12 +4,12 @@ import {
   ComponentRegistry,
   createBuiltinComponentRegistry,
   type CircuitDefinition,
-} from "../packages/circuit-model/src/index.js";
-import { compileCircuit } from "../packages/circuit-compiler/src/index.js";
+} from "@gateos/circuit-model";
+import { compileCircuit } from "@gateos/circuit-compiler";
 import {
   createBuiltinPrimitiveRegistry,
   Simulator,
-} from "../packages/sim-core/src/index.js";
+} from "@gateos/sim-core";
 
 const notCircuit: CircuitDefinition = {
   schema: "gateos.circuit/v1",
