@@ -11,6 +11,18 @@ async function connect(
   await page.mouse.up();
 }
 
+async function openCurriculum(page: Page): Promise<void> {
+  const toggle = page.getByTestId("curriculum-toggle");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+}
+
+async function selectChallenge(page: Page, id: string): Promise<void> {
+  await openCurriculum(page);
+  await page.getByTestId(`challenge-${id}`).click();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -20,6 +32,12 @@ test.beforeEach(async ({ page }) => {
 test("curriculum is split into stage pages instead of one long list", async ({
   page,
 }) => {
+  await expect(page.getByTestId("curriculum-toggle")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(page.getByTestId("palette-builtin.nand")).toBeVisible();
+  await openCurriculum(page);
   await expect(page.getByTestId("stage-title")).toHaveText("Logic Foundations");
   await expect(page.getByTestId("stage-challenge-list").locator(".challenge-item")).toHaveCount(7);
 
@@ -61,6 +79,7 @@ test("builds NOT, verifies it, publishes it, and persists progression", async ({
   await expect(page.getByTestId("publish-chip")).toBeEnabled();
   await page.getByTestId("publish-chip").click();
 
+  await openCurriculum(page);
   const andChallenge = page.getByTestId("challenge-logic.and");
   await expect(andChallenge).toBeEnabled();
   await andChallenge.click();
@@ -69,6 +88,7 @@ test("builds NOT, verifies it, publishes it, and persists progression", async ({
 
   await page.reload();
 
+  await openCurriculum(page);
   await expect(page.getByTestId("challenge-logic.and")).toBeEnabled();
   await page.getByTestId("challenge-logic.and").click();
   await expect(page.getByTestId("palette-user.not")).toBeVisible();
@@ -180,7 +200,7 @@ test("state-circuit inputs are staged until Apply inputs", async ({ page }) => {
   });
   await page.reload();
 
-  await page.getByTestId("challenge-state.sr-latch").click();
+  await selectChallenge(page, "state.sr-latch");
 
   const summary = page.getByTestId("applied-input-summary");
   await expect(summary).toContainText("S̅=1");
@@ -340,7 +360,7 @@ test("OR XOR and MUX use dedicated compact symbols", async ({ page }) => {
   });
 
   await page.reload();
-  await page.getByTestId("challenge-arithmetic.half-adder").click();
+  await selectChallenge(page, "arithmetic.half-adder");
 
   await expect(page.locator('[data-component-id="user.or"]')).toHaveAttribute(
     "data-symbol-kind",
@@ -769,6 +789,7 @@ test("challenge 11 completion unlocks the multi-bit curriculum slice", async ({
   });
   await page.reload();
 
+  await openCurriculum(page);
   await expect(page.getByTestId("stage-title")).toHaveText(
     "Multi-bit Building Blocks",
   );
@@ -783,6 +804,7 @@ test("challenge 11 completion unlocks the multi-bit curriculum slice", async ({
   await expect(page.getByTestId("palette-builtin.split4")).toBeVisible();
   await expect(page.getByTestId("palette-builtin.join4")).toBeVisible();
 
+  await openCurriculum(page);
   await expect(
     page.getByTestId("challenge-state.program-counter4"),
   ).toBeVisible();
