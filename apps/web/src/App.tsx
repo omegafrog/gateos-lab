@@ -1588,7 +1588,11 @@ export function App() {
     setWireHoverTarget(null);
   }
 
-  function finishWireConnection(endpoint: CircuitEndpoint): void {
+  function finishWireConnection(
+    endpoint: CircuitEndpoint,
+    clientX?: number,
+    clientY?: number,
+  ): void {
     if (
       !challenge ||
       !circuit ||
@@ -1602,6 +1606,25 @@ export function App() {
     if (!activePendingPin) return;
 
     if (endpointKey(activePendingPin) === endpointKey(endpoint)) {
+      if (
+        clientX !== undefined &&
+        clientY !== undefined &&
+        displayCircuit
+      ) {
+        const start = getEndpointPoint(
+          activePendingPin,
+          displayCircuit,
+          registry,
+        );
+        const drop = snapPoint(
+          clientToCanvasPoint(clientX, clientY),
+        );
+        if (drop.x !== start.x || drop.y !== start.y) {
+          placeDraftWireNode(clientX, clientY);
+          return;
+        }
+      }
+
       clearPendingWireGesture();
       return;
     }
@@ -2986,7 +3009,11 @@ export function App() {
                 : null;
 
               if (targetEndpoint) {
-                finishWireConnection(targetEndpoint);
+                finishWireConnection(
+                  targetEndpoint,
+                  event.clientX,
+                  event.clientY,
+                );
               } else {
                 placeDraftWireNode(event.clientX, event.clientY);
               }
@@ -3296,7 +3323,11 @@ export function App() {
                     }}
                     onPointerUp={(event) => {
                       event.stopPropagation();
-                      finishWireConnection(endpoint);
+                      finishWireConnection(
+                        endpoint,
+                        event.clientX,
+                        event.clientY,
+                      );
                     }}
                   />
                 </g>
@@ -3418,7 +3449,11 @@ export function App() {
                     }}
                     onPointerUp={(event) => {
                       event.stopPropagation();
-                      finishWireConnection(endpoint);
+                      finishWireConnection(
+                        endpoint,
+                        event.clientX,
+                        event.clientY,
+                      );
                     }}
                   />
                 </g>
@@ -3778,7 +3813,11 @@ export function App() {
                           }}
                           onPointerUp={(event) => {
                             event.stopPropagation();
-                            finishWireConnection(endpoint);
+                            finishWireConnection(
+                        endpoint,
+                        event.clientX,
+                        event.clientY,
+                      );
                           }}
                           aria-label={`${componentDisplayName(spec)} input ${pin.name}`}
                           data-pin-direction="input"
@@ -3834,7 +3873,11 @@ export function App() {
                           }}
                           onPointerUp={(event) => {
                             event.stopPropagation();
-                            finishWireConnection(endpoint);
+                            finishWireConnection(
+                        endpoint,
+                        event.clientX,
+                        event.clientY,
+                      );
                           }}
                           aria-label={`${componentDisplayName(spec)} output ${pin.name}`}
                           data-pin-direction="output"
