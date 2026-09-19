@@ -1727,6 +1727,8 @@ export function App() {
                         ? "pin pending"
                         : "pin"
                     }
+                    data-testid={`pin-interface-${pin.id}`}
+                    data-pin-id={pin.id}
                     cx={point.x}
                     cy={point.y}
                     r="8"
