@@ -128,12 +128,12 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "D Flip-Flop state table",
-      "description": "Unlike a latch, the DFF samples D only when CLK transitions from 0 to 1.",
+      "title": "D Flip-Flop 상태표",
+      "description": "D Flip-Flop은 CLK가 0→1로 바뀌는 상승 에지(rising edge)에서만 D를 샘플링합니다.",
       "columns": [
         {
           "id": "event",
-          "label": "CLK event",
+          "label": "CLK 이벤트",
           "group": "input"
         },
         {
@@ -143,17 +143,17 @@
         },
         {
           "id": "qt",
-          "label": "Q(before edge)",
+          "label": "Q(edge 전)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(after edge)",
+          "label": "Q(edge 후)",
           "group": "output"
         },
         {
           "id": "meaning",
-          "label": "Meaning",
+          "label": "의미",
           "group": "note"
         }
       ],
@@ -163,35 +163,35 @@
           "d": "0",
           "qt": "X",
           "qnext": "0",
-          "meaning": "Capture D"
+          "meaning": "D 저장 (Capture)"
         },
         {
           "event": "↑",
           "d": "1",
           "qt": "X",
           "qnext": "1",
-          "meaning": "Capture D"
+          "meaning": "D 저장 (Capture)"
         },
         {
-          "event": "no ↑",
+          "event": "↑ 없음",
           "d": "X",
           "qt": "0",
           "qnext": "0",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         },
         {
-          "event": "no ↑",
+          "event": "↑ 없음",
           "d": "X",
           "qt": "1",
           "qnext": "1",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         }
       ],
       "notes": [
-        "Only the rising edge samples D.",
-        "Changing D between rising edges must not change Q."
+        "D는 상승 에지(rising edge)에서만 샘플링됩니다.",
+        "상승 에지 사이에서 D가 바뀌어도 Q는 바뀌지 않아야 합니다."
       ],
-      "timing": "Edge-triggered — state changes only at the rising edge (↑)."
+      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서만 상태가 바뀝니다."
     }
   ]
 }
