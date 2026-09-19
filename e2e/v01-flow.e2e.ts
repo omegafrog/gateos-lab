@@ -692,3 +692,32 @@ test("saved pre-grid coordinates migrate onto the current hidden grid", async ({
   expect(Number(await routeNode.getAttribute("cx")) % 12).toBe(0);
   expect(Number(await routeNode.getAttribute("cy")) % 12).toBe(0);
 });
+
+test("challenge hints reveal progressively in exactly three stages", async ({
+  page,
+}) => {
+  const panel = page.getByTestId("hints-panel");
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId("hint-level-1")).toHaveCount(0);
+  await expect(page.getByTestId("hint-level-2")).toHaveCount(0);
+  await expect(page.getByTestId("hint-level-3")).toHaveCount(0);
+
+  const reveal = page.getByTestId("reveal-hint");
+  await expect(reveal).toHaveText("힌트 1단계 보기");
+
+  await reveal.click();
+  await expect(page.getByTestId("hint-level-1")).toBeVisible();
+  await expect(page.getByTestId("hint-level-2")).toHaveCount(0);
+  await expect(reveal).toHaveText("힌트 2단계 보기");
+
+  await reveal.click();
+  await expect(page.getByTestId("hint-level-2")).toBeVisible();
+  await expect(page.getByTestId("hint-level-3")).toHaveCount(0);
+  await expect(reveal).toHaveText("힌트 3단계 보기");
+
+  await reveal.click();
+  await expect(page.getByTestId("hint-level-3")).toBeVisible();
+  await expect(page.getByTestId("reveal-hint")).toHaveCount(0);
+  await expect(panel).toContainText("3단계까지 확인함");
+  await expect(panel).toContainText("NAND");
+});
