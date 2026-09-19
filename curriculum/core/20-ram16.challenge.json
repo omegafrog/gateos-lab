@@ -241,7 +241,9 @@
       }
     }
   ],
-  "unlocks": [],
+  "unlocks": [
+    "memory.ram64"
+  ],
   "referenceTables": [
     {
       "id": "address-hierarchy",
