@@ -1,0 +1,36 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "routing.mux2",
+  "title": "2-to-1 Multiplexer",
+  "description": "SEL=0이면 A를, SEL=1이면 B를 출력하는 2:1 MUX를 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "a", "name": "A", "width": 1 },
+      { "id": "b", "name": "B", "width": 1 },
+      { "id": "sel", "name": "SEL", "width": 1 }
+    ],
+    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+  },
+  "allowedComponents": ["user.not", "user.and", "user.or"],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        { "in": { "a": 0, "b": 1, "sel": 0 }, "out": { "out": 0 } },
+        { "in": { "a": 0, "b": 1, "sel": 1 }, "out": { "out": 1 } }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        { "in": { "a": 1, "b": 0, "sel": 0 }, "out": { "out": 1 } },
+        { "in": { "a": 1, "b": 0, "sel": 1 }, "out": { "out": 0 } },
+        { "in": { "a": 1, "b": 1, "sel": 0 }, "out": { "out": 1 } },
+        { "in": { "a": 1, "b": 1, "sel": 1 }, "out": { "out": 1 } }
+      ]
+    }
+  ],
+  "unlocks": ["arithmetic.half-adder"]
+}
