@@ -555,6 +555,7 @@ export function App() {
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
   const [wirePointer, setWirePointer] = useState<Point | null>(null);
   const [wireRoutePoints, setWireRoutePoints] = useState<Point[]>([]);
+  const [wireDragging, setWireDragging] = useState(false);
   const [wireHoverTarget, setWireHoverTarget] =
     useState<CircuitEndpoint | null>(null);
   const [wireNodeDrag, setWireNodeDrag] =
@@ -1157,6 +1158,7 @@ export function App() {
         setPendingPin(null);
         setWirePointer(null);
         setWireRoutePoints([]);
+        setWireDragging(false);
         setWireHoverTarget(null);
         setWireNodeDrag(null);
         setSelectedInstance(null);
@@ -1345,6 +1347,7 @@ export function App() {
       snapPoint(clientToCanvasPoint(event.clientX, event.clientY)),
     );
     setWireRoutePoints([]);
+    setWireDragging(true);
     setWireHoverTarget(null);
     setSelectedConnection(null);
     setSelectedInstance(null);
@@ -1353,12 +1356,21 @@ export function App() {
   }
 
   function finishWireConnection(endpoint: CircuitEndpoint): void {
-    if (!challenge || !circuit || !pendingPin || isInspectingNested) return;
+    if (
+      !challenge ||
+      !circuit ||
+      !pendingPin ||
+      !wireDragging ||
+      isInspectingNested
+    ) {
+      return;
+    }
 
     if (endpointKey(pendingPin) === endpointKey(endpoint)) {
       setPendingPin(null);
       setWirePointer(null);
       setWireRoutePoints([]);
+      setWireDragging(false);
       setWireHoverTarget(null);
       return;
     }
@@ -1383,6 +1395,7 @@ export function App() {
       setPendingPin(null);
       setWirePointer(null);
       setWireRoutePoints([]);
+      setWireDragging(false);
       setWireHoverTarget(null);
       return;
     }
@@ -1403,6 +1416,7 @@ export function App() {
       setPendingPin(null);
       setWirePointer(null);
       setWireRoutePoints([]);
+      setWireDragging(false);
       setWireHoverTarget(null);
       return;
     }
@@ -1435,6 +1449,7 @@ export function App() {
     setPendingPin(null);
     setWirePointer(null);
     setWireRoutePoints([]);
+    setWireDragging(false);
     setWireHoverTarget(null);
     setProjectError("");
   }
@@ -1748,6 +1763,18 @@ export function App() {
     setPendingPin(null);
   }
 
+  function resumeDraftWire(
+    event: ReactPointerEvent<SVGCircleElement>,
+  ): void {
+    if (!pendingPin || wireRoutePoints.length === 0 || testRunning) return;
+    event.stopPropagation();
+    event.preventDefault();
+    const last = wireRoutePoints[wireRoutePoints.length - 1];
+    setWirePointer(last);
+    setWireDragging(true);
+    setWireHoverTarget(null);
+  }
+
   function beginWireNodeDrag(
     event: ReactPointerEvent<SVGCircleElement>,
     connectionId: string,
@@ -1813,7 +1840,7 @@ export function App() {
 
     const point = canvasPoint(event);
 
-    if (pendingPin) {
+    if (pendingPin && wireDragging) {
       setWirePointer(snapPoint(point));
       return;
     }
@@ -2596,7 +2623,7 @@ export function App() {
               setWireNodeDrag(null);
               setPan(null);
 
-              if (pendingPin) {
+              if (pendingPin && wireDragging) {
                 const next = snapPoint(
                   clientToCanvasPoint(event.clientX, event.clientY),
                 );
@@ -2610,6 +2637,8 @@ export function App() {
                   setWireRoutePoints((current) => [...current, next]);
                 }
                 setWirePointer(next);
+                setWireDragging(false);
+                setWireHoverTarget(null);
               }
             }}
             onPointerLeave={() => {
@@ -2705,16 +2734,29 @@ export function App() {
             })}
 
             {pendingPin
-              ? wireRoutePoints.map((node, nodeIndex) => (
-                  <circle
-                    key={`draft-wire-node-${nodeIndex}`}
-                    className="wire-node draft"
-                    cx={node.x}
-                    cy={node.y}
-                    r="5"
-                    pointerEvents="none"
-                  />
-                ))
+              ? wireRoutePoints.map((node, nodeIndex) => {
+                  const isLast = nodeIndex === wireRoutePoints.length - 1;
+                  return (
+                    <circle
+                      key={`draft-wire-node-${nodeIndex}`}
+                      className={[
+                        "wire-node",
+                        "draft",
+                        isLast ? "wire-end" : "",
+                      ].join(" ")}
+                      data-testid={
+                        isLast ? "draft-wire-end" : undefined
+                      }
+                      cx={node.x}
+                      cy={node.y}
+                      r={isLast ? "7" : "5"}
+                      pointerEvents={isLast ? "all" : "none"}
+                      onPointerDown={
+                        isLast ? resumeDraftWire : undefined
+                      }
+                    />
+                  );
+                })
               : null}
 
             {pendingPin && wirePointer && displayCircuit ? (
@@ -2854,7 +2896,7 @@ export function App() {
                       beginWireConnection(event, endpoint)
                     }
                     onPointerEnter={() => {
-                      if (pendingPin) setWireHoverTarget(endpoint);
+                      if (pendingPin && wireDragging) setWireHoverTarget(endpoint);
                     }}
                     onPointerLeave={() => {
                       if (
@@ -2975,7 +3017,7 @@ export function App() {
                       beginWireConnection(event, endpoint)
                     }
                     onPointerEnter={() => {
-                      if (pendingPin) setWireHoverTarget(endpoint);
+                      if (pendingPin && wireDragging) setWireHoverTarget(endpoint);
                     }}
                     onPointerLeave={() => {
                       if (
@@ -3334,7 +3376,7 @@ export function App() {
                             beginWireConnection(event, endpoint)
                           }
                           onPointerEnter={() => {
-                            if (pendingPin) setWireHoverTarget(endpoint);
+                            if (pendingPin && wireDragging) setWireHoverTarget(endpoint);
                           }}
                           onPointerLeave={() => {
                             if (
@@ -3394,7 +3436,7 @@ export function App() {
                             beginWireConnection(event, endpoint)
                           }
                           onPointerEnter={() => {
-                            if (pendingPin) setWireHoverTarget(endpoint);
+                            if (pendingPin && wireDragging) setWireHoverTarget(endpoint);
                           }}
                           onPointerLeave={() => {
                             if (
@@ -3681,7 +3723,8 @@ export function App() {
             </p>
             {pendingPin ? (
               <p>
-                연결 중: <code>{endpointKey(pendingPin)}</code>
+                {wireDragging ? "Wire 드래그 중" : "Wire 끝 대기"}:{" "}
+                <code>{endpointKey(pendingPin)}</code>
                 {wireHoverTarget ? (
                   <> → <code>{endpointKey(wireHoverTarget)}</code></>
                 ) : null}
