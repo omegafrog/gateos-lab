@@ -3395,11 +3395,17 @@ export function App() {
               onPointerMove={moveDrag}
             />
             {(displayCircuit?.connections ?? []).map((connection) => {
-              const from = getEndpointPoint(
-                connection.from,
-                displayCircuit!,
-                registry,
-              );
+              if (wireEndpointMove?.connectionId === connection.id) {
+                return null;
+              }
+
+              const from = connection.branchStart
+                ? snapPoint(connection.branchStart)
+                : getEndpointPoint(
+                    connection.from,
+                    displayCircuit!,
+                    registry,
+                  );
               const to = getEndpointPoint(
                 connection.to,
                 displayCircuit!,
@@ -3443,7 +3449,7 @@ export function App() {
                     )}
                     onClick={(event) => {
                       event.stopPropagation();
-                      addWireRouteNode(
+                      beginWireBranch(
                         connection.id,
                         event.clientX,
                         event.clientY,
@@ -3453,24 +3459,18 @@ export function App() {
                   {(connection.route ?? []).map((node, nodeIndex) => (
                     <circle
                       key={`${connection.id}-node-${nodeIndex}`}
-                      className={[
-                        "wire-node",
-                        selectedConnection === connection.id ? "selected" : "",
-                      ].join(" ")}
+                      className="wire-node wire-junction"
                       data-testid={`wire-node-${connection.id}-${nodeIndex}`}
                       cx={node.x}
                       cy={node.y}
                       r="5"
-                      onPointerDown={(event) =>
-                        beginWireNodeDrag(
-                          event,
-                          connection.id,
-                          nodeIndex,
-                        )
-                      }
                       onClick={(event) => {
                         event.stopPropagation();
-                        setSelectedConnection(connection.id);
+                        beginWireBranch(
+                          connection.id,
+                          event.clientX,
+                          event.clientY,
+                        );
                       }}
                     />
                   ))}
@@ -3504,6 +3504,21 @@ export function App() {
                 })
               : null}
 
+            {pendingPin &&
+            wireRoutePoints.length === 0 &&
+            wireDraftStart &&
+            !wireDragging ? (
+              <circle
+                className="wire-node draft wire-end"
+                data-testid="draft-wire-end"
+                cx={wireDraftStart.x}
+                cy={wireDraftStart.y}
+                r="7"
+                pointerEvents="all"
+                onPointerDown={resumeDraftWire}
+              />
+            ) : null}
+
             {pendingPin && wirePointer && displayCircuit ? (
               <path
                 className={[
@@ -3511,7 +3526,8 @@ export function App() {
                   wireDragging ? "wire-preview" : "wire-draft-placed",
                 ].join(" ")}
                 d={wirePath([
-                  getEndpointPoint(pendingPin, displayCircuit, registry),
+                  wireDraftStart ??
+                    getEndpointPoint(pendingPin, displayCircuit, registry),
                   ...wireRoutePoints,
                   wirePointer,
                 ])}
