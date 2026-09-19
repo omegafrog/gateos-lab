@@ -1,0 +1,348 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "cpu.alu-datapath4",
+  "title": "Register → ALU → Register Datapath",
+  "description": "Register File의 두 read port를 ALU에 연결하고, ALU 결과를 다시 Register File에 write-back하는 4-bit datapath를 만드세요. LOAD는 외부 DATA를 저장하고 EXEC는 ALU 결과를 저장합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "data",
+        "name": "DATA",
+        "width": 4
+      },
+      {
+        "id": "waddr",
+        "name": "WADDR",
+        "width": 2
+      },
+      {
+        "id": "ra",
+        "name": "RA",
+        "width": 2
+      },
+      {
+        "id": "rb",
+        "name": "RB",
+        "width": 2
+      },
+      {
+        "id": "op",
+        "name": "OP",
+        "width": 2
+      },
+      {
+        "id": "load",
+        "name": "LOAD",
+        "width": 1
+      },
+      {
+        "id": "exec",
+        "name": "EXEC",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a",
+        "name": "A",
+        "width": 4
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 4
+      },
+      {
+        "id": "result",
+        "name": "RESULT",
+        "width": 4
+      },
+      {
+        "id": "zero",
+        "name": "ZERO",
+        "width": 1
+      }
+    ]
+  },
+  "allowedComponents": [
+    "user.register-file4",
+    "user.alu4",
+    "user.mux4",
+    "user.or"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "data": 3,
+            "waddr": 0,
+            "ra": 0,
+            "rb": 0,
+            "op": 3,
+            "load": 1,
+            "exec": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "data": 5,
+            "waddr": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "ra": 0,
+            "rb": 1,
+            "waddr": 2,
+            "op": 3
+          }
+        },
+        {
+          "expect": {
+            "a": 3,
+            "b": 5,
+            "result": 8,
+            "zero": 0
+          }
+        },
+        {
+          "set": {
+            "exec": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0,
+            "exec": 0
+          }
+        },
+        {
+          "set": {
+            "ra": 2,
+            "rb": 2,
+            "op": 2
+          }
+        },
+        {
+          "expect": {
+            "a": 8,
+            "b": 8,
+            "result": 0,
+            "zero": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "data": 10,
+            "waddr": 0,
+            "ra": 0,
+            "rb": 0,
+            "op": 0,
+            "load": 1,
+            "exec": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "data": 12,
+            "waddr": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "ra": 0,
+            "rb": 1,
+            "waddr": 3,
+            "op": 0
+          }
+        },
+        {
+          "expect": {
+            "result": 8,
+            "zero": 0
+          }
+        },
+        {
+          "set": {
+            "exec": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0,
+            "exec": 0
+          }
+        },
+        {
+          "set": {
+            "ra": 3,
+            "rb": 3,
+            "op": 2
+          }
+        },
+        {
+          "expect": {
+            "a": 8,
+            "b": 8,
+            "result": 0,
+            "zero": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 4
+      }
+    }
+  ],
+  "unlocks": [],
+  "referenceTables": [
+    {
+      "id": "datapath-control",
+      "title": "Datapath write-back 제어",
+      "description": "Register File의 두 출력은 항상 ALU 입력으로 연결되고, write-back source만 LOAD/EXEC에 따라 달라집니다.",
+      "timing": "LOAD 또는 EXEC가 1인 rising edge에서 WADDR Register가 갱신됩니다.",
+      "columns": [
+        {
+          "id": "load",
+          "label": "LOAD",
+          "group": "input"
+        },
+        {
+          "id": "exec",
+          "label": "EXEC",
+          "group": "input"
+        },
+        {
+          "id": "writeData",
+          "label": "RF.D",
+          "group": "state"
+        },
+        {
+          "id": "we",
+          "label": "RF.WE",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "동작",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "load": "0",
+          "exec": "0",
+          "writeData": "—",
+          "we": "0",
+          "meaning": "Register 유지"
+        },
+        {
+          "load": "1",
+          "exec": "0",
+          "writeData": "DATA",
+          "we": "1",
+          "meaning": "외부 값 load"
+        },
+        {
+          "load": "—",
+          "exec": "1",
+          "writeData": "ALU.OUT",
+          "we": "1",
+          "meaning": "ALU 결과 write-back"
+        }
+      ],
+      "notes": [
+        "EXEC=1이면 ALU 결과를 선택하도록 구성하면 EXEC가 LOAD보다 높은 우선순위를 갖습니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "CPU datapath의 핵심 고리",
+      "body": "Register File에서 두 값을 읽고 ALU가 계산한 결과를 다시 Register File에 쓰는 순환 경로가 CPU datapath의 중심입니다."
+    },
+    {
+      "level": 2,
+      "title": "read → execute → write-back",
+      "body": "RF.QA/QB를 ALU.A/B로 연결하고 ALU.OUT을 write-back MUX에 넣으세요. 외부 DATA는 load용 다른 입력입니다."
+    },
+    {
+      "level": 3,
+      "title": "구체적인 연결",
+      "body": "RF.RADDR_A=RA, RADDR_B=RB, WADDR=WADDR, QA/QB→ALU.A/B, OP→ALU.OP. MUX(A=DATA,B=ALU.OUT,SEL=EXEC)→RF.D, OR(LOAD,EXEC)→RF.WE, ALU.OUT/ZERO와 RF.QA/QB를 출력에 연결하세요."
+    }
+  ]
+}
