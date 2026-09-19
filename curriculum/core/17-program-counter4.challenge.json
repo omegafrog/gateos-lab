@@ -1,0 +1,347 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "state.program-counter4",
+  "title": "4-bit Program Counter",
+  "description": "RESET, LOAD, INC를 지원하는 4-bit Program Counter를 만드세요. 우선순위는 RESET > LOAD > INC > HOLD이며 rising edge에서만 Q가 바뀝니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "d",
+        "name": "D",
+        "width": 4
+      },
+      {
+        "id": "load",
+        "name": "LOAD",
+        "width": 1
+      },
+      {
+        "id": "inc",
+        "name": "INC",
+        "width": 1
+      },
+      {
+        "id": "reset",
+        "name": "RESET",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "q",
+        "name": "Q",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "user.register4",
+    "user.incrementer4",
+    "user.mux4",
+    "builtin.const4.zero",
+    "builtin.const1.one"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "d": 0,
+            "load": 0,
+            "inc": 0,
+            "reset": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "reset": 0,
+            "inc": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "inc": 0,
+            "load": 1,
+            "d": 9
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 9
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 9
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "inc": 1,
+            "load": 1,
+            "d": 4
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 4
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "reset": 1,
+            "inc": 1,
+            "load": 1,
+            "d": 7
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "d": 0,
+            "load": 0,
+            "inc": 0,
+            "reset": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "reset": 0,
+            "load": 1,
+            "d": 15
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 15
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "inc": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 7
+      }
+    }
+  ],
+  "unlocks": [],
+  "referenceTables": [
+    {
+      "id": "priority",
+      "title": "Program Counter 상태 전이표",
+      "description": "Program Counter는 여러 제어 신호 중 우선순위가 높은 동작 하나를 선택해 다음 Q를 결정합니다.",
+      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서 RESET > LOAD > INC > HOLD 우선순위로 동작합니다.",
+      "columns": [
+        {
+          "id": "reset",
+          "label": "RESET",
+          "group": "input"
+        },
+        {
+          "id": "load",
+          "label": "LOAD",
+          "group": "input"
+        },
+        {
+          "id": "inc",
+          "label": "INC",
+          "group": "input"
+        },
+        {
+          "id": "qnext",
+          "label": "Q(edge 후)",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "의미",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "reset": "1",
+          "load": "—",
+          "inc": "—",
+          "qnext": "0000",
+          "meaning": "Reset"
+        },
+        {
+          "reset": "0",
+          "load": "1",
+          "inc": "—",
+          "qnext": "D",
+          "meaning": "Load"
+        },
+        {
+          "reset": "0",
+          "load": "0",
+          "inc": "1",
+          "qnext": "Q + 1",
+          "meaning": "Increment"
+        },
+        {
+          "reset": "0",
+          "load": "0",
+          "inc": "0",
+          "qnext": "Q",
+          "meaning": "Hold"
+        }
+      ],
+      "notes": [
+        "RESET과 LOAD가 동시에 1이면 RESET이 우선합니다.",
+        "LOAD와 INC가 동시에 1이면 LOAD가 우선합니다.",
+        "1111에서 INC하면 0000으로 wrap됩니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "PC는 제어 가능한 next-state 선택기입니다",
+      "body": "현재 Q를 유지할지, Q+1을 저장할지, 외부 D를 load할지, 0000으로 reset할지를 먼저 조합논리로 선택하고 그 결과를 Register에 저장하세요."
+    },
+    {
+      "level": 2,
+      "title": "우선순위를 MUX 단계로 표현",
+      "body": "Q/ Q+1을 INC로 선택하고, 그 결과/D를 LOAD로 선택하고, 마지막으로 그 결과/0000을 RESET으로 선택하면 RESET > LOAD > INC 우선순위가 됩니다."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "M1(A=Q,B=Q+1,SEL=INC), M2(A=M1.OUT,B=D,SEL=LOAD), M3(A=M2.OUT,B=0000,SEL=RESET), Register4.D=M3.OUT 순서로 연결하세요. Register4.LOAD=Const 1, CLK=외부 CLK입니다."
+    }
+  ]
+}
