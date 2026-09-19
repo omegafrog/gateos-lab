@@ -170,4 +170,4 @@ CPU 제작.
 
 ## Status
 
-현재 v0.1의 playable combinational-logic slice가 구현 중이다. NAND에서 시작해 NOT, AND, OR, XOR, MUX, Half Adder, Full Adder 과제를 브라우저에서 진행할 수 있으며 이후 sequential logic, memory, CPU, computer, boot, OS 단계로 확장한다.
+현재 guided curriculum은 NAND에서 시작해 NOT, AND, OR, XOR, MUX, Half/Full Adder, Latch/Flip-Flop, Enable Register를 거쳐 4-bit MUX, Ripple Carry Adder, Incrementer, 4-bit Register, Counter, Program Counter까지 브라우저에서 진행할 수 있다. 다음 단계는 작은 RAM과 memory hierarchy이며, 이후 CPU, computer, boot, OS 단계로 확장한다.
