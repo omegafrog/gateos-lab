@@ -1871,6 +1871,10 @@ export function App() {
     setSelectedInstances([]);
     setSelectedConnection(null);
     setPendingPin(null);
+    setWirePointer(null);
+    setWireRoutePoints([]);
+    setWireDragging(false);
+    setWireHoverTarget(null);
   }
 
   function resumeDraftWire(
@@ -2734,7 +2738,7 @@ export function App() {
               setWireNodeDrag(null);
               setPan(null);
 
-              if (pendingPin && wireDragging) {
+              if (pendingPin && wireDragging && event.button === 0) {
                 const next = snapPoint(
                   clientToCanvasPoint(event.clientX, event.clientY),
                 );
@@ -2875,7 +2879,10 @@ export function App() {
 
             {pendingPin && wirePointer && displayCircuit ? (
               <path
-                className="wire wire-preview"
+                className={[
+                  "wire",
+                  wireDragging ? "wire-preview" : "wire-draft-placed",
+                ].join(" ")}
                 d={wirePath([
                   getEndpointPoint(pendingPin, displayCircuit, registry),
                   ...wireRoutePoints,
