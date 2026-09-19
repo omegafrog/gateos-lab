@@ -35,6 +35,8 @@ button:disabled {
 
 .topbar {
   grid-column: 1 / -1;
+  position: relative;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -67,6 +69,100 @@ button:disabled {
 
 .topbar .muted {
   color: #aeb6c4;
+}
+
+.curriculum-toggle {
+  white-space: nowrap;
+}
+
+.curriculum-toggle[aria-expanded="true"] {
+  border-color: #7d8df0;
+  background: #eef0ff;
+  color: #27358f;
+}
+
+.curriculum-backdrop {
+  position: fixed;
+  inset: 52px 0 0;
+  z-index: 30;
+  background: rgb(21 25 34 / 0.26);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.curriculum-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.curriculum-drawer {
+  position: fixed;
+  top: 52px;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  width: min(380px, calc(100vw - 24px));
+  overflow: auto;
+  padding: 18px;
+  border-right: 1px solid #cfd5df;
+  background: #f8f9fb;
+  box-shadow: 16px 0 34px rgb(25 31 44 / 0.16);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform 180ms ease,
+    visibility 0s linear 180ms;
+}
+
+.curriculum-drawer.open {
+  transform: translateX(0);
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.curriculum-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.curriculum-drawer-header span {
+  display: block;
+  margin-bottom: 4px;
+  color: #7a8494;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.curriculum-drawer-header h2 {
+  margin: 0;
+  color: #30394a;
+  font-size: 18px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.curriculum-drawer-header button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #c8ced8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #495467;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.component-panel {
+  min-width: 0;
 }
 
 .sidebar {
@@ -1778,4 +1874,15 @@ button:disabled {
 .component-io-empty {
   margin: 0;
   padding: 8px 9px;
+}
+
+
+@media (max-width: 900px) {
+  .curriculum-drawer {
+    width: min(88vw, 380px);
+  }
+
+  .curriculum-backdrop {
+    background: rgb(21 25 34 / 0.38);
+  }
 }
