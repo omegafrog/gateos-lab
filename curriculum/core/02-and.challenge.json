@@ -1,0 +1,33 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "logic.and",
+  "title": "AND",
+  "description": "NAND와 이전 단계에서 만든 NOT을 조합해 AND 게이트를 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "a", "name": "A", "width": 1 },
+      { "id": "b", "name": "B", "width": 1 }
+    ],
+    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+  },
+  "allowedComponents": ["builtin.nand", "user.not"],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        { "in": { "a": 0, "b": 0 }, "out": { "out": 0 } },
+        { "in": { "a": 1, "b": 1 }, "out": { "out": 1 } }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        { "in": { "a": 0, "b": 1 }, "out": { "out": 0 } },
+        { "in": { "a": 1, "b": 0 }, "out": { "out": 0 } }
+      ]
+    }
+  ],
+  "unlocks": ["logic.or"]
+}
