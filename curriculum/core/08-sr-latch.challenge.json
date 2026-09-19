@@ -200,5 +200,22 @@
   "initialInputs": {
     "sbar": 1,
     "rbar": 1
-  }
+  },
+  "hints": [
+    {
+      "level": 1,
+      "title": "저장은 feedback에서 생깁니다",
+      "body": "SR Latch에는 Clock이 없습니다. 두 NAND의 출력이 서로의 입력으로 되먹임(feedback)되기 때문에 이전 상태가 유지됩니다."
+    },
+    {
+      "level": 2,
+      "title": "두 NAND를 교차 결합",
+      "body": "한 NAND가 Q를 만들고 다른 NAND가 Q̅를 만들도록 한 뒤, Q를 반대쪽 NAND 입력으로, Q̅도 반대쪽 NAND 입력으로 연결하세요."
+    },
+    {
+      "level": 3,
+      "title": "active-low 연결",
+      "body": "Q를 만드는 NAND에는 S̅와 Q̅를 넣고, Q̅를 만드는 NAND에는 R̅와 Q를 넣으세요. 두 NAND 출력은 각각 Q, Q̅에도 연결합니다."
+    }
+  ]
 }
