@@ -3662,14 +3662,9 @@ export function App() {
                             event.stopPropagation();
                             finishWireConnection(endpoint);
                           }}
+                          aria-label={`${componentDisplayName(spec)} input ${pin.name}`}
+                          data-pin-direction="input"
                         />
-                        <text
-                          x={point.x + 10}
-                          y={point.y + 3}
-                          className="compact-pin-name"
-                        >
-                          {pin.name}
-                        </text>
                       </g>
                     );
                   })}
@@ -3722,15 +3717,9 @@ export function App() {
                             event.stopPropagation();
                             finishWireConnection(endpoint);
                           }}
+                          aria-label={`${componentDisplayName(spec)} output ${pin.name}`}
+                          data-pin-direction="output"
                         />
-                        <text
-                          x={point.x - 10}
-                          y={point.y + 3}
-                          textAnchor="end"
-                          className="compact-pin-name"
-                        >
-                          {pin.name}
-                        </text>
                       </g>
                     );
                   })}
@@ -4113,33 +4102,85 @@ export function App() {
                   Delete
                 </button>
               </div>
-              <div className="component-pin-inspector">
-                {componentPins(spec).map((pin) => {
-                  const endpoint: CircuitEndpoint = {
-                    kind: "instance",
-                    instanceId: instance.id,
-                    pinId: pin.id,
-                  };
-                  const value =
-                    preview.signals[
-                      signalVertex(endpoint, inspection.prefix)
-                    ] ?? "X";
-
-                  return (
-                    <div key={pin.id}>
-                      <span>
-                        {pin.name}
-                        <small>
-                          {pin.direction} · {pin.width}b
-                        </small>
-                      </span>
-                      <code className={value.includes("X") ? "unknown-value" : ""}>
-                        {value}
-                      </code>
-                      <code>{signalHex(value)}</code>
+              <div
+                className="component-io-panel"
+                data-testid="component-io-panel"
+              >
+                {([
+                  {
+                    id: "inputs",
+                    title: "Inputs",
+                    pins: componentPins(spec).filter(
+                      (pin) =>
+                        pin.direction === "input" ||
+                        pin.direction === "inout",
+                    ),
+                  },
+                  {
+                    id: "outputs",
+                    title: "Outputs",
+                    pins: componentPins(spec).filter(
+                      (pin) =>
+                        pin.direction === "output" ||
+                        pin.direction === "inout",
+                    ),
+                  },
+                ] as const).map((group) => (
+                  <section
+                    key={group.id}
+                    className="component-io-group"
+                    data-testid={`component-io-${group.id}`}
+                  >
+                    <div className="component-io-group-header">
+                      <strong>{group.title}</strong>
+                      <span>{group.pins.length}</span>
                     </div>
-                  );
-                })}
+                    {group.pins.length === 0 ? (
+                      <p className="muted component-io-empty">없음</p>
+                    ) : (
+                      <div className="component-io-list">
+                        {group.pins.map((pin) => {
+                          const endpoint: CircuitEndpoint = {
+                            kind: "instance",
+                            instanceId: instance.id,
+                            pinId: pin.id,
+                          };
+                          const value =
+                            preview.signals[
+                              signalVertex(endpoint, inspection.prefix)
+                            ] ?? "X";
+
+                          return (
+                            <div
+                              key={pin.id}
+                              className="component-io-row"
+                              data-testid={`component-io-pin-${pin.id}`}
+                            >
+                              <div className="component-io-name">
+                                <strong>{pin.name}</strong>
+                                <small>
+                                  {pin.id} · {pin.width} bit
+                                </small>
+                              </div>
+                              <div className="component-io-value">
+                                <code
+                                  className={
+                                    value.includes("X")
+                                      ? "unknown-value"
+                                      : ""
+                                  }
+                                >
+                                  {value}
+                                </code>
+                                <small>{signalHex(value)}</small>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                ))}
               </div>
             </div>
           );
