@@ -1,0 +1,36 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "arithmetic.half-adder",
+  "title": "Half Adder",
+  "description": "두 1-bit 입력을 더해 SUM과 CARRY를 출력하는 Half Adder를 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "a", "name": "A", "width": 1 },
+      { "id": "b", "name": "B", "width": 1 }
+    ],
+    "outputs": [
+      { "id": "sum", "name": "SUM", "width": 1 },
+      { "id": "carry", "name": "CARRY", "width": 1 }
+    ]
+  },
+  "allowedComponents": ["user.xor", "user.and"],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        { "in": { "a": 0, "b": 0 }, "out": { "sum": 0, "carry": 0 } },
+        { "in": { "a": 1, "b": 1 }, "out": { "sum": 0, "carry": 1 } }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        { "in": { "a": 0, "b": 1 }, "out": { "sum": 1, "carry": 0 } },
+        { "in": { "a": 1, "b": 0 }, "out": { "sum": 1, "carry": 0 } }
+      ]
+    }
+  ],
+  "unlocks": ["arithmetic.full-adder"]
+}
