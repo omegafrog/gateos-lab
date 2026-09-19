@@ -1,0 +1,138 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "routing.mux4",
+  "title": "4-bit Multiplexer",
+  "description": "4-bit A와 B 중 하나를 SEL로 선택하는 4-bit MUX를 만드세요. Split4/Join4는 bus를 1-bit 선으로 나누고 다시 묶는 배선 도구이며, B0가 LSB입니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "a",
+        "name": "A",
+        "width": 4
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 4
+      },
+      {
+        "id": "sel",
+        "name": "SEL",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split4",
+    "builtin.join4",
+    "user.mux2"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "a": 0,
+            "b": 15,
+            "sel": 0
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 0,
+            "b": 15,
+            "sel": 1
+          },
+          "out": {
+            "out": 15
+          }
+        },
+        {
+          "in": {
+            "a": 10,
+            "b": 5,
+            "sel": 0
+          },
+          "out": {
+            "out": 10
+          }
+        },
+        {
+          "in": {
+            "a": 10,
+            "b": 5,
+            "sel": 1
+          },
+          "out": {
+            "out": 5
+          }
+        }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        {
+          "in": {
+            "a": 3,
+            "b": 12,
+            "sel": 0
+          },
+          "out": {
+            "out": 3
+          }
+        },
+        {
+          "in": {
+            "a": 3,
+            "b": 12,
+            "sel": 1
+          },
+          "out": {
+            "out": 12
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 7
+      }
+    }
+  ],
+  "unlocks": [
+    "arithmetic.adder4"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "bus는 여러 개의 1-bit 신호입니다",
+      "body": "4-bit MUX는 새로운 논리 원리가 아니라 1-bit MUX 네 개가 같은 SEL을 공유하는 구조라고 생각해보세요."
+    },
+    {
+      "level": 2,
+      "title": "각 bit를 따로 선택하기",
+      "body": "A와 B를 각각 Split4로 나눈 뒤 같은 번호의 bit끼리 2-to-1 MUX에 넣고, 네 MUX 출력은 Join4로 다시 묶으세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "A.B0/B.B0→MUX0, A.B1/B.B1→MUX1처럼 B0~B3를 각각 연결하고 모든 MUX의 SEL을 공통 SEL에 연결하세요. MUX0~3의 OUT을 Join4의 B0~B3에 연결하면 됩니다."
+    }
+  ]
+}
