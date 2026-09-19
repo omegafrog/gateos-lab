@@ -1903,7 +1903,7 @@ export function App() {
     };
   }
 
-  function canvasPoint(event: ReactPointerEvent<SVGSVGElement>): Point {
+  function canvasPoint(event: ReactPointerEvent<SVGElement>): Point {
     return clientToCanvasPoint(event.clientX, event.clientY);
   }
 
@@ -2069,7 +2069,7 @@ export function App() {
     setSelectedInstance(instanceId);
   }
 
-  function moveDrag(event: ReactPointerEvent<SVGSVGElement>): void {
+  function moveDrag(event: ReactPointerEvent<SVGElement>): void {
     const activePan = panGestureRef.current ?? pan;
     if (activePan) {
       const rect = svgRef.current?.getBoundingClientRect();
@@ -2938,8 +2938,7 @@ export function App() {
                 pendingWireRef.current ?? pendingPin;
               if (
                 activePendingWire &&
-                wireDraggingRef.current &&
-                event.button === 0
+                wireDraggingRef.current
               ) {
                 const next = snapPoint(
                   clientToCanvasPoint(event.clientX, event.clientY),
@@ -2988,6 +2987,7 @@ export function App() {
               pointerEvents="all"
               data-testid="canvas-pan-surface"
               onPointerDown={beginPan}
+              onPointerMove={moveDrag}
             />
             {(displayCircuit?.connections ?? []).map((connection) => {
               const from = getEndpointPoint(
