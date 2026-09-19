@@ -193,5 +193,22 @@
       ],
       "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서만 상태가 바뀝니다."
     }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "두 Latch가 번갈아 열려야 합니다",
+      "body": "rising edge D Flip-Flop은 master/slave D Latch 두 개가 서로 반대 Clock 레벨에서 열리도록 만든 구조입니다."
+    },
+    {
+      "level": 2,
+      "title": "Master는 CLK=0, Slave는 CLK=1",
+      "body": "CLK를 한 번 반전해 master의 ENABLE에 넣고, 원래 CLK는 slave의 ENABLE에 넣으세요. 그러면 상승 에지에서 값이 master에서 slave로 넘어갑니다."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "D→Master.D, NOT CLK→Master.ENABLE, Master.Q→Slave.D, CLK→Slave.ENABLE, Slave.Q→Q로 연결하세요."
+    }
   ]
 }
