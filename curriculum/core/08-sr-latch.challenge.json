@@ -1,0 +1,41 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "state.sr-latch",
+  "title": "SR Latch",
+  "description": "두 NAND의 출력을 서로 되먹임해 1 bit의 상태를 기억하는 active-low SR Latch를 만드세요. S̅=0은 Set, R̅=0은 Reset, 둘 다 1이면 이전 상태를 유지합니다.",
+  "interface": {
+    "inputs": [
+      { "id": "sbar", "name": "S̅", "width": 1 },
+      { "id": "rbar", "name": "R̅", "width": 1 }
+    ],
+    "outputs": [
+      { "id": "q", "name": "Q", "width": 1 },
+      { "id": "nq", "name": "Q̅", "width": 1 }
+    ]
+  },
+  "allowedComponents": ["builtin.nand"],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        { "set": { "sbar": 0, "rbar": 1 } },
+        { "expect": { "q": 1, "nq": 0 } },
+        { "set": { "sbar": 1, "rbar": 1 } },
+        { "expect": { "q": 1, "nq": 0 } },
+        { "set": { "sbar": 1, "rbar": 0 } },
+        { "expect": { "q": 0, "nq": 1 } },
+        { "set": { "sbar": 1, "rbar": 1 } },
+        { "expect": { "q": 0, "nq": 1 } }
+      ]
+    },
+    {
+      "type": "structural",
+      "rules": {
+        "allowed": ["builtin.nand"],
+        "maxComponents": 4
+      }
+    }
+  ],
+  "unlocks": ["state.d-latch"]
+}
