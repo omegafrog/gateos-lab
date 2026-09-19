@@ -1,0 +1,321 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "memory.ram16",
+  "title": "RAM16 — 16 words × 4 bits",
+  "description": "이전에 만든 RAM4 네 개를 계층적으로 묶어 16-word RAM을 만드세요. ADDR[1:0]은 bank 내부 word를, ADDR[3:2]는 네 RAM4 bank 중 하나를 선택합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "d",
+        "name": "D",
+        "width": 4
+      },
+      {
+        "id": "addr",
+        "name": "ADDR",
+        "width": 4
+      },
+      {
+        "id": "load",
+        "name": "LOAD",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "q",
+        "name": "Q",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split4",
+    "builtin.join2",
+    "user.decoder2to4",
+    "user.and",
+    "user.ram4",
+    "user.mux4"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "d": 2,
+            "addr": 0,
+            "load": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 6,
+            "addr": 3
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 9,
+            "addr": 4
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 15,
+            "addr": 15
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "addr": 0
+          }
+        },
+        {
+          "expect": {
+            "q": 2
+          }
+        },
+        {
+          "set": {
+            "addr": 3
+          }
+        },
+        {
+          "expect": {
+            "q": 6
+          }
+        },
+        {
+          "set": {
+            "addr": 4
+          }
+        },
+        {
+          "expect": {
+            "q": 9
+          }
+        },
+        {
+          "set": {
+            "addr": 15
+          }
+        },
+        {
+          "expect": {
+            "q": 15
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "d": 4,
+            "addr": 7,
+            "load": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 11,
+            "addr": 12
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 1,
+            "addr": 7
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "addr": 7
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "addr": 12
+          }
+        },
+        {
+          "expect": {
+            "q": 11
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 16
+      }
+    }
+  ],
+  "unlocks": [],
+  "referenceTables": [
+    {
+      "id": "address-hierarchy",
+      "title": "RAM16 주소 계층",
+      "description": "4-bit 주소를 상위 2-bit bank 선택과 하위 2-bit word 선택으로 나눕니다.",
+      "columns": [
+        {
+          "id": "addr",
+          "label": "ADDR[3:0]",
+          "group": "input"
+        },
+        {
+          "id": "bank",
+          "label": "ADDR[3:2]",
+          "group": "state"
+        },
+        {
+          "id": "word",
+          "label": "ADDR[1:0]",
+          "group": "state"
+        },
+        {
+          "id": "meaning",
+          "label": "선택 위치",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "addr": "00ww",
+          "bank": "00",
+          "word": "ww",
+          "meaning": "RAM4 bank 0의 word ww"
+        },
+        {
+          "addr": "01ww",
+          "bank": "01",
+          "word": "ww",
+          "meaning": "RAM4 bank 1의 word ww"
+        },
+        {
+          "addr": "10ww",
+          "bank": "10",
+          "word": "ww",
+          "meaning": "RAM4 bank 2의 word ww"
+        },
+        {
+          "addr": "11ww",
+          "bank": "11",
+          "word": "ww",
+          "meaning": "RAM4 bank 3의 word ww"
+        }
+      ],
+      "notes": [
+        "Split4로 ADDR를 B0~B3로 나눈 뒤 Join2 두 개로 low/high address를 만듭니다.",
+        "RAM16도 저장 원리는 새롭지 않습니다. RAM4를 한 단계 더 계층적으로 조합한 것입니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "주소를 bank와 word로 나누세요",
+      "body": "16개 위치를 한 번에 생각하지 말고, RAM4 네 개 × 각 4개 word로 생각하세요. 하위 2-bit는 bank 내부 주소이고 상위 2-bit는 bank 번호입니다."
+    },
+    {
+      "level": 2,
+      "title": "Write는 bank 하나만, Read는 bank 하나를 선택",
+      "body": "상위 주소를 Decoder2to4에 넣어 LOAD를 bank별로 gate하고, 하위 주소는 RAM4 네 개에 공통으로 넣으세요. 네 RAM4 출력은 MUX4 세 개로 선택합니다."
+    },
+    {
+      "level": 3,
+      "title": "구체적인 연결",
+      "body": "ADDR B0/B1→Join2 LOW→모든 RAM4.ADDR, B2/B3→Join2 HIGH→Decoder. LOAD·Y0~Y3→RAM4 0~3 LOAD, D/CLK는 공통. 출력은 bank0/1을 B2로, bank2/3을 B2로 선택한 뒤 두 결과를 B3로 최종 선택하세요."
+    }
+  ]
+}
