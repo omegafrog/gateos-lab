@@ -75,6 +75,11 @@ interface WireEndpointMoveState {
   end: "from" | "to";
 }
 
+interface WireNodeMoveState {
+  connectionId: string;
+  nodeIndex: number;
+}
+
 interface PanState {
   clientX: number;
   clientY: number;
@@ -800,6 +805,7 @@ export function App() {
   const wireDraftStartRef = useRef<Point | null>(null);
   const pendingBranchStartRef = useRef<Point | null>(null);
   const wireEndpointMoveRef = useRef<WireEndpointMoveState | null>(null);
+  const wireNodeMoveRef = useRef<WireNodeMoveState | null>(null);
 
   useEffect(() => {
     async function loadCurriculum() {
@@ -1454,6 +1460,7 @@ export function App() {
         wireDraftStartRef.current = null;
         pendingBranchStartRef.current = null;
         wireEndpointMoveRef.current = null;
+        wireNodeMoveRef.current = null;
         setWireRoutePoints([]);
         setWireDragging(false);
         setWireDraftStart(null);
@@ -1682,6 +1689,7 @@ export function App() {
     wireDraftStartRef.current = null;
     pendingBranchStartRef.current = null;
     wireEndpointMoveRef.current = null;
+    wireNodeMoveRef.current = null;
     setPendingPin(endpoint);
     setWirePointer(
       snapPoint(clientToCanvasPoint(event.clientX, event.clientY)),
@@ -1705,6 +1713,7 @@ export function App() {
     wireDraftStartRef.current = null;
     pendingBranchStartRef.current = null;
     wireEndpointMoveRef.current = null;
+    wireNodeMoveRef.current = null;
     setPendingPin(null);
     setWirePointer(null);
     setWireRoutePoints([]);
@@ -1941,10 +1950,18 @@ export function App() {
       : getEndpointPoint(connection.from, currentCircuit, registry);
   }
 
+  function recordWireEditHistory(): void {
+    if (!challenge || !circuit) return;
+    const stack = undoRef.current[challenge.id] ?? [];
+    stack.push(circuit);
+    if (stack.length > 100) stack.shift();
+    undoRef.current[challenge.id] = stack;
+    redoRef.current[challenge.id] = [];
+  }
+
   function beginWireBranch(
+    event: ReactPointerEvent<SVGPathElement | SVGCircleElement>,
     connectionId: string,
-    clientX: number,
-    clientY: number,
   ): void {
     if (!circuit || !challenge || isInspectingNested || testRunning) return;
     const connection = circuit.connections.find(
@@ -1952,7 +1969,13 @@ export function App() {
     );
     if (!connection) return;
 
-    const point = snapPoint(clientToCanvasPoint(clientX, clientY));
+    event.stopPropagation();
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    const point = snapPoint(
+      clientToCanvasPoint(event.clientX, event.clientY),
+    );
     const from = visualWireStart(connection, circuit);
     const to = getEndpointPoint(connection.to, circuit, registry);
     const route = [...(connection.route ?? [])];
@@ -1978,17 +2001,98 @@ export function App() {
 
     pendingWireRef.current = connection.from;
     wireRoutePointsRef.current = [];
-    wireDraggingRef.current = false;
+    wireDraggingRef.current = true;
     wireDraftStartRef.current = point;
     pendingBranchStartRef.current = point;
     wireEndpointMoveRef.current = null;
+    wireNodeMoveRef.current = null;
 
     setPendingPin(connection.from);
     setWirePointer(point);
     setWireRoutePoints([]);
-    setWireDragging(false);
+    setWireDragging(true);
     setWireDraftStart(point);
     setPendingBranchStart(point);
+    setWireEndpointMove(null);
+    setWireHoverTarget(null);
+    setSelectedConnection(connectionId);
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+    setProjectError("");
+  }
+
+  function beginMoveWireNode(
+    event: ReactPointerEvent<SVGPathElement | SVGCircleElement>,
+    connectionId: string,
+    existingNodeIndex?: number,
+  ): void {
+    if (!circuit || !challenge || isInspectingNested || testRunning) return;
+    const connection = circuit.connections.find(
+      (candidate) => candidate.id === connectionId,
+    );
+    if (!connection) return;
+
+    event.stopPropagation();
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    const from = visualWireStart(connection, circuit);
+    const to = getEndpointPoint(connection.to, circuit, registry);
+    const route = [...(connection.route ?? [])];
+    const point = snapPoint(
+      clientToCanvasPoint(event.clientX, event.clientY),
+    );
+
+    let nodeIndex = existingNodeIndex;
+    if (nodeIndex === undefined) {
+      nodeIndex = route.findIndex(
+        (candidate) =>
+          candidate.x === point.x && candidate.y === point.y,
+      );
+
+      if (nodeIndex < 0) {
+        if (
+          (from.x === point.x && from.y === point.y) ||
+          (to.x === point.x && to.y === point.y)
+        ) {
+          return;
+        }
+        nodeIndex = routeInsertionIndex(from, route, to, point);
+        route.splice(nodeIndex, 0, point);
+      }
+    }
+
+    if (nodeIndex < 0 || nodeIndex >= route.length) return;
+
+    recordWireEditHistory();
+    wireNodeMoveRef.current = {
+      connectionId,
+      nodeIndex,
+    };
+    pendingWireRef.current = null;
+    wireDraggingRef.current = false;
+    wireDraftStartRef.current = null;
+    pendingBranchStartRef.current = null;
+    wireEndpointMoveRef.current = null;
+
+    updateCircuit(
+      (current) => ({
+        ...current,
+        connections: current.connections.map((candidate) =>
+          candidate.id === connectionId
+            ? { ...candidate, route }
+            : candidate,
+        ),
+      }),
+      false,
+    );
+
+    setPendingPin(null);
+    setWirePointer(null);
+    setWireRoutePoints([]);
+    setWireDragging(false);
+    setWireDraftStart(null);
+    setPendingBranchStart(null);
     setWireEndpointMove(null);
     setWireHoverTarget(null);
     setSelectedConnection(connectionId);
@@ -2053,6 +2157,7 @@ export function App() {
     wireDraftStartRef.current = draftStart;
     pendingBranchStartRef.current = branchStart;
     wireEndpointMoveRef.current = moveState;
+    wireNodeMoveRef.current = null;
 
     setPendingPin(pendingEndpoint);
     setWirePointer(movingPoint);
@@ -2429,6 +2534,27 @@ export function App() {
     }
 
     const point = canvasPoint(event);
+
+    const activeWireNodeMove = wireNodeMoveRef.current;
+    if (activeWireNodeMove) {
+      const next = snapPoint(point);
+      updateCircuit(
+        (current) => ({
+          ...current,
+          connections: current.connections.map((connection) => {
+            if (connection.id !== activeWireNodeMove.connectionId) {
+              return connection;
+            }
+            const route = [...(connection.route ?? [])];
+            if (!route[activeWireNodeMove.nodeIndex]) return connection;
+            route[activeWireNodeMove.nodeIndex] = next;
+            return { ...connection, route };
+          }),
+        }),
+        false,
+      );
+      return;
+    }
 
     const activePendingWire = pendingWireRef.current ?? pendingPin;
     if (activePendingWire && wireDraggingRef.current) {
@@ -3257,7 +3383,7 @@ export function App() {
         <section className="canvas-frame">
           <div className="canvas-toolbar">
             <div className="canvas-toolbar-info">
-              <span>빈 공간 드래그: 이동 · 소자/핀/Wire node: 숨은 12-unit grid snap · 줌: + / −</span>
+              <span>빈 공간 드래그: 이동 · Wire 드래그: 분기 · Alt+Wire 드래그: 관절 추가/이동 · 12-unit grid snap · 줌: + / −</span>
               {preview.error ? (
                 <span className="error-text">{preview.error}</span>
               ) : null}
@@ -3378,6 +3504,7 @@ export function App() {
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
+              wireNodeMoveRef.current = null;
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
@@ -3388,6 +3515,7 @@ export function App() {
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
+              wireNodeMoveRef.current = null;
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
@@ -3463,13 +3591,13 @@ export function App() {
                       connection.route as readonly Point[] | undefined,
                       to,
                     )}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      beginWireBranch(
-                        connection.id,
-                        event.clientX,
-                        event.clientY,
-                      );
+                    onPointerDown={(event) => {
+                      if (event.button !== 0) return;
+                      if (event.altKey) {
+                        beginMoveWireNode(event, connection.id);
+                      } else {
+                        beginWireBranch(event, connection.id);
+                      }
                     }}
                   />
                   {(connection.route ?? []).map((node, nodeIndex) => (
@@ -3480,13 +3608,17 @@ export function App() {
                       cx={node.x}
                       cy={node.y}
                       r="5"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        beginWireBranch(
-                          connection.id,
-                          event.clientX,
-                          event.clientY,
-                        );
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) return;
+                        if (event.altKey) {
+                          beginMoveWireNode(
+                            event,
+                            connection.id,
+                            nodeIndex,
+                          );
+                        } else {
+                          beginWireBranch(event, connection.id);
+                        }
                       }}
                     />
                   ))}
