@@ -167,5 +167,22 @@
       ],
       "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서 LOAD와 D를 평가합니다."
     }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "저장하지 않을 때는 자기 값을 다시 넣기",
+      "body": "LOAD=0일 때 이전 Q를 유지하려면 D Flip-Flop 입력으로 새 D 대신 현재 Q를 다시 보내면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "MUX로 새 값과 feedback 선택",
+      "body": "MUX가 LOAD에 따라 Q feedback과 외부 D 중 하나를 고르게 하고, 선택된 값을 D Flip-Flop의 D로 보내세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "MUX.A=현재 Q, MUX.B=외부 D, MUX.SEL=LOAD로 두고 MUX.OUT→DFF.D, CLK→DFF.CLK, DFF.Q→Q와 MUX.A feedback에 연결하세요."
+    }
   ]
 }
