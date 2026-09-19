@@ -1,0 +1,33 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "logic.xor",
+  "title": "XOR",
+  "description": "NOT, AND, OR을 조합해 두 입력이 다를 때만 1이 되는 XOR를 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "a", "name": "A", "width": 1 },
+      { "id": "b", "name": "B", "width": 1 }
+    ],
+    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+  },
+  "allowedComponents": ["user.not", "user.and", "user.or"],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        { "in": { "a": 0, "b": 0 }, "out": { "out": 0 } },
+        { "in": { "a": 0, "b": 1 }, "out": { "out": 1 } }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        { "in": { "a": 1, "b": 0 }, "out": { "out": 1 } },
+        { "in": { "a": 1, "b": 1 }, "out": { "out": 0 } }
+      ]
+    }
+  ],
+  "unlocks": ["routing.mux2"]
+}
