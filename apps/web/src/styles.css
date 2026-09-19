@@ -694,3 +694,54 @@ button:disabled {
 .component-body.selected {
   filter: drop-shadow(0 1px 3px rgb(68 91 208 / 24%));
 }
+
+
+.hierarchy-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid #d8dde6;
+  border-radius: 8px;
+  background: #f8f9fb;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.breadcrumbs > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.breadcrumbs button {
+  border: 0;
+  border-radius: 5px;
+  padding: 4px 6px;
+  background: transparent;
+  color: #586274;
+  cursor: pointer;
+}
+
+.breadcrumbs button:hover,
+.breadcrumbs button.active {
+  background: #e9edff;
+  color: #3449ba;
+}
+
+.crumb-separator {
+  color: #969eaa;
+}
+
+.hierarchy-mode {
+  color: #7b8493;
+  font-size: 11px;
+  white-space: nowrap;
+}
