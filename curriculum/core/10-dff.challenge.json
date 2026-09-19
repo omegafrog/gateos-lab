@@ -128,8 +128,8 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "D Flip-Flop characteristic table",
-      "description": "Q changes only on the rising edge of CLK.",
+      "title": "D Flip-Flop state table",
+      "description": "Unlike a latch, the DFF samples D only when CLK transitions from 0 to 1.",
       "columns": [
         {
           "id": "event",
@@ -143,12 +143,12 @@
         },
         {
           "id": "qt",
-          "label": "Q(t)",
+          "label": "Q(before edge)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(t+1)",
+          "label": "Q(after edge)",
           "group": "output"
         },
         {
@@ -190,7 +190,8 @@
       "notes": [
         "Only the rising edge samples D.",
         "Changing D between rising edges must not change Q."
-      ]
+      ],
+      "timing": "Edge-triggered — state changes only at the rising edge (↑)."
     }
   ]
 }
