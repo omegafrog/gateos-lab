@@ -2010,11 +2010,13 @@ export function App() {
     }
 
     const sourceConnections = circuit.connections.filter(
-      (connection) =>
-        !connection.branchStart &&
-        endpointKey(connection.from) === key,
+      (connection) => endpointKey(connection.from) === key,
     );
-    if (sourceConnections.length === 1 && sourceConnections[0]) {
+    if (
+      sourceConnections.length === 1 &&
+      sourceConnections[0] &&
+      !sourceConnections[0].branchStart
+    ) {
       return { connection: sourceConnections[0], end: "from" };
     }
 
