@@ -1,0 +1,40 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "state.enable-register",
+  "title": "1-bit Enable Register",
+  "description": "D Flip-Flop과 MUX를 이용해 LOAD=1일 때만 새 D를 저장하고, LOAD=0이면 이전 Q를 다시 입력으로 되먹임해 유지하는 1-bit Register를 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "d", "name": "D", "width": 1 },
+      { "id": "load", "name": "LOAD", "width": 1 },
+      { "id": "clk", "name": "CLK", "width": 1 }
+    ],
+    "outputs": [
+      { "id": "q", "name": "Q", "width": 1 }
+    ]
+  },
+  "allowedComponents": [
+    "user.mux2",
+    "user.dff"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        { "set": { "d": 1, "load": 1, "clk": 0 } },
+        { "set": { "clk": 1 } },
+        { "expect": { "q": 1 } },
+        { "set": { "clk": 0 } },
+        { "set": { "d": 0, "load": 0 } },
+        { "set": { "clk": 1 } },
+        { "expect": { "q": 1 } },
+        { "set": { "clk": 0 } },
+        { "set": { "load": 1 } },
+        { "set": { "clk": 1 } },
+        { "expect": { "q": 0 } }
+      ]
+    }
+  ],
+  "unlocks": []
+}
