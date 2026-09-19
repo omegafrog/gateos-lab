@@ -347,6 +347,21 @@ function endpointKey(endpoint: CircuitEndpoint): string {
     : `instance:${endpoint.instanceId}:${endpoint.pinId}`;
 }
 
+function parseEndpointKey(value: string): CircuitEndpoint | null {
+  const parts = value.split(":");
+  if (parts[0] === "interface" && parts[1]) {
+    return { kind: "interface", pinId: parts[1] };
+  }
+  if (parts[0] === "instance" && parts[1] && parts[2]) {
+    return {
+      kind: "instance",
+      instanceId: parts[1],
+      pinId: parts[2],
+    };
+  }
+  return null;
+}
+
 function instancePosition(
   circuit: CircuitDefinition,
   instanceId: string,
@@ -2952,14 +2967,31 @@ export function App() {
             viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
             onPointerMove={moveDrag}
             onPointerUpCapture={(event) => {
-              const target = event.target;
-              if (
-                target instanceof Element &&
-                target.closest("[data-pin-id]")
-              ) {
-                return;
+              const activePendingWire =
+                pendingWireRef.current ?? pendingPin;
+              if (!activePendingWire) return;
+
+              const hit = document.elementFromPoint(
+                event.clientX,
+                event.clientY,
+              );
+              const endpointElement =
+                hit instanceof Element
+                  ? hit.closest("[data-wire-endpoint]")
+                  : null;
+              const endpointValue =
+                endpointElement?.getAttribute("data-wire-endpoint");
+              const targetEndpoint = endpointValue
+                ? parseEndpointKey(endpointValue)
+                : null;
+
+              if (targetEndpoint) {
+                finishWireConnection(targetEndpoint);
+              } else {
+                placeDraftWireNode(event.clientX, event.clientY);
               }
-              placeDraftWireNode(event.clientX, event.clientY);
+
+              event.stopPropagation();
             }}
             onPointerUp={(event) => {
               dragGestureRef.current = null;
@@ -3244,6 +3276,7 @@ export function App() {
                     ].join(" ")}
                     data-testid={`pin-interface-${pin.id}`}
                     data-pin-id={pin.id}
+                    data-wire-endpoint={endpointKey(endpoint)}
                     cx={point.x}
                     cy={point.y}
                     r="8"
@@ -3365,6 +3398,7 @@ export function App() {
                     ].join(" ")}
                     data-testid={`pin-interface-${pin.id}`}
                     data-pin-id={pin.id}
+                    data-wire-endpoint={endpointKey(endpoint)}
                     cx={point.x}
                     cy={point.y}
                     r="8"
@@ -3724,6 +3758,7 @@ export function App() {
                               : "",
                           ].join(" ")}
                           data-pin-id={pin.id}
+                          data-wire-endpoint={endpointKey(endpoint)}
                           cx={point.x}
                           cy={point.y}
                           r="5.5"
@@ -3779,6 +3814,7 @@ export function App() {
                               : "",
                           ].join(" ")}
                           data-pin-id={pin.id}
+                          data-wire-endpoint={endpointKey(endpoint)}
                           cx={point.x}
                           cy={point.y}
                           r="5.5"
