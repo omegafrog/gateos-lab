@@ -1176,3 +1176,48 @@ button:disabled {
   color: #514a68 !important;
   font-size: 11px !important;
 }
+
+
+.io-value.pending-input,
+.bus-input.pending-input {
+  border-color: #d69b35;
+  background: #fff8e8;
+}
+
+.io-value.pending-input small {
+  margin-left: 5px;
+  color: #9a6818;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.staged-input-controls {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid #dfe3e9;
+}
+
+.staged-input-controls > span {
+  color: #6f7886;
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+}
+
+.apply-inputs {
+  border: 1px solid #5267d8;
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: #5267d8;
+  color: white;
+  cursor: pointer;
+}
+
+.apply-inputs:disabled {
+  border-color: #ccd2db;
+  background: #eef1f4;
+  color: #8a929d;
+}
