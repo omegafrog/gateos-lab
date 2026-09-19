@@ -721,3 +721,30 @@ test("challenge hints reveal progressively in exactly three stages", async ({
   await expect(panel).toContainText("3단계까지 확인함");
   await expect(panel).toContainText("NAND");
 });
+
+test("component pin names live in the inspector instead of the canvas", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  await component.click();
+
+  await expect(component.locator(".compact-pin-name")).toHaveCount(0);
+
+  const ioPanel = page.getByTestId("component-io-panel");
+  await expect(ioPanel).toBeVisible();
+
+  const inputs = page.getByTestId("component-io-inputs");
+  const outputs = page.getByTestId("component-io-outputs");
+
+  await expect(inputs).toContainText("입력 (Inputs)");
+  await expect(inputs).toContainText("A");
+  await expect(inputs).toContainText("B");
+  await expect(outputs).toContainText("출력 (Outputs)");
+  await expect(outputs).toContainText("OUT");
+
+  await expect(page.getByTestId("component-io-pin-a")).toContainText("1 bit");
+  await expect(page.getByTestId("component-io-pin-b")).toContainText("1 bit");
+  await expect(page.getByTestId("component-io-pin-out")).toContainText("1 bit");
+});
