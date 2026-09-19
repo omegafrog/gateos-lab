@@ -61,3 +61,39 @@ test("selected component can be deleted without dragging", async ({ page }) => {
   await page.keyboard.press("Delete");
   await expect(component).toHaveCount(0);
 });
+
+test("dragging stays under the cursor after zoom", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const canvas = page.locator("svg.circuit-canvas");
+  const component = page.locator('[data-testid^="component-"]').first();
+
+  await expect(component).toBeVisible();
+  const canvasBox = await canvas.boundingBox();
+  if (!canvasBox) throw new Error("missing canvas bounding box");
+
+  await page.mouse.move(
+    canvasBox.x + canvasBox.width / 2,
+    canvasBox.y + canvasBox.height / 2,
+  );
+  await page.mouse.wheel(0, -500);
+
+  const before = await component.boundingBox();
+  if (!before) throw new Error("missing component bounding box");
+
+  const startX = before.x + before.width * 0.55;
+  const startY = before.y + before.height * 0.35;
+  const dx = 90;
+  const dy = 55;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + dx, startY + dy, { steps: 6 });
+  await page.mouse.up();
+
+  const after = await component.boundingBox();
+  if (!after) throw new Error("missing component bounding box after drag");
+
+  expect(after.x - before.x).toBeCloseTo(dx, -1);
+  expect(after.y - before.y).toBeCloseTo(dy, -1);
+});
