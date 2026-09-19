@@ -126,3 +126,48 @@ test("target truth table is visible and rows can drive circuit inputs", async ({
   await page.getByTestId("truth-row-0").click();
   await expect(page.getByTestId("input-in")).toContainText("IN: 0");
 });
+
+test("state-circuit inputs are staged until Apply inputs", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        circuits: {},
+        published: {},
+        completed: [
+          "logic.not",
+          "logic.and",
+          "logic.or",
+          "logic.xor",
+          "routing.mux2",
+          "arithmetic.half-adder",
+          "arithmetic.full-adder",
+        ],
+        probes: {},
+      }),
+    );
+  });
+  await page.reload();
+
+  await page.getByTestId("challenge-state.sr-latch").click();
+
+  const summary = page.getByTestId("applied-input-summary");
+  await expect(summary).toContainText("S̅=1");
+  await expect(summary).toContainText("R̅=1");
+
+  await page.getByTestId("input-sbar").click();
+  await page.getByTestId("input-rbar").click();
+
+  await expect(page.getByTestId("input-sbar")).toContainText("S̅: 0");
+  await expect(page.getByTestId("input-rbar")).toContainText("R̅: 0");
+
+  // Draft edits must not reach the simulator yet.
+  await expect(summary).toContainText("S̅=1");
+  await expect(summary).toContainText("R̅=1");
+
+  await page.getByTestId("apply-inputs").click();
+
+  await expect(summary).toContainText("S̅=0");
+  await expect(summary).toContainText("R̅=0");
+});
