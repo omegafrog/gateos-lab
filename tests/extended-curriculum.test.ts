@@ -344,6 +344,15 @@ describe("extended curriculum", () => {
       "18-decoder2to4.challenge.json",
       "19-ram4.challenge.json",
       "20-ram16.challenge.json",
+      "21-ram64.challenge.json",
+      "22-and4.challenge.json",
+      "23-or4.challenge.json",
+      "24-xor4.challenge.json",
+      "25-zero4.challenge.json",
+      "26-alu4.challenge.json",
+      "27-register-file4.challenge.json",
+      "28-register-transfer4.challenge.json",
+      "29-alu-datapath4.challenge.json",
     ];
 
     for (const file of files) {
@@ -360,6 +369,10 @@ describe("extended curriculum", () => {
       "17-program-counter4.challenge.json",
       "19-ram4.challenge.json",
       "20-ram16.challenge.json",
+      "21-ram64.challenge.json",
+      "27-register-file4.challenge.json",
+      "28-register-transfer4.challenge.json",
+      "29-alu-datapath4.challenge.json",
     ]) {
       const challenge = readChallenge(file);
       expect(challenge.referenceTables?.length).toBeGreaterThan(0);
@@ -388,5 +401,51 @@ describe("extended curriculum", () => {
     expect(ram16.allowedComponents).toContain("user.ram4");
     expect(ram16.allowedComponents).not.toContain("builtin.ram");
     expect(ram16.validators.some((validator) => validator.type === "sequence")).toBe(true);
+  });
+
+  it("keeps RAM64 hierarchical and introduces CPU datapath capabilities", () => {
+    const ram64 = readChallenge("21-ram64.challenge.json");
+    const alu = readChallenge("26-alu4.challenge.json");
+    const registerFile = readChallenge("27-register-file4.challenge.json");
+    const transfer = readChallenge("28-register-transfer4.challenge.json");
+    const datapath = readChallenge("29-alu-datapath4.challenge.json");
+
+    expect(ram64.interface.inputs.find((pin) => pin.id === "addr")?.width).toBe(6);
+    expect(ram64.allowedComponents).toContain("user.ram16");
+    expect(ram64.allowedComponents).not.toContain("builtin.ram");
+    expect(ram64.unlocks).toContain("logic.and4");
+
+    const opTable = alu.referenceTables?.find((table) => table.id === "opcodes");
+    expect(opTable?.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ op: "00", operation: "AND" }),
+        expect.objectContaining({ op: "01", operation: "OR" }),
+        expect.objectContaining({ op: "10", operation: "XOR" }),
+        expect.objectContaining({ op: "11", operation: "ADD" }),
+      ]),
+    );
+    expect(alu.interface.outputs.some((pin) => pin.id === "zero")).toBe(true);
+
+    expect(registerFile.interface.inputs.filter((pin) =>
+      pin.id === "raddr_a" || pin.id === "raddr_b"
+    )).toHaveLength(2);
+    expect(registerFile.interface.outputs.map((pin) => pin.id)).toEqual([
+      "qa",
+      "qb",
+    ]);
+    expect(registerFile.allowedComponents).toContain("user.register4");
+
+    expect(transfer.allowedComponents).toContain("user.register-file4");
+    expect(transfer.unlocks).toContain("cpu.alu-datapath4");
+
+    expect(datapath.allowedComponents).toEqual(
+      expect.arrayContaining([
+        "user.register-file4",
+        "user.alu4",
+        "user.mux4",
+        "user.or",
+      ]),
+    );
+    expect(datapath.validators.some((validator) => validator.type === "sequence")).toBe(true);
   });
 });
