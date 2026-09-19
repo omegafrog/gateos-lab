@@ -1,0 +1,127 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "arithmetic.incrementer4",
+  "title": "4-bit Incrementer",
+  "description": "4-bit 값에 1을 더하는 Incrementer를 만드세요. 1111 + 1은 0000으로 wrap되고 CARRY=1이 됩니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "in",
+        "name": "IN",
+        "width": 4
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 4
+      },
+      {
+        "id": "carry",
+        "name": "CARRY",
+        "width": 1
+      }
+    ]
+  },
+  "allowedComponents": [
+    "user.adder4",
+    "builtin.const4.one",
+    "builtin.const1.zero"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "in": 0
+          },
+          "out": {
+            "out": 1,
+            "carry": 0
+          }
+        },
+        {
+          "in": {
+            "in": 1
+          },
+          "out": {
+            "out": 2,
+            "carry": 0
+          }
+        },
+        {
+          "in": {
+            "in": 14
+          },
+          "out": {
+            "out": 15,
+            "carry": 0
+          }
+        },
+        {
+          "in": {
+            "in": 15
+          },
+          "out": {
+            "out": 0,
+            "carry": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        {
+          "in": {
+            "in": 7
+          },
+          "out": {
+            "out": 8,
+            "carry": 0
+          }
+        },
+        {
+          "in": {
+            "in": 9
+          },
+          "out": {
+            "out": 10,
+            "carry": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 3
+      }
+    }
+  ],
+  "unlocks": [
+    "state.register4"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "이미 만든 Adder를 재사용하세요",
+      "body": "Incrementer는 별도의 새로운 산술회로가 아니라 IN + 1을 계산하는 Adder입니다."
+    },
+    {
+      "level": 2,
+      "title": "상수 0001과 CIN=0",
+      "body": "4-bit Adder의 한 입력에는 IN을, 다른 입력에는 Const4 0001을 넣고 CIN은 Const 0으로 고정하세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "Adder4.A=IN, Adder4.B=Const4 0001, Adder4.CIN=Const 0으로 연결하고 SUM→OUT, COUT→CARRY로 연결하세요."
+    }
+  ]
+}
