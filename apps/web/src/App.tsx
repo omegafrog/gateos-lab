@@ -5,6 +5,7 @@ import {
   useState,
   type ChangeEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
 } from "react";
 import {
   BitVector,
@@ -68,6 +69,25 @@ interface DragState {
   instanceId: string;
   offsetX: number;
   offsetY: number;
+}
+
+interface PanState {
+  clientX: number;
+  clientY: number;
+  originX: number;
+  originY: number;
+}
+
+interface Viewport {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface ClipboardCircuit {
+  instances: CircuitDefinition["instances"];
+  connections: CircuitDefinition["connections"];
 }
 
 interface PreviewState {
@@ -347,8 +367,16 @@ export function App() {
   const [projectError, setProjectError] = useState(initialProject.error ?? "");
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
+  const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [pan, setPan] = useState<PanState | null>(null);
+  const [viewport, setViewport] = useState<Viewport>({
+    x: 0,
+    y: 0,
+    width: CANVAS_WIDTH,
+    height: CANVAS_HEIGHT,
+  });
   const [inputValues, setInputValues] = useState<Record<string, 0 | 1>>({});
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
   const [testStates, setTestStates] = useState<Record<string, VisualTestState>>({});
@@ -357,6 +385,7 @@ export function App() {
   const [loadError, setLoadError] = useState<string>("");
   const svgRef = useRef<SVGSVGElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const clipboardRef = useRef<ClipboardCircuit | null>(null);
   const undoRef = useRef<Record<string, CircuitDefinition[]>>({});
   const redoRef = useRef<Record<string, CircuitDefinition[]>>({});
 
@@ -404,6 +433,7 @@ export function App() {
     setInputValues(values);
     setPendingPin(null);
     setSelectedInstance(null);
+    setSelectedInstances([]);
     setSelectedConnection(null);
     setTestResult(null);
     setTestStates({});
@@ -489,6 +519,7 @@ export function App() {
     setActiveTestId(null);
     setPendingPin(null);
     setSelectedInstance(null);
+    setSelectedInstances([]);
     setSelectedConnection(null);
   }
 
@@ -515,6 +546,7 @@ export function App() {
     setActiveTestId(null);
     setPendingPin(null);
     setSelectedInstance(null);
+    setSelectedInstances([]);
     setSelectedConnection(null);
   }
 
@@ -569,8 +601,24 @@ export function App() {
         return;
       }
 
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
+        if (selectedInstances.length > 0) {
+          event.preventDefault();
+          copySelection();
+        }
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "v") {
+        if (clipboardRef.current) {
+          event.preventDefault();
+          pasteSelection();
+        }
+        return;
+      }
+
       if (event.key === "Delete" || event.key === "Backspace") {
-        if (selectedInstance) {
+        if (selectedInstances.length > 0 || selectedInstance) {
           event.preventDefault();
           removeSelectedInstance();
         } else if (selectedConnection) {
@@ -583,13 +631,14 @@ export function App() {
       if (event.key === "Escape") {
         setPendingPin(null);
         setSelectedInstance(null);
+        setSelectedInstances([]);
         setSelectedConnection(null);
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedInstance, selectedConnection, challenge?.id]);
+  }, [selectedInstance, selectedInstances, selectedConnection, challenge?.id, circuit]);
 
   if (loadError) {
     return (
@@ -648,6 +697,7 @@ export function App() {
       ],
     }));
     setSelectedInstance(id);
+    setSelectedInstances([id]);
   }
 
   function onPinClick(endpoint: CircuitEndpoint): void {
@@ -684,25 +734,99 @@ export function App() {
   }
 
   function removeSelectedInstance(): void {
-    if (!selectedInstance) return;
+    const ids = new Set(
+      selectedInstances.length > 0
+        ? selectedInstances
+        : selectedInstance
+          ? [selectedInstance]
+          : [],
+    );
+    if (ids.size === 0) return;
+
     updateCircuit((current) => ({
       ...current,
       instances: current.instances.filter(
-        (instance) => instance.id !== selectedInstance,
+        (instance) => !ids.has(instance.id),
       ),
       connections: current.connections.filter(
         (connection) =>
           !(
             connection.from.kind === "instance" &&
-            connection.from.instanceId === selectedInstance
+            ids.has(connection.from.instanceId)
           ) &&
           !(
             connection.to.kind === "instance" &&
-            connection.to.instanceId === selectedInstance
+            ids.has(connection.to.instanceId)
           ),
       ),
     }));
     setSelectedInstance(null);
+    setSelectedInstances([]);
+  }
+
+  function copySelection(): void {
+    if (!circuit || selectedInstances.length === 0) return;
+    const ids = new Set(selectedInstances);
+
+    clipboardRef.current = {
+      instances: circuit.instances.filter((instance) => ids.has(instance.id)),
+      connections: circuit.connections.filter(
+        (connection) =>
+          connection.from.kind === "instance" &&
+          connection.to.kind === "instance" &&
+          ids.has(connection.from.instanceId) &&
+          ids.has(connection.to.instanceId),
+      ),
+    };
+  }
+
+  function pasteSelection(): void {
+    if (!circuit || !clipboardRef.current) return;
+
+    const idMap = new Map<string, string>();
+    const stamp = Date.now().toString(36);
+    const newInstances = clipboardRef.current.instances.map((instance, index) => {
+      const id = `paste-${stamp}-${index}`;
+      idMap.set(instance.id, id);
+      const position = instance.position ?? { x: 360, y: 220 };
+      return {
+        ...instance,
+        id,
+        position: {
+          x: position.x + 36,
+          y: position.y + 36,
+        },
+      };
+    });
+
+    const newConnections = clipboardRef.current.connections.map(
+      (connection, index) => {
+        const mapEndpoint = (endpoint: CircuitEndpoint): CircuitEndpoint => {
+          if (endpoint.kind === "interface") return endpoint;
+          return {
+            ...endpoint,
+            instanceId: idMap.get(endpoint.instanceId) ?? endpoint.instanceId,
+          };
+        };
+
+        return {
+          ...connection,
+          id: `paste-wire-${stamp}-${index}`,
+          from: mapEndpoint(connection.from),
+          to: mapEndpoint(connection.to),
+        };
+      },
+    );
+
+    updateCircuit((current) => ({
+      ...current,
+      instances: [...current.instances, ...newInstances],
+      connections: [...current.connections, ...newConnections],
+    }));
+
+    const pastedIds = newInstances.map((instance) => instance.id);
+    setSelectedInstances(pastedIds);
+    setSelectedInstance(pastedIds[0] ?? null);
   }
 
   function addProbe(): void {
@@ -788,6 +912,7 @@ export function App() {
       setProject(imported);
       setProjectError("");
       setSelectedInstance(null);
+      setSelectedInstances([]);
       setSelectedConnection(null);
       setPendingPin(null);
       setTestResult(null);
@@ -805,17 +930,81 @@ export function App() {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return { x: event.clientX, y: event.clientY };
     return {
-      x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
-      y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
+      x:
+        viewport.x +
+        ((event.clientX - rect.left) / rect.width) * viewport.width,
+      y:
+        viewport.y +
+        ((event.clientY - rect.top) / rect.height) * viewport.height,
     };
+  }
+
+  function zoomAt(clientX: number, clientY: number, factor: number): void {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    setViewport((current) => {
+      const worldX =
+        current.x + ((clientX - rect.left) / rect.width) * current.width;
+      const worldY =
+        current.y + ((clientY - rect.top) / rect.height) * current.height;
+      const nextWidth = Math.max(
+        300,
+        Math.min(CANVAS_WIDTH * 2.5, current.width * factor),
+      );
+      const nextHeight = nextWidth * (CANVAS_HEIGHT / CANVAS_WIDTH);
+      const rx = (worldX - current.x) / current.width;
+      const ry = (worldY - current.y) / current.height;
+
+      return {
+        x: worldX - rx * nextWidth,
+        y: worldY - ry * nextHeight,
+        width: nextWidth,
+        height: nextHeight,
+      };
+    });
+  }
+
+  function handleWheel(event: ReactWheelEvent<SVGSVGElement>): void {
+    event.preventDefault();
+    zoomAt(event.clientX, event.clientY, event.deltaY > 0 ? 1.12 : 0.89);
+  }
+
+  function resetViewport(): void {
+    setViewport({
+      x: 0,
+      y: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+    });
+  }
+
+  function beginPan(event: ReactPointerEvent<SVGRectElement>): void {
+    if (event.button !== 0 || testRunning) return;
+    event.stopPropagation();
+    setPan({
+      clientX: event.clientX,
+      clientY: event.clientY,
+      originX: viewport.x,
+      originY: viewport.y,
+    });
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+    setSelectedConnection(null);
+    setPendingPin(null);
   }
 
   function beginDrag(
     event: ReactPointerEvent<SVGGElement>,
     instanceId: string,
   ): void {
-    if (!circuit || !challenge) return;
+    if (!circuit || !challenge || testRunning) return;
     event.stopPropagation();
+
+    if (!selectedInstances.includes(instanceId)) {
+      setSelectedInstances([instanceId]);
+      setSelectedInstance(instanceId);
+    }
 
     const stack = undoRef.current[challenge.id] ?? [];
     stack.push(circuit);
@@ -840,6 +1029,19 @@ export function App() {
   }
 
   function moveDrag(event: ReactPointerEvent<SVGSVGElement>): void {
+    if (pan) {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const dx = ((event.clientX - pan.clientX) / rect.width) * viewport.width;
+      const dy = ((event.clientY - pan.clientY) / rect.height) * viewport.height;
+      setViewport((current) => ({
+        ...current,
+        x: pan.originX - dx,
+        y: pan.originY - dy,
+      }));
+      return;
+    }
+
     if (!drag) return;
     const point = canvasPoint(event);
 
@@ -1139,15 +1341,46 @@ export function App() {
         </section>
 
         <section className="canvas-frame">
+          <div className="canvas-toolbar">
+            <span>Drag empty space to pan · mouse wheel to zoom</span>
+            <div>
+              <button
+                onClick={() => {
+                  const rect = svgRef.current?.getBoundingClientRect();
+                  if (rect) zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, 0.8);
+                }}
+              >
+                +
+              </button>
+              <button
+                onClick={() => {
+                  const rect = svgRef.current?.getBoundingClientRect();
+                  if (rect) zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, 1.25);
+                }}
+              >
+                −
+              </button>
+              <button onClick={resetViewport}>Reset view</button>
+            </div>
+          </div>
           <svg
             ref={svgRef}
             className={testRunning ? "circuit-canvas testing" : "circuit-canvas"}
-            viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+            viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
+            onWheel={handleWheel}
             onPointerMove={moveDrag}
-            onPointerUp={() => setDrag(null)}
-            onPointerLeave={() => setDrag(null)}
+            onPointerUp={() => {
+              setDrag(null);
+              setPan(null);
+            }}
+            onPointerLeave={() => {
+              setDrag(null);
+              setPan(null);
+            }}
             onClick={() => {
+              if (drag || pan) return;
               setSelectedInstance(null);
+              setSelectedInstances([]);
               setSelectedConnection(null);
               setPendingPin(null);
             }}
@@ -1162,7 +1395,14 @@ export function App() {
                 <path d="M 24 0 L 0 0 0 24" className="grid-line" />
               </pattern>
             </defs>
-            <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#grid)" />
+            <rect
+              x={-CANVAS_WIDTH}
+              y={-CANVAS_HEIGHT}
+              width={CANVAS_WIDTH * 3}
+              height={CANVAS_HEIGHT * 3}
+              fill="url(#grid)"
+              onPointerDown={beginPan}
+            />
 
             {circuit.connections.map((connection) => {
               const from = getEndpointPoint(
@@ -1282,8 +1522,21 @@ export function App() {
                   onPointerDown={(event) => beginDrag(event, instance.id)}
                   onClick={(event) => {
                     event.stopPropagation();
-                    setSelectedInstance(instance.id);
                     setSelectedConnection(null);
+
+                    if (event.shiftKey) {
+                      setSelectedInstances((current) => {
+                        const exists = current.includes(instance.id);
+                        const next = exists
+                          ? current.filter((id) => id !== instance.id)
+                          : [...current, instance.id];
+                        setSelectedInstance(next[0] ?? null);
+                        return next;
+                      });
+                    } else {
+                      setSelectedInstance(instance.id);
+                      setSelectedInstances([instance.id]);
+                    }
                   }}
                 >
                   <rect
@@ -1293,7 +1546,7 @@ export function App() {
                     height={height}
                     rx="10"
                     className={
-                      selectedInstance === instance.id
+                      selectedInstances.includes(instance.id)
                         ? "component-body selected"
                         : "component-body"
                     }
@@ -1505,15 +1758,18 @@ export function App() {
           <div>
             <strong>Selection</strong>
             <p className="muted">
-              컴포넌트를 클릭하면 선택이 유지됩니다. 드래그로 이동하고
-              Delete/Backspace 또는 아래 버튼으로 삭제할 수 있습니다.
+              클릭으로 선택, Shift+클릭으로 다중 선택합니다. Ctrl/Cmd+C/V로
+              복사/붙여넣기하고 Delete/Backspace로 일괄 삭제할 수 있습니다.
             </p>
             <button
               className="danger"
-              disabled={!selectedInstance || testRunning}
+              disabled={
+                (selectedInstances.length === 0 && !selectedInstance) ||
+                testRunning
+              }
               onClick={removeSelectedInstance}
             >
-              Delete selected component
+              Delete selected component{selectedInstances.length > 1 ? "s" : ""}
             </button>
           </div>
         </section>
