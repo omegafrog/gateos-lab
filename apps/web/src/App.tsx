@@ -26,6 +26,7 @@ import {
   runChallenge,
   type ChallengeDefinition,
   type ChallengeRunResult,
+  type SequenceStep,
 } from "@gateos/challenge-engine";
 import { TraceRecorder } from "@gateos/trace-engine";
 
@@ -110,6 +111,14 @@ interface VisualTestState {
   status: VisualTestStatus;
   actual?: Record<string, string>;
   error?: string;
+}
+
+interface VisualSequenceStep {
+  id: string;
+  visibility: "visible" | "hidden";
+  validatorIndex: number;
+  stepIndex: number;
+  step: SequenceStep;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -608,6 +617,27 @@ export function App() {
     return cases;
   }, [challenge]);
 
+  const visualSequenceSteps = useMemo<VisualSequenceStep[]>(() => {
+    if (!challenge) return [];
+
+    const steps: VisualSequenceStep[] = [];
+    challenge.validators.forEach((validator, validatorIndex) => {
+      if (validator.type !== "sequence") return;
+
+      validator.steps.forEach((step, stepIndex) => {
+        steps.push({
+          id: `sequence-${validatorIndex}-${stepIndex}`,
+          visibility: validator.visibility ?? "visible",
+          validatorIndex,
+          stepIndex,
+          step,
+        });
+      });
+    });
+
+    return steps;
+  }, [challenge]);
+
   function updateCircuit(
     updater: (current: CircuitDefinition) => CircuitDefinition,
     recordHistory = true,
@@ -794,8 +824,12 @@ export function App() {
   }
 
   const currentIndex = challenges.findIndex((item) => item.id === challenge.id);
-  const passedVisualTests = visualTestCases.filter(
-    (testCase) => testStates[testCase.id]?.status === "pass",
+  const visualVerificationItems = [
+    ...visualTestCases.map((testCase) => testCase.id),
+    ...visualSequenceSteps.map((step) => step.id),
+  ];
+  const passedVisualTests = visualVerificationItems.filter(
+    (id) => testStates[id]?.status === "pass",
   ).length;
   const allowedPalette = (challenge.allowedComponents ?? [])
     .map((id) => {
@@ -1388,8 +1422,8 @@ export function App() {
     setTestResult(null);
     setTestStates(
       Object.fromEntries(
-        visualTestCases.map((testCase) => [
-          testCase.id,
+        visualVerificationItems.map((id) => [
+          id,
           { status: "idle" as const },
         ]),
       ),
@@ -1414,7 +1448,6 @@ export function App() {
         }
         setInputValues((current) => ({ ...current, ...animatedInputs }));
 
-        // Let the learner see the case propagate through the circuit.
         await sleep(420);
 
         const state = evaluateVisualTest(testCase);
@@ -1424,6 +1457,119 @@ export function App() {
         }));
 
         await sleep(state.status === "pass" ? 180 : 420);
+      }
+
+      const sequenceValidators = challenge.validators
+        .map((validator, validatorIndex) => ({ validator, validatorIndex }))
+        .filter(
+          (
+            entry,
+          ): entry is {
+            validator: Extract<
+              ChallengeDefinition["validators"][number],
+              { type: "sequence" }
+            >;
+            validatorIndex: number;
+          } => entry.validator.type === "sequence",
+        );
+
+      for (const { validator, validatorIndex } of sequenceValidators) {
+        const netlist = compileCircuit(circuit, registry);
+        const simulator = new Simulator(
+          netlist,
+          createBuiltinPrimitiveRegistry(),
+        );
+
+        for (let stepIndex = 0; stepIndex < validator.steps.length; stepIndex += 1) {
+          const step = validator.steps[stepIndex];
+          if (!step) continue;
+
+          const id = `sequence-${validatorIndex}-${stepIndex}`;
+          setActiveTestId(id);
+          setTestStates((current) => ({
+            ...current,
+            [id]: { status: "running" },
+          }));
+
+          try {
+            if ("set" in step) {
+              const animatedInputs: Record<string, 0 | 1> = {};
+
+              for (const [pinId, literal] of Object.entries(step.set)) {
+                const pin = challenge.interface.inputs.find(
+                  (candidate) => candidate.id === pinId,
+                );
+                if (!pin) throw new Error(`Unknown input ${pinId}`);
+
+                simulator.setInput(
+                  pinId,
+                  literalToVector(literal, pin.width),
+                );
+
+                if (pin.width === 1 && (literal === 0 || literal === 1)) {
+                  animatedInputs[pinId] = literal;
+                }
+              }
+
+              simulator.settle();
+              setInputValues((current) => ({
+                ...current,
+                ...animatedInputs,
+              }));
+              setTestStates((current) => ({
+                ...current,
+                [id]: { status: "pass" },
+              }));
+            } else if ("edge" in step) {
+              simulator.stepEdge(step.edge);
+              setTestStates((current) => ({
+                ...current,
+                [id]: { status: "pass" },
+              }));
+            } else if ("clock" in step) {
+              for (let count = 0; count < step.clock; count += 1) {
+                simulator.stepClock();
+              }
+              setTestStates((current) => ({
+                ...current,
+                [id]: { status: "pass" },
+              }));
+            } else {
+              const actual: Record<string, string> = {};
+              let passed = true;
+
+              for (const [pinId, literal] of Object.entries(step.expect)) {
+                const pin = challenge.interface.outputs.find(
+                  (candidate) => candidate.id === pinId,
+                );
+                if (!pin) throw new Error(`Unknown output ${pinId}`);
+
+                const expected = literalToVector(literal, pin.width);
+                const output = simulator.readOutput(pinId);
+                actual[pinId] = output.toBinary();
+                if (!output.equals(expected)) passed = false;
+              }
+
+              setTestStates((current) => ({
+                ...current,
+                [id]: {
+                  status: passed ? "pass" : "fail",
+                  actual,
+                },
+              }));
+            }
+          } catch (error) {
+            setTestStates((current) => ({
+              ...current,
+              [id]: {
+                status: "fail",
+                error: error instanceof Error ? error.message : String(error),
+              },
+            }));
+          }
+
+          await sleep(320);
+        }
       }
 
       const result = runChallenge(
@@ -2123,7 +2269,7 @@ export function App() {
             </div>
             <div className="test-summary">
               <span>
-                {passedVisualTests}/{visualTestCases.length} cases
+                {passedVisualTests}/{visualVerificationItems.length} steps
               </span>
               {testResult ? (
                 <strong
@@ -2177,6 +2323,82 @@ export function App() {
                       {state.error
                         ? state.error
                         : formatActual(state.actual)}
+                    </code>
+                  </div>
+                  <span className="test-case-status">
+                    {state.status === "idle"
+                      ? "○"
+                      : state.status === "running"
+                        ? "▶"
+                        : state.status === "pass"
+                          ? "✓"
+                          : "✗"}
+                  </span>
+                </div>
+              );
+            })}
+            {visualSequenceSteps.map((sequenceStep, index) => {
+              const state =
+                testStates[sequenceStep.id] ?? { status: "idle" as const };
+              const reveal =
+                sequenceStep.visibility === "visible" ||
+                state.status !== "idle";
+              const isActive = activeTestId === sequenceStep.id;
+              const step = sequenceStep.step;
+
+              let action = "STEP";
+              let detail = "";
+              let expected = "—";
+
+              if ("set" in step) {
+                action = "SET";
+                detail = reveal
+                  ? formatSignals(step.set)
+                  : "hidden until execution";
+              } else if ("edge" in step) {
+                action = "EDGE";
+                detail = reveal ? step.edge.toUpperCase() : "hidden";
+              } else if ("clock" in step) {
+                action = "CLOCK";
+                detail = reveal ? `× ${step.clock}` : "hidden";
+              } else {
+                action = "EXPECT";
+                expected = reveal
+                  ? formatSignals(step.expect)
+                  : "hidden until execution";
+              }
+
+              return (
+                <div
+                  key={sequenceStep.id}
+                  className={[
+                    "test-case-row",
+                    "sequence-step-row",
+                    state.status,
+                    isActive ? "active" : "",
+                  ].join(" ")}
+                >
+                  <span className="test-case-number">
+                    S{index + 1}
+                  </span>
+                  <div>
+                    <small>ACTION</small>
+                    <code>{action}</code>
+                  </div>
+                  <div>
+                    <small>VALUE / EXPECTED</small>
+                    <code>{action === "EXPECT" ? expected : detail}</code>
+                  </div>
+                  <div>
+                    <small>ACTUAL</small>
+                    <code>
+                      {state.error
+                        ? state.error
+                        : action === "EXPECT"
+                          ? formatActual(state.actual)
+                          : state.status === "pass"
+                            ? "done"
+                            : "—"}
                     </code>
                   </div>
                   <span className="test-case-status">
