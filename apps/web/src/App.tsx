@@ -72,6 +72,13 @@ interface DragState {
   offsetY: number;
 }
 
+interface InterfaceDragState {
+  pinId: string;
+  direction: "input" | "output";
+  offsetX: number;
+  offsetY: number;
+}
+
 interface PanState {
   clientX: number;
   clientY: number;
@@ -273,6 +280,10 @@ function instancePosition(
 const COMPACT_COMPONENT_WIDTH = 92;
 const COMPACT_PIN_GAP = 20;
 const COMPACT_MIN_HEIGHT = 52;
+const CHIP_PLACEMENT_TOP = 84;
+const CANVAS_EDGE_PADDING = 16;
+const TERMINAL_BODY_WIDTH = 100;
+const TERMINAL_PORT_GAP = 12;
 
 function componentGeometry(spec: ComponentSpec): {
   width: number;
@@ -377,10 +388,30 @@ function componentPinPoint(
   };
 }
 
+function storedInterfacePosition(
+  circuit: CircuitDefinition,
+  pinId: string,
+): Point | null {
+  const raw = circuit.layout?.interfacePositions;
+  if (!raw || typeof raw !== "object") return null;
+
+  const position = (raw as Record<string, unknown>)[pinId];
+  if (!position || typeof position !== "object") return null;
+
+  const x = (position as Record<string, unknown>).x;
+  const y = (position as Record<string, unknown>).y;
+  return typeof x === "number" && typeof y === "number"
+    ? { x, y }
+    : null;
+}
+
 function interfacePinPoint(
   circuit: CircuitDefinition,
   pinId: string,
 ): Point {
+  const stored = storedInterfacePosition(circuit, pinId);
+  if (stored) return stored;
+
   const inputPins = circuit.pins.filter(
     (pin) => pin.direction === "input" || pin.direction === "inout",
   );
@@ -390,13 +421,58 @@ function interfacePinPoint(
 
   const inputIndex = inputPins.findIndex((pin) => pin.id === pinId);
   if (inputIndex >= 0) {
-    return { x: 132, y: 100 + inputIndex * 82 };
+    return { x: 132, y: 112 + inputIndex * 82 };
   }
 
   const outputIndex = outputPins.findIndex((pin) => pin.id === pinId);
   return {
     x: CANVAS_WIDTH - 132,
-    y: 100 + Math.max(outputIndex, 0) * 82,
+    y: 112 + Math.max(outputIndex, 0) * 82,
+  };
+}
+
+function clampComponentPosition(
+  point: Point,
+  spec: ComponentSpec,
+): Point {
+  const geometry = componentGeometry(spec);
+  return {
+    x: Math.max(
+      CANVAS_EDGE_PADDING,
+      Math.min(
+        CANVAS_WIDTH - geometry.width - CANVAS_EDGE_PADDING,
+        point.x,
+      ),
+    ),
+    y: Math.max(
+      CHIP_PLACEMENT_TOP,
+      Math.min(
+        CANVAS_HEIGHT - geometry.height - CANVAS_EDGE_PADDING,
+        point.y,
+      ),
+    ),
+  };
+}
+
+function clampInterfacePosition(
+  point: Point,
+  direction: "input" | "output",
+): Point {
+  const minX =
+    direction === "input"
+      ? TERMINAL_BODY_WIDTH + TERMINAL_PORT_GAP + CANVAS_EDGE_PADDING
+      : CANVAS_EDGE_PADDING;
+  const maxX =
+    direction === "input"
+      ? CANVAS_WIDTH - CANVAS_EDGE_PADDING
+      : CANVAS_WIDTH -
+        TERMINAL_BODY_WIDTH -
+        TERMINAL_PORT_GAP -
+        CANVAS_EDGE_PADDING;
+
+  return {
+    x: Math.max(minX, Math.min(maxX, point.x)),
+    y: Math.max(42, Math.min(CANVAS_HEIGHT - 42, point.y)),
   };
 }
 
@@ -468,6 +544,8 @@ export function App() {
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
   const [inspectionPath, setInspectionPath] = useState<string[]>([]);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [interfaceDrag, setInterfaceDrag] =
+    useState<InterfaceDragState | null>(null);
   const [pan, setPan] = useState<PanState | null>(null);
   const [viewport, setViewport] = useState<Viewport>({
     x: 0,
@@ -1211,6 +1289,14 @@ export function App() {
     if (!circuit || isInspectingNested) return;
     const count = circuit.instances.length;
     const id = `u${Date.now().toString(36)}-${count}`;
+    const spec = registry.get(componentId);
+    const position = clampComponentPosition(
+      {
+        x: 260 + (count % 4) * 150,
+        y: 120 + Math.floor(count / 4) * 120,
+      },
+      spec,
+    );
     updateCircuit((current) => ({
       ...current,
       instances: [
@@ -1218,10 +1304,7 @@ export function App() {
         {
           id,
           componentId,
-          position: {
-            x: 260 + (count % 4) * 150,
-            y: 120 + Math.floor(count / 4) * 120,
-          },
+          position,
         },
       ],
     }));
@@ -1343,13 +1426,17 @@ export function App() {
       const id = `paste-${stamp}-${index}`;
       idMap.set(instance.id, id);
       const position = instance.position ?? { x: 360, y: 220 };
+      const spec = registry.get(instance.componentId);
       return {
         ...instance,
         id,
-        position: {
-          x: position.x + 36,
-          y: position.y + 36,
-        },
+        position: clampComponentPosition(
+          {
+            x: position.x + 36,
+            y: position.y + 36,
+          },
+          spec,
+        ),
       };
     });
 
@@ -1553,6 +1640,35 @@ export function App() {
     setPendingPin(null);
   }
 
+  function beginInterfaceDrag(
+    event: ReactPointerEvent<SVGElement>,
+    pinId: string,
+    direction: "input" | "output",
+  ): void {
+    if (!circuit || !challenge || testRunning || isInspectingNested) return;
+    event.stopPropagation();
+    event.preventDefault();
+
+    const stack = undoRef.current[challenge.id] ?? [];
+    stack.push(circuit);
+    if (stack.length > 100) stack.shift();
+    undoRef.current[challenge.id] = stack;
+    redoRef.current[challenge.id] = [];
+
+    const position = interfacePinPoint(circuit, pinId);
+    const point = clientToCanvasPoint(event.clientX, event.clientY);
+    setInterfaceDrag({
+      pinId,
+      direction,
+      offsetX: point.x - position.x,
+      offsetY: point.y - position.y,
+    });
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+    setSelectedConnection(null);
+    setPendingPin(null);
+  }
+
   function beginDrag(
     event: ReactPointerEvent<SVGGElement>,
     instanceId: string,
@@ -1595,29 +1711,61 @@ export function App() {
       return;
     }
 
-    if (!drag) return;
     const point = canvasPoint(event);
+
+    if (interfaceDrag) {
+      const next = clampInterfacePosition(
+        {
+          x: point.x - interfaceDrag.offsetX,
+          y: point.y - interfaceDrag.offsetY,
+        },
+        interfaceDrag.direction,
+      );
+
+      updateCircuit(
+        (current) => {
+          const layout = current.layout ?? {};
+          const rawPositions = layout.interfacePositions;
+          const positions =
+            rawPositions && typeof rawPositions === "object"
+              ? (rawPositions as Record<string, unknown>)
+              : {};
+
+          return {
+            ...current,
+            layout: {
+              ...layout,
+              interfacePositions: {
+                ...positions,
+                [interfaceDrag.pinId]: next,
+              },
+            },
+          };
+        },
+        false,
+      );
+      return;
+    }
+
+    if (!drag) return;
 
     updateCircuit(
       (current) => ({
         ...current,
-        instances: current.instances.map((instance) =>
-          instance.id === drag.instanceId
-            ? {
-                ...instance,
-                position: {
-                  x: Math.max(
-                    90,
-                    Math.min(CANVAS_WIDTH - 230, point.x - drag.offsetX),
-                  ),
-                  y: Math.max(
-                    30,
-                    Math.min(CANVAS_HEIGHT - 120, point.y - drag.offsetY),
-                  ),
-                },
-              }
-            : instance,
-        ),
+        instances: current.instances.map((instance) => {
+          if (instance.id !== drag.instanceId) return instance;
+          const spec = registry.get(instance.componentId);
+          return {
+            ...instance,
+            position: clampComponentPosition(
+              {
+                x: point.x - drag.offsetX,
+                y: point.y - drag.offsetY,
+              },
+              spec,
+            ),
+          };
+        }),
       }),
       false,
     );
@@ -2327,14 +2475,16 @@ export function App() {
             onPointerMove={moveDrag}
             onPointerUp={() => {
               setDrag(null);
+              setInterfaceDrag(null);
               setPan(null);
             }}
             onPointerLeave={() => {
               setDrag(null);
+              setInterfaceDrag(null);
               setPan(null);
             }}
             onClick={() => {
-              if (drag || pan) return;
+              if (drag || interfaceDrag || pan) return;
               setSelectedInstance(null);
               setSelectedInstances([]);
               setSelectedConnection(null);
@@ -2359,6 +2509,29 @@ export function App() {
               fill="url(#grid)"
               onPointerDown={beginPan}
             />
+            <g className="chip-placement-limit" pointerEvents="none">
+              <rect
+                x="0"
+                y="0"
+                width={CANVAS_WIDTH}
+                height={CHIP_PLACEMENT_TOP}
+                className="chip-placement-limit-fill"
+              />
+              <line
+                x1="0"
+                y1={CHIP_PLACEMENT_TOP}
+                x2={CANVAS_WIDTH}
+                y2={CHIP_PLACEMENT_TOP}
+                className="chip-placement-limit-line"
+              />
+              <text
+                x="16"
+                y={CHIP_PLACEMENT_TOP - 10}
+                className="chip-placement-limit-label"
+              >
+                칩 배치 제한 영역
+              </text>
+            </g>
 
             {(displayCircuit?.connections ?? []).map((connection) => {
               const from = getEndpointPoint(
@@ -2439,13 +2612,15 @@ export function App() {
                     changed ? "pending-value" : "",
                   ].join(" ")}
                   data-testid={isRootInput ? `input-${pin.id}` : undefined}
+                  data-terminal-x={point.x}
+                  data-terminal-y={point.y}
                   data-draft-value={shown}
                   data-applied-value={applied}
                 >
                   <rect
-                    x={20}
+                    x={point.x - TERMINAL_BODY_WIDTH - TERMINAL_PORT_GAP}
                     y={point.y - 30}
-                    width={100}
+                    width={TERMINAL_BODY_WIDTH}
                     height={60}
                     rx={10}
                     className="interface-terminal-body"
@@ -2455,7 +2630,7 @@ export function App() {
                     }}
                   />
                   <text
-                    x={70}
+                    x={point.x - 62}
                     y={point.y - 10}
                     textAnchor="middle"
                     className="interface-terminal-name"
@@ -2463,7 +2638,7 @@ export function App() {
                     {pin.name}
                   </text>
                   <text
-                    x={70}
+                    x={point.x - 62}
                     y={point.y + 14}
                     textAnchor="middle"
                     className="interface-terminal-value"
@@ -2472,13 +2647,37 @@ export function App() {
                   </text>
                   {changed ? (
                     <text
-                      x={70}
+                      x={point.x - 62}
                       y={point.y + 26}
                       textAnchor="middle"
                       className="interface-terminal-applied"
                     >
                       적용 {applied}
                     </text>
+                  ) : null}
+                  {isRootInput ? (
+                    <g
+                      className="terminal-drag-handle"
+                      data-testid={`drag-interface-${pin.id}`}
+                      onPointerDown={(event) =>
+                        beginInterfaceDrag(event, pin.id, "input")
+                      }
+                    >
+                      <rect
+                        x={point.x - TERMINAL_BODY_WIDTH - TERMINAL_PORT_GAP + 5}
+                        y={point.y - 28}
+                        width={18}
+                        height={12}
+                        rx="4"
+                      />
+                      <text
+                        x={point.x - TERMINAL_BODY_WIDTH - TERMINAL_PORT_GAP + 14}
+                        y={point.y - 19}
+                        textAnchor="middle"
+                      >
+                        ⋮⋮
+                      </text>
+                    </g>
                   ) : null}
                   <circle
                     className={
@@ -2530,18 +2729,20 @@ export function App() {
                     valueClass,
                   ].join(" ")}
                   data-testid={`output-${pin.id}`}
+                  data-terminal-x={point.x}
+                  data-terminal-y={point.y}
                   data-value={value}
                 >
                   <rect
-                    x={CANVAS_WIDTH - 120}
+                    x={point.x + TERMINAL_PORT_GAP}
                     y={point.y - 30}
-                    width={100}
+                    width={TERMINAL_BODY_WIDTH}
                     height={60}
                     rx={10}
                     className="interface-terminal-body"
                   />
                   <text
-                    x={CANVAS_WIDTH - 70}
+                    x={point.x + 62}
                     y={point.y - 10}
                     textAnchor="middle"
                     className="interface-terminal-name"
@@ -2549,13 +2750,37 @@ export function App() {
                     {pin.name}
                   </text>
                   <text
-                    x={CANVAS_WIDTH - 70}
+                    x={point.x + 62}
                     y={point.y + 16}
                     textAnchor="middle"
                     className="interface-terminal-value"
                   >
                     {value}
                   </text>
+                  {!isInspectingNested ? (
+                    <g
+                      className="terminal-drag-handle"
+                      data-testid={`drag-interface-${pin.id}`}
+                      onPointerDown={(event) =>
+                        beginInterfaceDrag(event, pin.id, "output")
+                      }
+                    >
+                      <rect
+                        x={point.x + TERMINAL_PORT_GAP + TERMINAL_BODY_WIDTH - 23}
+                        y={point.y - 28}
+                        width={18}
+                        height={12}
+                        rx="4"
+                      />
+                      <text
+                        x={point.x + TERMINAL_PORT_GAP + TERMINAL_BODY_WIDTH - 14}
+                        y={point.y - 19}
+                        textAnchor="middle"
+                      >
+                        ⋮⋮
+                      </text>
+                    </g>
+                  ) : null}
                   <circle
                     className={
                       pendingPin &&
@@ -2597,6 +2822,8 @@ export function App() {
                   data-instance-id={instance.id}
                   data-component-id={instance.componentId}
                   data-symbol-kind={symbolKind}
+                  data-position-x={position.x}
+                  data-position-y={position.y}
                   onPointerDown={(event) => beginDrag(event, instance.id)}
                   onDoubleClick={(event) => {
                     event.stopPropagation();
