@@ -1546,6 +1546,33 @@ export function App() {
     setWireHoverTarget(null);
   }
 
+  function placeDraftWireNode(clientX: number, clientY: number): void {
+    const activePendingWire = pendingWireRef.current ?? pendingPin;
+    if (
+      !activePendingWire ||
+      !wireDraggingRef.current ||
+      !displayCircuit
+    ) {
+      return;
+    }
+
+    const next = snapPoint(clientToCanvasPoint(clientX, clientY));
+    const start = getEndpointPoint(activePendingWire, displayCircuit, registry);
+    const currentRoute = wireRoutePointsRef.current;
+    const previous = currentRoute[currentRoute.length - 1] ?? start;
+
+    if (previous.x !== next.x || previous.y !== next.y) {
+      const nextRoute = [...currentRoute, next];
+      wireRoutePointsRef.current = nextRoute;
+      setWireRoutePoints(nextRoute);
+    }
+
+    setWirePointer(next);
+    wireDraggingRef.current = false;
+    setWireDragging(false);
+    setWireHoverTarget(null);
+  }
+
   function finishWireConnection(endpoint: CircuitEndpoint): void {
     if (
       !challenge ||
@@ -2924,6 +2951,16 @@ export function App() {
             className={testRunning ? "circuit-canvas testing" : "circuit-canvas"}
             viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
             onPointerMove={moveDrag}
+            onPointerUpCapture={(event) => {
+              const target = event.target;
+              if (
+                target instanceof Element &&
+                target.closest("[data-pin-id]")
+              ) {
+                return;
+              }
+              placeDraftWireNode(event.clientX, event.clientY);
+            }}
             onPointerUp={(event) => {
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
@@ -2934,32 +2971,7 @@ export function App() {
               setWireNodeDrag(null);
               setPan(null);
 
-              const activePendingWire =
-                pendingWireRef.current ?? pendingPin;
-              if (
-                activePendingWire &&
-                wireDraggingRef.current
-              ) {
-                const next = snapPoint(
-                  clientToCanvasPoint(event.clientX, event.clientY),
-                );
-                const start = displayCircuit
-                  ? getEndpointPoint(activePendingWire, displayCircuit, registry)
-                  : next;
-                const currentRoute = wireRoutePointsRef.current;
-                const previous =
-                  currentRoute[currentRoute.length - 1] ?? start;
-
-                if (previous.x !== next.x || previous.y !== next.y) {
-                  const nextRoute = [...currentRoute, next];
-                  wireRoutePointsRef.current = nextRoute;
-                  setWireRoutePoints(nextRoute);
-                }
-                setWirePointer(next);
-                wireDraggingRef.current = false;
-                setWireDragging(false);
-                setWireHoverTarget(null);
-              }
+              placeDraftWireNode(event.clientX, event.clientY);
             }}
             onPointerLeave={() => {
               dragGestureRef.current = null;
