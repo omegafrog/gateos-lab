@@ -1,0 +1,33 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "logic.or",
+  "title": "OR",
+  "description": "지금까지 만든 NOT과 AND를 이용해 OR 게이트를 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "a", "name": "A", "width": 1 },
+      { "id": "b", "name": "B", "width": 1 }
+    ],
+    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+  },
+  "allowedComponents": ["user.not", "user.and"],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        { "in": { "a": 0, "b": 0 }, "out": { "out": 0 } },
+        { "in": { "a": 1, "b": 0 }, "out": { "out": 1 } }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        { "in": { "a": 0, "b": 1 }, "out": { "out": 1 } },
+        { "in": { "a": 1, "b": 1 }, "out": { "out": 1 } }
+      ]
+    }
+  ],
+  "unlocks": ["logic.xor"]
+}
