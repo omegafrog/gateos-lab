@@ -3,12 +3,12 @@
   "id": "core.logic-v0",
   "title": "From NAND to Full Adder",
   "challenges": [
-    "logic.not",
-    "logic.and",
-    "logic.or",
-    "logic.xor",
-    "routing.mux2",
-    "arithmetic.half-adder",
-    "arithmetic.full-adder"
+    { "id": "logic.not", "file": "01-not.challenge.json" },
+    { "id": "logic.and", "file": "02-and.challenge.json" },
+    { "id": "logic.or", "file": "03-or.challenge.json" },
+    { "id": "logic.xor", "file": "04-xor.challenge.json" },
+    { "id": "routing.mux2", "file": "05-mux2.challenge.json" },
+    { "id": "arithmetic.half-adder", "file": "06-half-adder.challenge.json" },
+    { "id": "arithmetic.full-adder", "file": "07-full-adder.challenge.json" }
   ]
 }
