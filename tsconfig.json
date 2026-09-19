@@ -4,6 +4,7 @@
     { "path": "./packages/circuit-model" },
     { "path": "./packages/circuit-compiler" },
     { "path": "./packages/sim-core" },
+    { "path": "./packages/challenge-engine" },
     { "path": "./apps/web" }
   ]
 }
