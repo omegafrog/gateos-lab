@@ -586,7 +586,7 @@ test("clicking an existing wire adds a movable snapped anchor", async ({ page })
 
   const wire = page.locator("path.wire:not(.wire-preview)").first();
   await expect(wire).toBeVisible();
-  await wire.click({ position: { x: 20, y: 1 } });
+  await wire.click();
 
   const node = page.locator("circle.wire-node:not(.draft)").first();
   await expect(node).toBeVisible();
