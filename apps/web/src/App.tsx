@@ -320,11 +320,14 @@ function interfacePinPoint(
 
   const inputIndex = inputPins.findIndex((pin) => pin.id === pinId);
   if (inputIndex >= 0) {
-    return { x: 48, y: 100 + inputIndex * 74 };
+    return { x: 132, y: 100 + inputIndex * 82 };
   }
 
   const outputIndex = outputPins.findIndex((pin) => pin.id === pinId);
-  return { x: CANVAS_WIDTH - 48, y: 100 + Math.max(outputIndex, 0) * 74 };
+  return {
+    x: CANVAS_WIDTH - 132,
+    y: 100 + Math.max(outputIndex, 0) * 82,
+  };
 }
 
 function getEndpointPoint(
@@ -740,6 +743,60 @@ export function App() {
     }
 
     setInputValues(next);
+  }
+
+  function editRootInput(pinId: string, width: number): void {
+    if (testRunning || isInspectingNested) return;
+
+    const applied = inputValues[pinId] ?? zeroBits(width);
+    const current = usesStagedInputs
+      ? draftInputValues[pinId] ?? applied
+      : applied;
+
+    if (width === 1) {
+      const next = current === "1" ? "0" : "1";
+      const setter = usesStagedInputs
+        ? setDraftInputValues
+        : setInputValues;
+      setter((values) => ({ ...values, [pinId]: next }));
+      return;
+    }
+
+    const entered = window.prompt(
+      `${pinId} 값을 입력하세요 (binary, decimal 또는 0x hex)`,
+      current,
+    );
+    if (entered === null) return;
+
+    const raw = entered.trim();
+    try {
+      let value: bigint;
+      if (/^[01]+$/.test(raw)) {
+        value = BigInt(`0b${raw}`);
+      } else if (/^0x[0-9a-f]+$/i.test(raw)) {
+        value = BigInt(raw);
+      } else if (/^\d+$/.test(raw)) {
+        value = BigInt(raw);
+      } else {
+        throw new Error("지원하지 않는 입력 형식입니다.");
+      }
+
+      const limit = 1n << BigInt(width);
+      if (value < 0n || value >= limit) {
+        throw new Error(`0 ~ ${limit - 1n} 범위의 값을 입력하세요.`);
+      }
+
+      const next = BitVector.fromBigInt(value, width).toBinary();
+      const setter = usesStagedInputs
+        ? setDraftInputValues
+        : setInputValues;
+      setter((values) => ({ ...values, [pinId]: next }));
+      setProjectError("");
+    } catch (error) {
+      setProjectError(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 
   function truthRowIsActive(
@@ -2100,180 +2157,80 @@ export function App() {
           </span>
         </div>
 
-        <section className="io-strip">
-          <div>
-            <strong>Inputs</strong>
-            {challenge.interface.inputs.map((pin) => {
-              const applied =
-                inputValues[pin.id] ?? zeroBits(pin.width);
-              const binary = usesStagedInputs
-                ? draftInputValues[pin.id] ?? applied
-                : applied;
-              const changed = binary !== applied;
-
-              if (pin.width === 1) {
-                return (
-                  <button
-                    key={pin.id}
-                    className={[
-                      "io-value",
-                      changed ? "pending-input" : "",
-                    ].join(" ")}
-                    data-testid={`input-${pin.id}`}
-                    disabled={testRunning}
-                    onClick={() => {
-                      const setter = usesStagedInputs
-                        ? setDraftInputValues
-                        : setInputValues;
-                      setter((current) => ({
-                        ...current,
-                        [pin.id]: binary === "1" ? "0" : "1",
-                      }));
-                    }}
-                  >
-                    {pin.name}: {binary}
-                    {changed ? <small> pending</small> : null}
-                  </button>
-                );
-              }
-
-              const max = ((1n << BigInt(pin.width)) - 1n).toString(10);
-              return (
-                <label
-                  key={pin.id}
-                  className={[
-                    "bus-input",
-                    changed ? "pending-input" : "",
-                  ].join(" ")}
-                >
-                  <span>{pin.name}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max={max}
-                    disabled={testRunning}
-                    value={concreteInputNumber(binary)}
-                    onChange={(event) => {
-                      if (event.target.value === "") return;
-                      try {
-                        const value = BigInt(event.target.value);
-                        const limit = 1n << BigInt(pin.width);
-                        if (value < 0n || value >= limit) return;
-                        const next = BitVector.fromBigInt(
-                          value,
-                          pin.width,
-                        ).toBinary();
-                        const setter = usesStagedInputs
-                          ? setDraftInputValues
-                          : setInputValues;
-                        setter((current) => ({
-                          ...current,
-                          [pin.id]: next,
-                        }));
-                      } catch {
-                        // Keep the last valid bus value.
-                      }
-                    }}
-                  />
-                  <code>{binary}</code>
-                  <small>{signalHex(binary)}</small>
-                </label>
-              );
-            })}
-            {usesStagedInputs ? (
-              <div className="staged-input-controls">
-                <span data-testid="applied-input-summary">
-                  Applied:&nbsp;
-                  {challenge.interface.inputs
-                    .map(
-                      (pin) =>
-                        `${pin.name}=${inputValues[pin.id] ?? zeroBits(pin.width)}`,
-                    )
-                    .join("  ")}
-                </span>
-                <button
-                  className="apply-inputs"
-                  data-testid="apply-inputs"
-                  disabled={
-                    testRunning ||
-                    !challenge.interface.inputs.some(
-                      (pin) =>
-                        (draftInputValues[pin.id] ??
-                          inputValues[pin.id] ??
-                          zeroBits(pin.width)) !==
-                        (inputValues[pin.id] ?? zeroBits(pin.width)),
-                    )
-                  }
-                  onClick={applyDraftInputs}
-                >
-                  Apply inputs
-                </button>
-              </div>
-            ) : null}
-          </div>
-          <div>
-            <strong>Outputs</strong>
-            {challenge.interface.outputs.map((pin) => (
-              <span key={pin.id} className="io-output">
-                {pin.name}: {preview.outputs[pin.id] ?? "X"}
-                {pin.width > 1 ? (
-                  <small>
-                    {signalHex(preview.outputs[pin.id] ?? "X")}
-                  </small>
-                ) : null}
-              </span>
-            ))}
-          </div>
-          {preview.error ? <span className="error-text">{preview.error}</span> : null}
-          {hasSequentialNodes ? (
-            <div className="clock-controls">
-              <strong>Clock</strong>
-              <button
-                disabled={testRunning}
-                onClick={() => stepSimulationEdge("rising")}
-                title="Rising edge"
-              >
-                ↑ edge
-              </button>
-              <button
-                disabled={testRunning}
-                onClick={() => stepSimulationEdge("falling")}
-                title="Falling edge"
-              >
-                ↓ edge
-              </button>
-              <button
-                disabled={testRunning}
-                onClick={stepSimulationClock}
-                title="Rising + falling edge"
-              >
-                Step clock
-              </button>
-              <button
-                disabled={testRunning || !(traceRuntime?.canRewind ?? false)}
-                onClick={rewindSimulation}
-                title="Restore the state before the last captured step"
-              >
-                Rewind
-              </button>
-              <button
-                disabled={testRunning}
-                onClick={resetSimulation}
-                title="Reset sequential state and cycle counter"
-              >
-                Reset sim
-              </button>
-              <span>
-                cycle {simulationRuntime.simulator?.cycle ?? 0}
-              </span>
-            </div>
-          ) : null}
-        </section>
-
         <section className="canvas-frame">
           <div className="canvas-toolbar">
-            <span>Drag empty space to pan · mouse wheel to zoom</span>
-            <div>
+            <div className="canvas-toolbar-info">
+              <span>빈 공간 드래그: 이동 · 줌: + / −</span>
+              {preview.error ? (
+                <span className="error-text">{preview.error}</span>
+              ) : null}
+            </div>
+            <div className="canvas-toolbar-actions">
+              {usesStagedInputs && !isInspectingNested ? (
+                <>
+                  <span
+                    className="applied-input-summary"
+                    data-testid="applied-input-summary"
+                  >
+                    적용됨:&nbsp;
+                    {challenge.interface.inputs
+                      .map(
+                        (pin) =>
+                          `${pin.name}=${inputValues[pin.id] ?? zeroBits(pin.width)}`,
+                      )
+                      .join("  ")}
+                  </span>
+                  <button
+                    className="apply-inputs"
+                    data-testid="apply-inputs"
+                    disabled={
+                      testRunning ||
+                      !challenge.interface.inputs.some(
+                        (pin) =>
+                          (draftInputValues[pin.id] ??
+                            inputValues[pin.id] ??
+                            zeroBits(pin.width)) !==
+                          (inputValues[pin.id] ?? zeroBits(pin.width)),
+                      )
+                    }
+                    onClick={applyDraftInputs}
+                  >
+                    입력 적용
+                  </button>
+                </>
+              ) : null}
+              {hasSequentialNodes ? (
+                <div className="clock-controls">
+                  <strong>Clock</strong>
+                  <button
+                    disabled={testRunning}
+                    onClick={() => stepSimulationEdge("rising")}
+                    title="상승 에지(rising edge)"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    disabled={testRunning}
+                    onClick={() => stepSimulationEdge("falling")}
+                    title="하강 에지(falling edge)"
+                  >
+                    ↓
+                  </button>
+                  <button disabled={testRunning} onClick={stepSimulationClock}>
+                    1 cycle
+                  </button>
+                  <button
+                    disabled={testRunning || !(traceRuntime?.canRewind ?? false)}
+                    onClick={rewindSimulation}
+                  >
+                    Rewind
+                  </button>
+                  <button disabled={testRunning} onClick={resetSimulation}>
+                    Reset
+                  </button>
+                  <span>cycle {simulationRuntime.simulator?.cycle ?? 0}</span>
+                </div>
+              ) : null}
               <button
                 onClick={() => {
                   const rect = svgRef.current?.getBoundingClientRect();
@@ -2290,7 +2247,7 @@ export function App() {
               >
                 −
               </button>
-              <button onClick={resetViewport}>Reset view</button>
+              <button onClick={resetViewport}>화면 맞춤</button>
             </div>
           </div>
           <svg
@@ -2345,14 +2302,27 @@ export function App() {
                 registry,
               );
               const curve = Math.max(60, Math.abs(to.x - from.x) * 0.4);
+              const sourceValue =
+                preview.signals[
+                  signalVertex(connection.from, inspection.prefix)
+                ] ?? "X";
+              const wireValueClass =
+                sourceValue === "1"
+                  ? "value-one"
+                  : sourceValue === "0"
+                    ? "value-zero"
+                    : sourceValue.includes("Z")
+                      ? "value-z"
+                      : "value-x";
+
               return (
                 <path
                   key={connection.id}
-                  className={
-                    selectedConnection === connection.id
-                      ? "wire selected"
-                      : "wire"
-                  }
+                  className={[
+                    "wire",
+                    wireValueClass,
+                    selectedConnection === connection.id ? "selected" : "",
+                  ].join(" ")}
                   d={`M ${from.x} ${from.y} C ${from.x + curve} ${from.y}, ${to.x - curve} ${to.y}, ${to.x} ${to.y}`}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -2369,31 +2339,95 @@ export function App() {
                 kind: "interface",
                 pinId: pin.id,
               };
+              const isRootInput =
+                !isInspectingNested &&
+                challenge.interface.inputs.some(
+                  (candidate) => candidate.id === pin.id,
+                );
+              const applied =
+                inputValues[pin.id] ??
+                preview.signals[
+                  signalVertex(endpoint, inspection.prefix)
+                ] ??
+                zeroBits(pin.width);
+              const shown =
+                isRootInput && usesStagedInputs
+                  ? draftInputValues[pin.id] ?? applied
+                  : isRootInput
+                    ? applied
+                    : preview.signals[
+                        signalVertex(endpoint, inspection.prefix)
+                      ] ?? "X";
+              const changed = isRootInput && shown !== applied;
+
               return (
-                <g key={pin.id}>
-                  <text x={point.x - 12} y={point.y - 16} textAnchor="middle">
+                <g
+                  key={pin.id}
+                  className={[
+                    "interface-terminal",
+                    "input-terminal",
+                    changed ? "pending-value" : "",
+                  ].join(" ")}
+                  data-testid={isRootInput ? `input-${pin.id}` : undefined}
+                  data-draft-value={shown}
+                  data-applied-value={applied}
+                >
+                  <rect
+                    x={20}
+                    y={point.y - 30}
+                    width={100}
+                    height={60}
+                    rx={10}
+                    className="interface-terminal-body"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (isRootInput) editRootInput(pin.id, pin.width);
+                    }}
+                  />
+                  <text
+                    x={70}
+                    y={point.y - 10}
+                    textAnchor="middle"
+                    className="interface-terminal-name"
+                  >
                     {pin.name}
                   </text>
+                  <text
+                    x={70}
+                    y={point.y + 14}
+                    textAnchor="middle"
+                    className="interface-terminal-value"
+                  >
+                    {shown}
+                  </text>
+                  {changed ? (
+                    <text
+                      x={70}
+                      y={point.y + 26}
+                      textAnchor="middle"
+                      className="interface-terminal-applied"
+                    >
+                      적용 {applied}
+                    </text>
+                  ) : null}
                   <circle
                     className={
-                      endpointKey(pendingPin ?? endpoint) === endpointKey(endpoint) &&
-                      pendingPin
+                      pendingPin &&
+                      endpointKey(pendingPin) === endpointKey(endpoint)
                         ? "pin pending"
-                        : "pin"
+                        : "pin interface-port"
                     }
                     data-testid={`pin-interface-${pin.id}`}
                     data-pin-id={pin.id}
                     cx={point.x}
                     cy={point.y}
                     r="8"
+                    onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
                       onPinClick(endpoint);
                     }}
                   />
-                  <text x={point.x} y={point.y + 28} textAnchor="middle" className="signal-label">
-                    {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
-                  </text>
                 </g>
               );
             })}
@@ -2404,31 +2438,72 @@ export function App() {
                 kind: "interface",
                 pinId: pin.id,
               };
+              const value =
+                preview.signals[
+                  signalVertex(endpoint, inspection.prefix)
+                ] ?? "X";
+              const valueClass =
+                value === "1"
+                  ? "value-one"
+                  : value === "0"
+                    ? "value-zero"
+                    : value.includes("Z")
+                      ? "value-z"
+                      : "value-x";
+
               return (
-                <g key={pin.id}>
-                  <text x={point.x + 12} y={point.y - 16} textAnchor="middle">
+                <g
+                  key={pin.id}
+                  className={[
+                    "interface-terminal",
+                    "output-terminal",
+                    valueClass,
+                  ].join(" ")}
+                  data-testid={`output-${pin.id}`}
+                  data-value={value}
+                >
+                  <rect
+                    x={CANVAS_WIDTH - 120}
+                    y={point.y - 30}
+                    width={100}
+                    height={60}
+                    rx={10}
+                    className="interface-terminal-body"
+                  />
+                  <text
+                    x={CANVAS_WIDTH - 70}
+                    y={point.y - 10}
+                    textAnchor="middle"
+                    className="interface-terminal-name"
+                  >
                     {pin.name}
+                  </text>
+                  <text
+                    x={CANVAS_WIDTH - 70}
+                    y={point.y + 16}
+                    textAnchor="middle"
+                    className="interface-terminal-value"
+                  >
+                    {value}
                   </text>
                   <circle
                     className={
-                      endpointKey(pendingPin ?? endpoint) === endpointKey(endpoint) &&
-                      pendingPin
+                      pendingPin &&
+                      endpointKey(pendingPin) === endpointKey(endpoint)
                         ? "pin pending"
-                        : "pin"
+                        : "pin interface-port"
                     }
                     data-testid={`pin-interface-${pin.id}`}
                     data-pin-id={pin.id}
                     cx={point.x}
                     cy={point.y}
                     r="8"
+                    onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
                       onPinClick(endpoint);
                     }}
                   />
-                  <text x={point.x} y={point.y + 28} textAnchor="middle" className="signal-label">
-                    {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
-                  </text>
                 </g>
               );
             })}
