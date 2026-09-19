@@ -96,8 +96,8 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "D Latch characteristic table",
-      "description": "ENABLE=1 is transparent. ENABLE=0 holds the previous state.",
+      "title": "D Latch state table",
+      "description": "Storage is controlled by ENABLE, not by a clock edge.",
       "columns": [
         {
           "id": "enable",
@@ -111,12 +111,12 @@
         },
         {
           "id": "qt",
-          "label": "Q(t)",
+          "label": "Q(before)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(t+1)",
+          "label": "Q(after settle)",
           "group": "output"
         },
         {
@@ -156,8 +156,11 @@
         }
       ],
       "notes": [
-        "X means the value does not affect the next state."
-      ]
+        "ENABLE=1: Q follows D after the circuit settles.",
+        "ENABLE=0: the feedback path preserves the previous Q.",
+        "X means that input does not affect the resulting state."
+      ],
+      "timing": "Level-sensitive — no clock edge. ENABLE=1 is transparent; ENABLE=0 stores."
     }
   ]
 }
