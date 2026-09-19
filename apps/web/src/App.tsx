@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -27,6 +28,7 @@ import {
 } from "@gateos/challenge-engine";
 
 const STORAGE_KEY = "gateos-lab:v0.1";
+const PROJECT_SCHEMA = "gateos.project/v1";
 const CANVAS_WIDTH = 920;
 const CANVAS_HEIGHT = 560;
 
@@ -37,10 +39,24 @@ interface CurriculumManifest {
   challenges: readonly { id: string; file: string }[];
 }
 
+interface ProbeDefinition {
+  id: string;
+  name: string;
+  vertex: string;
+  width: number;
+}
+
 interface ProjectState {
+  schema: typeof PROJECT_SCHEMA;
   circuits: Record<string, CircuitDefinition>;
   published: Record<string, CircuitDefinition>;
   completed: string[];
+  probes: Record<string, ProbeDefinition[]>;
+}
+
+interface ProjectLoadResult {
+  project: ProjectState;
+  error?: string;
 }
 
 interface Point {
@@ -99,21 +115,64 @@ function formatActual(values: Readonly<Record<string, string>> | undefined): str
 }
 
 function emptyProject(): ProjectState {
-  return { circuits: {}, published: {}, completed: [] };
+  return {
+    schema: PROJECT_SCHEMA,
+    circuits: {},
+    published: {},
+    completed: [],
+    probes: {},
+  };
 }
 
-function loadProject(): ProjectState {
+function normalizeProject(value: unknown, strictSchema = false): ProjectState {
+  if (!value || typeof value !== "object") {
+    throw new Error("Project file must contain a JSON object.");
+  }
+
+  const raw = value as Partial<ProjectState> & { schema?: string };
+
+  if (strictSchema && raw.schema !== PROJECT_SCHEMA) {
+    throw new Error(
+      `Unsupported project schema: ${raw.schema ?? "(missing)"}. Expected ${PROJECT_SCHEMA}.`,
+    );
+  }
+
+  if (
+    raw.schema !== undefined &&
+    raw.schema !== PROJECT_SCHEMA
+  ) {
+    throw new Error(
+      `Unsupported project schema: ${raw.schema}. Expected ${PROJECT_SCHEMA}.`,
+    );
+  }
+
+  return {
+    schema: PROJECT_SCHEMA,
+    circuits:
+      raw.circuits && typeof raw.circuits === "object" ? raw.circuits : {},
+    published:
+      raw.published && typeof raw.published === "object" ? raw.published : {},
+    completed: Array.isArray(raw.completed) ? raw.completed : [],
+    probes: raw.probes && typeof raw.probes === "object" ? raw.probes : {},
+  };
+}
+
+function loadProject(): ProjectLoadResult {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return { project: emptyProject() };
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyProject();
-    const parsed = JSON.parse(raw) as Partial<ProjectState>;
     return {
-      circuits: parsed.circuits ?? {},
-      published: parsed.published ?? {},
-      completed: parsed.completed ?? [],
+      project: normalizeProject(JSON.parse(raw)),
     };
-  } catch {
-    return emptyProject();
+  } catch (error) {
+    return {
+      project: emptyProject(),
+      error:
+        error instanceof Error
+          ? `Saved project could not be loaded: ${error.message}`
+          : "Saved project could not be loaded.",
+    };
   }
 }
 
@@ -246,17 +305,49 @@ function signalVertex(endpoint: CircuitEndpoint): string {
     : `root::inst:${endpoint.instanceId}::${endpoint.pinId}`;
 }
 
+function endpointWidth(
+  endpoint: CircuitEndpoint,
+  challenge: ChallengeDefinition,
+  circuit: CircuitDefinition,
+  registry: ComponentRegistry,
+): number {
+  if (endpoint.kind === "interface") {
+    const pin = circuit.pins.find((candidate) => candidate.id === endpoint.pinId);
+    return pin?.width ?? 1;
+  }
+
+  const instance = circuit.instances.find(
+    (candidate) => candidate.id === endpoint.instanceId,
+  );
+  if (!instance) return 1;
+
+  try {
+    const spec = registry.get(instance.componentId);
+    return componentPins(spec).find((pin) => pin.id === endpoint.pinId)?.width ?? 1;
+  } catch {
+    return 1;
+  }
+}
+
+function signalHex(binary: string): string {
+  if (!/^[01]+$/.test(binary)) return "—";
+  return `0x${BigInt(`0b${binary}`).toString(16).toUpperCase()}`;
+}
+
 function componentDisplayName(spec: ComponentSpec): string {
   return spec.name || spec.id;
 }
 
 export function App() {
+  const initialProject = useMemo(() => loadProject(), []);
   const [manifest, setManifest] = useState<CurriculumManifest | null>(null);
   const [challenges, setChallenges] = useState<ChallengeDefinition[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
-  const [project, setProject] = useState<ProjectState>(() => loadProject());
+  const [project, setProject] = useState<ProjectState>(initialProject.project);
+  const [projectError, setProjectError] = useState(initialProject.error ?? "");
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
+  const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, 0 | 1>>({});
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
@@ -265,6 +356,7 @@ export function App() {
   const [testRunning, setTestRunning] = useState(false);
   const [loadError, setLoadError] = useState<string>("");
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const undoRef = useRef<Record<string, CircuitDefinition[]>>({});
   const redoRef = useRef<Record<string, CircuitDefinition[]>>({});
 
@@ -312,6 +404,7 @@ export function App() {
     setInputValues(values);
     setPendingPin(null);
     setSelectedInstance(null);
+    setSelectedConnection(null);
     setTestResult(null);
     setTestStates({});
     setActiveTestId(null);
@@ -396,6 +489,7 @@ export function App() {
     setActiveTestId(null);
     setPendingPin(null);
     setSelectedInstance(null);
+    setSelectedConnection(null);
   }
 
   function redo(): void {
@@ -421,6 +515,7 @@ export function App() {
     setActiveTestId(null);
     setPendingPin(null);
     setSelectedInstance(null);
+    setSelectedConnection(null);
   }
 
   const preview = useMemo<PreviewState>(() => {
@@ -474,23 +569,27 @@ export function App() {
         return;
       }
 
-      if (
-        selectedInstance &&
-        (event.key === "Delete" || event.key === "Backspace")
-      ) {
-        event.preventDefault();
-        removeSelectedInstance();
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (selectedInstance) {
+          event.preventDefault();
+          removeSelectedInstance();
+        } else if (selectedConnection) {
+          event.preventDefault();
+          removeConnection(selectedConnection);
+          setSelectedConnection(null);
+        }
       }
 
       if (event.key === "Escape") {
         setPendingPin(null);
         setSelectedInstance(null);
+        setSelectedConnection(null);
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedInstance, challenge?.id]);
+  }, [selectedInstance, selectedConnection, challenge?.id]);
 
   if (loadError) {
     return (
@@ -581,6 +680,7 @@ export function App() {
       ...current,
       connections: current.connections.filter((connection) => connection.id !== id),
     }));
+    setSelectedConnection((current) => (current === id ? null : current));
   }
 
   function removeSelectedInstance(): void {
@@ -603,6 +703,102 @@ export function App() {
       ),
     }));
     setSelectedInstance(null);
+  }
+
+  function addProbe(): void {
+    if (!challenge || !circuit || !selectedConnection) return;
+    const connection = circuit.connections.find(
+      (candidate) => candidate.id === selectedConnection,
+    );
+    if (!connection) return;
+
+    const vertex = signalVertex(connection.from);
+    const width = endpointWidth(connection.from, challenge, circuit, registry);
+    const existing = project.probes[challenge.id] ?? [];
+    if (existing.some((probe) => probe.vertex === vertex)) return;
+
+    const probe: ProbeDefinition = {
+      id: `probe-${Date.now().toString(36)}`,
+      name: `Probe ${existing.length + 1}`,
+      vertex,
+      width,
+    };
+
+    setProject((previous) => ({
+      ...previous,
+      probes: {
+        ...previous.probes,
+        [challenge.id]: [...existing, probe],
+      },
+    }));
+  }
+
+  function removeProbe(id: string): void {
+    if (!challenge) return;
+    const probes = project.probes[challenge.id] ?? [];
+    setProject((previous) => ({
+      ...previous,
+      probes: {
+        ...previous.probes,
+        [challenge.id]: probes.filter((probe) => probe.id !== id),
+      },
+    }));
+  }
+
+  function renameProbe(id: string): void {
+    if (!challenge) return;
+    const probes = project.probes[challenge.id] ?? [];
+    const current = probes.find((probe) => probe.id === id);
+    if (!current) return;
+
+    const nextName = window.prompt("Probe name", current.name)?.trim();
+    if (!nextName) return;
+
+    setProject((previous) => ({
+      ...previous,
+      probes: {
+        ...previous.probes,
+        [challenge.id]: probes.map((probe) =>
+          probe.id === id ? { ...probe, name: nextName } : probe,
+        ),
+      },
+    }));
+  }
+
+  function exportProject(): void {
+    const blob = new Blob([JSON.stringify(project, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "gateos-project.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importProject(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown;
+      const imported = normalizeProject(parsed, true);
+      setProject(imported);
+      setProjectError("");
+      setSelectedInstance(null);
+      setSelectedConnection(null);
+      setPendingPin(null);
+      setTestResult(null);
+      setTestStates({});
+    } catch (error) {
+      setProjectError(
+        error instanceof Error
+          ? `Project import failed: ${error.message}`
+          : "Project import failed.",
+      );
+    }
   }
 
   function canvasPoint(event: ReactPointerEvent<SVGSVGElement>): Point {
@@ -823,6 +1019,17 @@ export function App() {
         <div className="topbar-actions">
           <button onClick={undo}>Undo</button>
           <button onClick={redo}>Redo</button>
+          <button onClick={exportProject}>Export project</button>
+          <button onClick={() => importInputRef.current?.click()}>
+            Import project
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(event) => void importProject(event)}
+          />
           <button onClick={resetChallenge}>Reset challenge</button>
           <span className="progress">
             {project.completed.length}/{challenges.length} complete
@@ -871,6 +1078,12 @@ export function App() {
       </aside>
 
       <main className="workspace">
+        {projectError ? (
+          <div className="project-error">
+            <span>{projectError}</span>
+            <button onClick={() => setProjectError("")}>Dismiss</button>
+          </div>
+        ) : null}
         <section className="challenge-header">
           <div>
             <p className="eyebrow">Challenge {currentIndex + 1}</p>
@@ -935,6 +1148,7 @@ export function App() {
             onPointerLeave={() => setDrag(null)}
             onClick={() => {
               setSelectedInstance(null);
+              setSelectedConnection(null);
               setPendingPin(null);
             }}
           >
@@ -967,11 +1181,16 @@ export function App() {
               return (
                 <path
                   key={connection.id}
-                  className="wire"
+                  className={
+                    selectedConnection === connection.id
+                      ? "wire selected"
+                      : "wire"
+                  }
                   d={`M ${from.x} ${from.y} C ${from.x + curve} ${from.y}, ${to.x - curve} ${to.y}, ${to.x} ${to.y}`}
                   onClick={(event) => {
                     event.stopPropagation();
-                    removeConnection(connection.id);
+                    setSelectedConnection(connection.id);
+                    setSelectedInstance(null);
                   }}
                 />
               );
@@ -1064,6 +1283,7 @@ export function App() {
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedInstance(instance.id);
+                    setSelectedConnection(null);
                   }}
                 >
                   <rect
@@ -1275,7 +1495,8 @@ export function App() {
           <div>
             <strong>Wiring</strong>
             <p className="muted">
-              핀 하나를 클릭한 뒤 연결할 다른 핀을 클릭하세요. 선을 클릭하면 제거됩니다.
+              핀 하나를 클릭한 뒤 연결할 다른 핀을 클릭하세요. 선을 클릭하면 선택되고,
+              Delete/Backspace로 제거할 수 있습니다.
             </p>
             {pendingPin ? (
               <p>Selected pin: <code>{endpointKey(pendingPin)}</code></p>
@@ -1317,6 +1538,44 @@ export function App() {
           </dd>
         </dl>
 
+        <h2>Selected signal</h2>
+        {selectedConnection ? (() => {
+          const connection = circuit.connections.find(
+            (candidate) => candidate.id === selectedConnection,
+          );
+          if (!connection) return null;
+          const vertex = signalVertex(connection.from);
+          const value = preview.signals[vertex] ?? "X";
+          const width = endpointWidth(connection.from, challenge, circuit, registry);
+          return (
+            <div className="selected-signal-card">
+              <dl>
+                <dt>Wire</dt>
+                <dd>{selectedConnection}</dd>
+                <dt>Width</dt>
+                <dd>{width} bit{width === 1 ? "" : "s"}</dd>
+                <dt>Binary</dt>
+                <dd className={value.includes("X") ? "unknown-value" : ""}>
+                  <code>{value}</code>
+                </dd>
+                <dt>Hex</dt>
+                <dd><code>{signalHex(value)}</code></dd>
+              </dl>
+              <div className="signal-actions">
+                <button onClick={addProbe}>Add probe</button>
+                <button
+                  className="danger"
+                  onClick={() => removeConnection(selectedConnection)}
+                >
+                  Delete wire
+                </button>
+              </div>
+            </div>
+          );
+        })() : (
+          <p className="muted">Click a wire to inspect it.</p>
+        )}
+
         <h2>Selected component</h2>
         {selectedInstance ? (
           <div className="selected-component-card">
@@ -1332,6 +1591,39 @@ export function App() {
         ) : (
           <p className="muted">Click a component to select it.</p>
         )}
+
+        <h2>Probes</h2>
+        <div className="probe-list">
+          {(project.probes[challenge.id] ?? []).length === 0 ? (
+            <p className="muted">Select a wire and add a probe.</p>
+          ) : (
+            (project.probes[challenge.id] ?? []).map((probe) => {
+              const value = preview.signals[probe.vertex] ?? "X";
+              return (
+                <div key={probe.id} className="probe-card">
+                  <button
+                    className="probe-name"
+                    title="Rename probe"
+                    onClick={() => renameProbe(probe.id)}
+                  >
+                    {probe.name}
+                  </button>
+                  <code className={value.includes("X") ? "unknown-value" : ""}>
+                    {value}
+                  </code>
+                  <small>{signalHex(value)}</small>
+                  <button
+                    className="probe-remove"
+                    title="Remove probe"
+                    onClick={() => removeProbe(probe.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
 
         <h2>Live signals</h2>
         <div className="signal-list">
