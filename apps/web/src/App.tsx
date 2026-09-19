@@ -131,6 +131,15 @@ function literalToVector(value: number | string, width: number): BitVector {
     : BitVector.fromBinary(value);
 }
 
+function zeroBits(width: number): string {
+  return "0".repeat(width);
+}
+
+function concreteInputNumber(binary: string): string {
+  if (!/^[01]+$/.test(binary)) return "";
+  return BigInt(`0b${binary}`).toString(10);
+}
+
 function formatSignals(values: Readonly<Record<string, number | string>>): string {
   return Object.entries(values)
     .map(([name, value]) => `${name.toUpperCase()}=${value}`)
@@ -394,7 +403,7 @@ export function App() {
     width: CANVAS_WIDTH,
     height: CANVAS_HEIGHT,
   });
-  const [inputValues, setInputValues] = useState<Record<string, 0 | 1>>({});
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [simulationRevision, setSimulationRevision] = useState(0);
   const [traceRevision, setTraceRevision] = useState(0);
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
@@ -447,8 +456,10 @@ export function App() {
 
   useEffect(() => {
     if (!challenge) return;
-    const values: Record<string, 0 | 1> = {};
-    for (const pin of challenge.interface.inputs) values[pin.id] = 0;
+    const values: Record<string, string> = {};
+    for (const pin of challenge.interface.inputs) {
+      values[pin.id] = zeroBits(pin.width);
+    }
     setInputValues(values);
     setPendingPin(null);
     setSelectedInstance(null);
@@ -487,7 +498,7 @@ export function App() {
       for (const pin of challenge.interface.inputs) {
         simulator.setInput(
           pin.id,
-          BitVector.fromNumber(inputValues[pin.id] ?? 0, pin.width),
+          BitVector.fromBinary(inputValues[pin.id] ?? zeroBits(pin.width)),
         );
       }
       simulator.settle();
@@ -509,7 +520,7 @@ export function App() {
       for (const pin of challenge.interface.inputs) {
         simulationRuntime.simulator.setInput(
           pin.id,
-          BitVector.fromNumber(inputValues[pin.id] ?? 0, pin.width),
+          BitVector.fromBinary(inputValues[pin.id] ?? zeroBits(pin.width)),
         );
       }
       simulationRuntime.simulator.settle();
@@ -887,11 +898,9 @@ export function App() {
     if (!frame) return;
 
     const snapshot = simulationRuntime.simulator.snapshot();
-    const restoredInputs: Record<string, 0 | 1> = {};
+    const restoredInputs: Record<string, string> = {};
     for (const [pinId, value] of Object.entries(snapshot.inputs)) {
-      if (value === "0" || value === "1") {
-        restoredInputs[pinId] = value === "1" ? 1 : 0;
-      }
+      restoredInputs[pinId] = value;
     }
 
     setInputValues((current) => ({ ...current, ...restoredInputs }));
@@ -910,8 +919,10 @@ export function App() {
 
     try {
       simulationRuntime.simulator.reset();
-      const zeros: Record<string, 0 | 1> = {};
-      for (const pin of challenge.interface.inputs) zeros[pin.id] = 0;
+      const zeros: Record<string, string> = {};
+      for (const pin of challenge.interface.inputs) {
+        zeros[pin.id] = zeroBits(pin.width);
+      }
       setInputValues(zeros);
       traceRuntime?.clear();
       setSimulationRevision((current) => current + 1);
@@ -1437,13 +1448,14 @@ export function App() {
           [testCase.id]: { status: "running" },
         }));
 
-        const animatedInputs: Record<string, 0 | 1> = {};
+        const animatedInputs: Record<string, string> = {};
         for (const pin of challenge.interface.inputs) {
           const literal = testCase.inputs[pin.id];
-          if (literal === 0 || literal === 1) {
-            animatedInputs[pin.id] = literal;
-          } else if (typeof literal === "string" && pin.width === 1) {
-            animatedInputs[pin.id] = literal.endsWith("1") ? 1 : 0;
+          if (literal !== undefined) {
+            animatedInputs[pin.id] = literalToVector(
+              literal,
+              pin.width,
+            ).toBinary();
           }
         }
         setInputValues((current) => ({ ...current, ...animatedInputs }));
@@ -1498,7 +1510,7 @@ export function App() {
 
           try {
             if ("set" in step) {
-              const animatedInputs: Record<string, 0 | 1> = {};
+              const animatedInputs: Record<string, string> = {};
 
               for (const [pinId, literal] of Object.entries(step.set)) {
                 const pin = challenge.interface.inputs.find(
@@ -1511,9 +1523,10 @@ export function App() {
                   literalToVector(literal, pin.width),
                 );
 
-                if (pin.width === 1 && (literal === 0 || literal === 1)) {
-                  animatedInputs[pinId] = literal;
-                }
+                animatedInputs[pinId] = literalToVector(
+                  literal,
+                  pin.width,
+                ).toBinary();
               }
 
               simulator.settle();
@@ -1794,27 +1807,73 @@ export function App() {
         <section className="io-strip">
           <div>
             <strong>Inputs</strong>
-            {challenge.interface.inputs.map((pin) => (
-              <button
-                key={pin.id}
-                className="io-value"
-                disabled={testRunning}
-                onClick={() =>
-                  setInputValues((current) => ({
-                    ...current,
-                    [pin.id]: current[pin.id] === 1 ? 0 : 1,
-                  }))
-                }
-              >
-                {pin.name}: {inputValues[pin.id] ?? 0}
-              </button>
-            ))}
+            {challenge.interface.inputs.map((pin) => {
+              const binary = inputValues[pin.id] ?? zeroBits(pin.width);
+
+              if (pin.width === 1) {
+                return (
+                  <button
+                    key={pin.id}
+                    className="io-value"
+                    disabled={testRunning}
+                    onClick={() =>
+                      setInputValues((current) => ({
+                        ...current,
+                        [pin.id]:
+                          current[pin.id] === "1" ? "0" : "1",
+                      }))
+                    }
+                  >
+                    {pin.name}: {binary}
+                  </button>
+                );
+              }
+
+              const max = ((1n << BigInt(pin.width)) - 1n).toString(10);
+              return (
+                <label key={pin.id} className="bus-input">
+                  <span>{pin.name}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={max}
+                    disabled={testRunning}
+                    value={concreteInputNumber(binary)}
+                    onChange={(event) => {
+                      if (event.target.value === "") return;
+                      try {
+                        const value = BigInt(event.target.value);
+                        const limit = 1n << BigInt(pin.width);
+                        if (value < 0n || value >= limit) return;
+                        const next = BitVector.fromBigInt(
+                          value,
+                          pin.width,
+                        ).toBinary();
+                        setInputValues((current) => ({
+                          ...current,
+                          [pin.id]: next,
+                        }));
+                      } catch {
+                        // Keep the last valid bus value.
+                      }
+                    }}
+                  />
+                  <code>{binary}</code>
+                  <small>{signalHex(binary)}</small>
+                </label>
+              );
+            })}
           </div>
           <div>
             <strong>Outputs</strong>
             {challenge.interface.outputs.map((pin) => (
               <span key={pin.id} className="io-output">
                 {pin.name}: {preview.outputs[pin.id] ?? "X"}
+                {pin.width > 1 ? (
+                  <small>
+                    {signalHex(preview.outputs[pin.id] ?? "X")}
+                  </small>
+                ) : null}
               </span>
             ))}
           </div>
