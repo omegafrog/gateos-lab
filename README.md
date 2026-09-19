@@ -72,6 +72,30 @@ USER-BUILT ARTIFACTS
 
 플랫폼은 특정 CPU를 정답으로 하드코딩하지 않는다. 기본 curriculum에는 guided reference track을 둘 수 있지만, 그것은 플랫폼이 아니라 하나의 학습 코스다.
 
+## Quick start
+
+Requirements:
+
+- Node.js 22+
+- npm
+
+```bash
+git clone https://github.com/omegafrog/gateos-lab.git
+cd gateos-lab
+npm install
+npm run dev
+```
+
+`npm run dev` first builds the internal `@gateos/*` workspace packages and then starts Vite. The terminal will print the local URL, normally `http://localhost:5173`.
+
+Useful commands:
+
+```bash
+npm test
+npm run build
+npm run typecheck
+```
+
 ## Initial scope
 
 ### v0.1
@@ -146,4 +170,4 @@ CPU 제작.
 
 ## Status
 
-현재는 설계 및 v0.1 구현 준비 단계다.
+현재 v0.1의 playable combinational-logic slice가 구현 중이다. NAND에서 시작해 NOT, AND, OR, XOR, MUX, Half Adder, Full Adder 과제를 브라우저에서 진행할 수 있으며 이후 sequential logic, memory, CPU, computer, boot, OS 단계로 확장한다.
