@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   createBuiltinComponentRegistry,
   type CircuitDefinition,
-} from "../packages/circuit-model/src/index.js";
+} from "@gateos/circuit-model";
 import {
   createBuiltinPrimitiveRegistry,
-} from "../packages/sim-core/src/index.js";
+} from "@gateos/sim-core";
 import {
   runChallenge,
   type ChallengeDefinition,
-} from "../packages/challenge-engine/src/index.js";
+} from "@gateos/challenge-engine";
 
 const challenge: ChallengeDefinition = {
   schema: "gateos.challenge/v1",
