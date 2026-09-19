@@ -325,11 +325,17 @@ function compactSymbolKind(spec: ComponentSpec):
   | "nand"
   | "not"
   | "and"
+  | "or"
+  | "xor"
+  | "mux"
   | "generic" {
   const id = spec.id.toLowerCase();
   if (id === "builtin.nand" || id.endsWith(".nand")) return "nand";
   if (id.includes("not")) return "not";
+  if (id.includes("xor")) return "xor";
+  if (id.endsWith(".or") || id.includes("user.or")) return "or";
   if (id.endsWith(".and") || id.includes("user.and")) return "and";
+  if (id.includes("mux")) return "mux";
   return "generic";
 }
 
@@ -2589,6 +2595,8 @@ export function App() {
                   className="component"
                   data-testid={`component-${instance.id}`}
                   data-instance-id={instance.id}
+                  data-component-id={instance.componentId}
+                  data-symbol-kind={symbolKind}
                   onPointerDown={(event) => beginDrag(event, instance.id)}
                   onDoubleClick={(event) => {
                     event.stopPropagation();
@@ -2727,6 +2735,124 @@ export function App() {
                         className="compact-symbol-label"
                       >
                         AND
+                      </text>
+                    </g>
+                  ) : symbolKind === "or" ? (
+                    <g
+                      className={[
+                        "compact-symbol",
+                        "logic-symbol",
+                        "or-symbol",
+                        selected ? "selected" : "",
+                      ].join(" ")}
+                    >
+                      <path
+                        d={[
+                          `M ${position.x + 17} ${position.y + 8}`,
+                          `Q ${position.x + 38} ${position.y + geometry.height / 2}`,
+                          `${position.x + 17} ${position.y + geometry.height - 8}`,
+                          `Q ${position.x + 55} ${position.y + geometry.height - 8}`,
+                          `${position.x + 75} ${position.y + geometry.height / 2}`,
+                          `Q ${position.x + 55} ${position.y + 8}`,
+                          `${position.x + 17} ${position.y + 8}`,
+                          "Z",
+                        ].join(" ")}
+                        className="logic-symbol-body"
+                      />
+                      <line
+                        x1={position.x + 75}
+                        y1={position.y + geometry.height / 2}
+                        x2={position.x + geometry.width}
+                        y2={position.y + geometry.height / 2}
+                        className="logic-symbol-lead"
+                      />
+                      <text
+                        x={position.x + 45}
+                        y={position.y + geometry.height / 2 + 4}
+                        textAnchor="middle"
+                        className="compact-symbol-label"
+                      >
+                        OR
+                      </text>
+                    </g>
+                  ) : symbolKind === "xor" ? (
+                    <g
+                      className={[
+                        "compact-symbol",
+                        "logic-symbol",
+                        "xor-symbol",
+                        selected ? "selected" : "",
+                      ].join(" ")}
+                    >
+                      <path
+                        d={[
+                          `M ${position.x + 21} ${position.y + 8}`,
+                          `Q ${position.x + 42} ${position.y + geometry.height / 2}`,
+                          `${position.x + 21} ${position.y + geometry.height - 8}`,
+                          `Q ${position.x + 57} ${position.y + geometry.height - 8}`,
+                          `${position.x + 77} ${position.y + geometry.height / 2}`,
+                          `Q ${position.x + 57} ${position.y + 8}`,
+                          `${position.x + 21} ${position.y + 8}`,
+                          "Z",
+                        ].join(" ")}
+                        className="logic-symbol-body"
+                      />
+                      <path
+                        d={[
+                          `M ${position.x + 14} ${position.y + 8}`,
+                          `Q ${position.x + 35} ${position.y + geometry.height / 2}`,
+                          `${position.x + 14} ${position.y + geometry.height - 8}`,
+                        ].join(" ")}
+                        className="logic-symbol-accent"
+                      />
+                      <line
+                        x1={position.x + 77}
+                        y1={position.y + geometry.height / 2}
+                        x2={position.x + geometry.width}
+                        y2={position.y + geometry.height / 2}
+                        className="logic-symbol-lead"
+                      />
+                      <text
+                        x={position.x + 49}
+                        y={position.y + geometry.height / 2 + 4}
+                        textAnchor="middle"
+                        className="compact-symbol-label"
+                      >
+                        XOR
+                      </text>
+                    </g>
+                  ) : symbolKind === "mux" ? (
+                    <g
+                      className={[
+                        "compact-symbol",
+                        "mux-symbol",
+                        selected ? "selected" : "",
+                      ].join(" ")}
+                    >
+                      <path
+                        d={[
+                          `M ${position.x + 18} ${position.y + 7}`,
+                          `L ${position.x + 72} ${position.y + 14}`,
+                          `L ${position.x + 72} ${position.y + geometry.height - 14}`,
+                          `L ${position.x + 18} ${position.y + geometry.height - 7}`,
+                          "Z",
+                        ].join(" ")}
+                        className="mux-symbol-body"
+                      />
+                      <line
+                        x1={position.x + 72}
+                        y1={position.y + geometry.height / 2}
+                        x2={position.x + geometry.width}
+                        y2={position.y + geometry.height / 2}
+                        className="logic-symbol-lead"
+                      />
+                      <text
+                        x={position.x + 46}
+                        y={position.y + geometry.height / 2 + 4}
+                        textAnchor="middle"
+                        className="compact-symbol-label"
+                      >
+                        MUX
                       </text>
                     </g>
                   ) : (
