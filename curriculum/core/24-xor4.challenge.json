@@ -1,0 +1,127 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "logic.xor4",
+  "title": "4-bit Bitwise XOR",
+  "description": "4-bit A와 B의 각 bit에 XOR를 독립적으로 적용하는 bitwise XOR 회로를 만드세요.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "a",
+        "name": "A",
+        "width": 4
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 4
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split4",
+    "builtin.join4",
+    "user.xor"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "a": 0,
+            "b": 15
+          },
+          "out": {
+            "out": 15
+          }
+        },
+        {
+          "in": {
+            "a": 15,
+            "b": 15
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 10,
+            "b": 12
+          },
+          "out": {
+            "out": 6
+          }
+        },
+        {
+          "in": {
+            "a": 5,
+            "b": 3
+          },
+          "out": {
+            "out": 6
+          }
+        }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        {
+          "in": {
+            "a": 9,
+            "b": 6
+          },
+          "out": {
+            "out": 15
+          }
+        },
+        {
+          "in": {
+            "a": 14,
+            "b": 7
+          },
+          "out": {
+            "out": 9
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 7
+      }
+    }
+  ],
+  "unlocks": [
+    "logic.zero4"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "서로 다른 bit만 1",
+      "body": "XOR4도 1-bit XOR 네 개를 병렬로 확장하면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "같은 위치의 bit끼리 XOR",
+      "body": "A와 B를 Split4로 나눈 뒤 A0/B0부터 A3/B3까지 네 쌍을 각각 XOR하세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "네 XOR 출력을 Join4.B0~B3에 같은 순서로 연결하고 Join4.OUT을 OUT에 연결하세요."
+    }
+  ]
+}
