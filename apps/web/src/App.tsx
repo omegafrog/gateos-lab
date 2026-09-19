@@ -78,6 +78,11 @@ interface InterfaceDragState {
   offsetY: number;
 }
 
+interface WireNodeDragState {
+  connectionId: string;
+  nodeIndex: number;
+}
+
 interface PanState {
   clientX: number;
   clientY: number;
@@ -457,8 +462,21 @@ function getEndpointPoint(
   );
 }
 
-function wirePath(from: Point, to: Point): string {
-  return `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
+function wirePath(points: readonly Point[]): string {
+  if (points.length === 0) return "";
+  const [first, ...rest] = points;
+  return [
+    `M ${first.x} ${first.y}`,
+    ...rest.map((point) => `L ${point.x} ${point.y}`),
+  ].join(" ");
+}
+
+function routedWirePath(
+  from: Point,
+  route: readonly Point[] | undefined,
+  to: Point,
+): string {
+  return wirePath([from, ...(route ?? []), to]);
 }
 
 function endpointRole(
@@ -536,8 +554,11 @@ export function App() {
   const [projectError, setProjectError] = useState(initialProject.error ?? "");
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
   const [wirePointer, setWirePointer] = useState<Point | null>(null);
+  const [wireRoutePoints, setWireRoutePoints] = useState<Point[]>([]);
   const [wireHoverTarget, setWireHoverTarget] =
     useState<CircuitEndpoint | null>(null);
+  const [wireNodeDrag, setWireNodeDrag] =
+    useState<WireNodeDragState | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
@@ -1134,6 +1155,10 @@ export function App() {
 
       if (event.key === "Escape") {
         setPendingPin(null);
+        setWirePointer(null);
+        setWireRoutePoints([]);
+        setWireHoverTarget(null);
+        setWireNodeDrag(null);
         setSelectedInstance(null);
         setSelectedInstances([]);
         setSelectedConnection(null);
@@ -1316,7 +1341,10 @@ export function App() {
     event.preventDefault();
 
     setPendingPin(endpoint);
-    setWirePointer(clientToCanvasPoint(event.clientX, event.clientY));
+    setWirePointer(
+      snapPoint(clientToCanvasPoint(event.clientX, event.clientY)),
+    );
+    setWireRoutePoints([]);
     setWireHoverTarget(null);
     setSelectedConnection(null);
     setSelectedInstance(null);
@@ -1330,6 +1358,7 @@ export function App() {
     if (endpointKey(pendingPin) === endpointKey(endpoint)) {
       setPendingPin(null);
       setWirePointer(null);
+      setWireRoutePoints([]);
       setWireHoverTarget(null);
       return;
     }
@@ -1353,6 +1382,7 @@ export function App() {
       );
       setPendingPin(null);
       setWirePointer(null);
+      setWireRoutePoints([]);
       setWireHoverTarget(null);
       return;
     }
@@ -1372,6 +1402,7 @@ export function App() {
       );
       setPendingPin(null);
       setWirePointer(null);
+      setWireRoutePoints([]);
       setWireHoverTarget(null);
       return;
     }
@@ -1385,10 +1416,16 @@ export function App() {
         ? pendingPin
         : endpoint;
 
+    const route =
+      pendingRole === "destination" && targetRole === "source"
+        ? [...wireRoutePoints].reverse()
+        : [...wireRoutePoints];
+
     const connection: CircuitConnection = {
       id: `w-${Date.now().toString(36)}-${circuit.connections.length}`,
       from,
       to,
+      route,
     };
 
     updateCircuit((current) => ({
@@ -1397,6 +1434,7 @@ export function App() {
     }));
     setPendingPin(null);
     setWirePointer(null);
+    setWireRoutePoints([]);
     setWireHoverTarget(null);
     setProjectError("");
   }
@@ -1663,7 +1701,12 @@ export function App() {
   }
 
   function beginPan(event: ReactPointerEvent<SVGRectElement>): void {
-    if (event.button !== 0 || testRunning) return;
+    if (testRunning) return;
+    if (event.button !== 0 && event.button !== 1) return;
+    if (pendingPin && event.button === 0) {
+      event.stopPropagation();
+      return;
+    }
     event.stopPropagation();
     setPan({
       clientX: event.clientX,
@@ -1705,6 +1748,27 @@ export function App() {
     setPendingPin(null);
   }
 
+  function beginWireNodeDrag(
+    event: ReactPointerEvent<SVGCircleElement>,
+    connectionId: string,
+    nodeIndex: number,
+  ): void {
+    if (!challenge || !circuit || testRunning || isInspectingNested) return;
+    event.stopPropagation();
+    event.preventDefault();
+
+    const stack = undoRef.current[challenge.id] ?? [];
+    stack.push(circuit);
+    if (stack.length > 100) stack.shift();
+    undoRef.current[challenge.id] = stack;
+    redoRef.current[challenge.id] = [];
+
+    setWireNodeDrag({ connectionId, nodeIndex });
+    setSelectedConnection(connectionId);
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+  }
+
   function beginDrag(
     event: ReactPointerEvent<SVGGElement>,
     instanceId: string,
@@ -1734,11 +1798,6 @@ export function App() {
   }
 
   function moveDrag(event: ReactPointerEvent<SVGSVGElement>): void {
-    if (pendingPin) {
-      setWirePointer(canvasPoint(event));
-      return;
-    }
-
     if (pan) {
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -1753,6 +1812,30 @@ export function App() {
     }
 
     const point = canvasPoint(event);
+
+    if (pendingPin) {
+      setWirePointer(snapPoint(point));
+      return;
+    }
+
+    if (wireNodeDrag) {
+      const next = snapPoint(point);
+      updateCircuit(
+        (current) => ({
+          ...current,
+          connections: current.connections.map((connection) => {
+            if (connection.id !== wireNodeDrag.connectionId) {
+              return connection;
+            }
+            const route = [...(connection.route ?? [])];
+            route[wireNodeDrag.nodeIndex] = next;
+            return { ...connection, route };
+          }),
+        }),
+        false,
+      );
+      return;
+    }
 
     if (interfaceDrag) {
       const next = snapPoint({
@@ -2507,23 +2590,33 @@ export function App() {
             className={testRunning ? "circuit-canvas testing" : "circuit-canvas"}
             viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
             onPointerMove={moveDrag}
-            onPointerUp={() => {
+            onPointerUp={(event) => {
               setDrag(null);
               setInterfaceDrag(null);
+              setWireNodeDrag(null);
               setPan(null);
+
               if (pendingPin) {
-                setPendingPin(null);
-                setWirePointer(null);
-                setWireHoverTarget(null);
+                const next = snapPoint(
+                  clientToCanvasPoint(event.clientX, event.clientY),
+                );
+                const start = displayCircuit
+                  ? getEndpointPoint(pendingPin, displayCircuit, registry)
+                  : next;
+                const previous =
+                  wireRoutePoints[wireRoutePoints.length - 1] ?? start;
+
+                if (previous.x !== next.x || previous.y !== next.y) {
+                  setWireRoutePoints((current) => [...current, next]);
+                }
+                setWirePointer(next);
               }
             }}
             onPointerLeave={() => {
               setDrag(null);
               setInterfaceDrag(null);
+              setWireNodeDrag(null);
               setPan(null);
-              setPendingPin(null);
-              setWirePointer(null);
-              setWireHoverTarget(null);
             }}
             onClick={() => {
               if (drag || interfaceDrag || pan || pendingPin) return;
@@ -2565,30 +2658,73 @@ export function App() {
                       : "value-x";
 
               return (
-                <path
-                  key={connection.id}
-                  className={[
-                    "wire",
-                    wireValueClass,
-                    selectedConnection === connection.id ? "selected" : "",
-                  ].join(" ")}
-                  d={wirePath(from, to)}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectedConnection(connection.id);
-                    setSelectedInstance(null);
-                  }}
-                />
+                <g key={connection.id}>
+                  <path
+                    className={[
+                      "wire",
+                      wireValueClass,
+                      selectedConnection === connection.id ? "selected" : "",
+                    ].join(" ")}
+                    d={routedWirePath(
+                      from,
+                      connection.route as readonly Point[] | undefined,
+                      to,
+                    )}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedConnection(connection.id);
+                      setSelectedInstance(null);
+                    }}
+                  />
+                  {(connection.route ?? []).map((node, nodeIndex) => (
+                    <circle
+                      key={`${connection.id}-node-${nodeIndex}`}
+                      className={[
+                        "wire-node",
+                        selectedConnection === connection.id ? "selected" : "",
+                      ].join(" ")}
+                      data-testid={`wire-node-${connection.id}-${nodeIndex}`}
+                      cx={node.x}
+                      cy={node.y}
+                      r="5"
+                      onPointerDown={(event) =>
+                        beginWireNodeDrag(
+                          event,
+                          connection.id,
+                          nodeIndex,
+                        )
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedConnection(connection.id);
+                      }}
+                    />
+                  ))}
+                </g>
               );
             })}
+
+            {pendingPin
+              ? wireRoutePoints.map((node, nodeIndex) => (
+                  <circle
+                    key={`draft-wire-node-${nodeIndex}`}
+                    className="wire-node draft"
+                    cx={node.x}
+                    cy={node.y}
+                    r="5"
+                    pointerEvents="none"
+                  />
+                ))
+              : null}
 
             {pendingPin && wirePointer && displayCircuit ? (
               <path
                 className="wire wire-preview"
-                d={wirePath(
+                d={wirePath([
                   getEndpointPoint(pendingPin, displayCircuit, registry),
+                  ...wireRoutePoints,
                   wirePointer,
-                )}
+                ])}
                 pointerEvents="none"
               />
             ) : null}
@@ -3539,8 +3675,9 @@ export function App() {
           <div>
             <strong>Wiring</strong>
             <p className="muted">
-              핀에서 마우스를 누른 채 다른 핀까지 드래그한 뒤 놓으면 연결됩니다.
-              Wire는 수평/수직/대각선으로 연결되며, 클릭해서 선택한 뒤 Delete/Backspace로 제거할 수 있습니다.
+              핀에서 Wire를 시작한 뒤 빈 grid 지점에 놓으면 node가 생깁니다.
+              node를 이어 원하는 경로를 만든 뒤 목적지 핀에 놓으면 연결됩니다.
+              각 구간은 수평/수직/대각선 모두 가능하며, node를 직접 드래그해 경로를 수정할 수 있습니다.
             </p>
             {pendingPin ? (
               <p>
