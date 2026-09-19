@@ -1,0 +1,50 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "state.dff",
+  "title": "D Flip-Flop",
+  "description": "두 D Latch를 master/slave 구조로 연결해 CLK의 rising edge에서만 D를 저장하는 D Flip-Flop을 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "d", "name": "D", "width": 1 },
+      { "id": "clk", "name": "CLK", "width": 1 }
+    ],
+    "outputs": [
+      { "id": "q", "name": "Q", "width": 1 }
+    ]
+  },
+  "allowedComponents": [
+    "user.not",
+    "user.d-latch"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        { "set": { "d": 0, "clk": 0 } },
+        { "set": { "clk": 1 } },
+        { "expect": { "q": 0 } },
+        { "set": { "d": 1 } },
+        { "expect": { "q": 0 } },
+        { "set": { "clk": 0 } },
+        { "expect": { "q": 0 } },
+        { "set": { "clk": 1 } },
+        { "expect": { "q": 1 } },
+        { "set": { "d": 0 } },
+        { "expect": { "q": 1 } },
+        { "set": { "clk": 0 } },
+        { "expect": { "q": 1 } },
+        { "set": { "clk": 1 } },
+        { "expect": { "q": 0 } }
+      ]
+    },
+    {
+      "type": "structural",
+      "rules": {
+        "allowed": ["user.not", "user.d-latch"],
+        "maxComponents": 4
+      }
+    }
+  ],
+  "unlocks": ["state.enable-register"]
+}
