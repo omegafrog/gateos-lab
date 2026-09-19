@@ -99,7 +99,9 @@
       ]
     }
   ],
-  "unlocks": [],
+  "unlocks": [
+    "routing.mux4"
+  ],
   "referenceTables": [
     {
       "id": "characteristic",
