@@ -5,12 +5,28 @@
   "description": "D Flip-Flop과 MUX를 이용해 LOAD=1일 때만 새 D를 저장하고, LOAD=0이면 이전 Q를 다시 입력으로 되먹임해 유지하는 1-bit Register를 만드세요.",
   "interface": {
     "inputs": [
-      { "id": "d", "name": "D", "width": 1 },
-      { "id": "load", "name": "LOAD", "width": 1 },
-      { "id": "clk", "name": "CLK", "width": 1 }
+      {
+        "id": "d",
+        "name": "D",
+        "width": 1
+      },
+      {
+        "id": "load",
+        "name": "LOAD",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
     ],
     "outputs": [
-      { "id": "q", "name": "Q", "width": 1 }
+      {
+        "id": "q",
+        "name": "Q",
+        "width": 1
+      }
     ]
   },
   "allowedComponents": [
@@ -22,19 +38,133 @@
       "type": "sequence",
       "visibility": "visible",
       "steps": [
-        { "set": { "d": 1, "load": 1, "clk": 0 } },
-        { "set": { "clk": 1 } },
-        { "expect": { "q": 1 } },
-        { "set": { "clk": 0 } },
-        { "set": { "d": 0, "load": 0 } },
-        { "set": { "clk": 1 } },
-        { "expect": { "q": 1 } },
-        { "set": { "clk": 0 } },
-        { "set": { "load": 1 } },
-        { "set": { "clk": 1 } },
-        { "expect": { "q": 0 } }
+        {
+          "set": {
+            "d": 1,
+            "load": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 0,
+            "load": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        }
       ]
     }
   ],
-  "unlocks": []
+  "unlocks": [],
+  "referenceTables": [
+    {
+      "id": "characteristic",
+      "title": "Enable Register characteristic table",
+      "description": "On a rising edge, LOAD selects whether to keep Q or capture D.",
+      "columns": [
+        {
+          "id": "load",
+          "label": "LOAD",
+          "group": "input"
+        },
+        {
+          "id": "d",
+          "label": "D",
+          "group": "input"
+        },
+        {
+          "id": "qt",
+          "label": "Q(t)",
+          "group": "state"
+        },
+        {
+          "id": "qnext",
+          "label": "Q(t+1)",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "Meaning",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "load": "0",
+          "d": "X",
+          "qt": "0",
+          "qnext": "0",
+          "meaning": "Hold"
+        },
+        {
+          "load": "0",
+          "d": "X",
+          "qt": "1",
+          "qnext": "1",
+          "meaning": "Hold"
+        },
+        {
+          "load": "1",
+          "d": "0",
+          "qt": "X",
+          "qnext": "0",
+          "meaning": "Load D"
+        },
+        {
+          "load": "1",
+          "d": "1",
+          "qt": "X",
+          "qnext": "1",
+          "meaning": "Load D"
+        }
+      ],
+      "notes": [
+        "Rows describe behavior at the active rising clock edge."
+      ]
+    }
+  ]
 }
