@@ -403,6 +403,7 @@ export function App() {
     height: CANVAS_HEIGHT,
   });
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [draftInputValues, setDraftInputValues] = useState<Record<string, string>>({});
   const [simulationRevision, setSimulationRevision] = useState(0);
   const [traceRevision, setTraceRevision] = useState(0);
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
@@ -452,14 +453,20 @@ export function App() {
   }, [project]);
 
   const challenge = challenges.find((candidate) => candidate.id === selectedId);
+  const usesStagedInputs = (challenge?.referenceTables?.length ?? 0) > 0;
 
   useEffect(() => {
     if (!challenge) return;
     const values: Record<string, string> = {};
     for (const pin of challenge.interface.inputs) {
-      values[pin.id] = zeroBits(pin.width);
+      const initial = challenge.initialInputs?.[pin.id];
+      values[pin.id] =
+        initial === undefined
+          ? zeroBits(pin.width)
+          : literalToVector(initial, pin.width).toBinary();
     }
     setInputValues(values);
+    setDraftInputValues(values);
     setPendingPin(null);
     setSelectedInstance(null);
     setSelectedInstances([]);
@@ -715,6 +722,24 @@ export function App() {
       ...current,
       ...next,
     }));
+    setDraftInputValues((current) => ({
+      ...current,
+      ...next,
+    }));
+  }
+
+  function applyDraftInputs(): void {
+    if (!challenge || !usesStagedInputs || testRunning) return;
+
+    const next: Record<string, string> = {};
+    for (const pin of challenge.interface.inputs) {
+      next[pin.id] =
+        draftInputValues[pin.id] ??
+        inputValues[pin.id] ??
+        zeroBits(pin.width);
+    }
+
+    setInputValues(next);
   }
 
   function truthRowIsActive(
@@ -1003,6 +1028,7 @@ export function App() {
     }
 
     setInputValues((current) => ({ ...current, ...restoredInputs }));
+    setDraftInputValues((current) => ({ ...current, ...restoredInputs }));
     setSimulationRevision((current) => current + 1);
     setTraceRevision((current) => current + 1);
   }
@@ -1023,6 +1049,7 @@ export function App() {
         zeros[pin.id] = zeroBits(pin.width);
       }
       setInputValues(zeros);
+      setDraftInputValues(zeros);
       traceRuntime?.clear();
       setSimulationRevision((current) => current + 1);
       setTraceRevision((current) => current + 1);
@@ -1552,6 +1579,7 @@ export function App() {
           }
         }
         setInputValues((current) => ({ ...current, ...animatedInputs }));
+        setDraftInputValues((current) => ({ ...current, ...animatedInputs }));
 
         await sleep(420);
 
@@ -1624,6 +1652,10 @@ export function App() {
 
               simulator.settle();
               setInputValues((current) => ({
+                ...current,
+                ...animatedInputs,
+              }));
+              setDraftInputValues((current) => ({
                 ...current,
                 ...animatedInputs,
               }));
@@ -2072,31 +2104,48 @@ export function App() {
           <div>
             <strong>Inputs</strong>
             {challenge.interface.inputs.map((pin) => {
-              const binary = inputValues[pin.id] ?? zeroBits(pin.width);
+              const applied =
+                inputValues[pin.id] ?? zeroBits(pin.width);
+              const binary = usesStagedInputs
+                ? draftInputValues[pin.id] ?? applied
+                : applied;
+              const changed = binary !== applied;
 
               if (pin.width === 1) {
                 return (
                   <button
                     key={pin.id}
-                    className="io-value"
+                    className={[
+                      "io-value",
+                      changed ? "pending-input" : "",
+                    ].join(" ")}
                     data-testid={`input-${pin.id}`}
                     disabled={testRunning}
-                    onClick={() =>
-                      setInputValues((current) => ({
+                    onClick={() => {
+                      const setter = usesStagedInputs
+                        ? setDraftInputValues
+                        : setInputValues;
+                      setter((current) => ({
                         ...current,
-                        [pin.id]:
-                          current[pin.id] === "1" ? "0" : "1",
-                      }))
-                    }
+                        [pin.id]: binary === "1" ? "0" : "1",
+                      }));
+                    }}
                   >
                     {pin.name}: {binary}
+                    {changed ? <small> pending</small> : null}
                   </button>
                 );
               }
 
               const max = ((1n << BigInt(pin.width)) - 1n).toString(10);
               return (
-                <label key={pin.id} className="bus-input">
+                <label
+                  key={pin.id}
+                  className={[
+                    "bus-input",
+                    changed ? "pending-input" : "",
+                  ].join(" ")}
+                >
                   <span>{pin.name}</span>
                   <input
                     type="number"
@@ -2114,7 +2163,10 @@ export function App() {
                           value,
                           pin.width,
                         ).toBinary();
-                        setInputValues((current) => ({
+                        const setter = usesStagedInputs
+                          ? setDraftInputValues
+                          : setInputValues;
+                        setter((current) => ({
                           ...current,
                           [pin.id]: next,
                         }));
@@ -2128,6 +2180,36 @@ export function App() {
                 </label>
               );
             })}
+            {usesStagedInputs ? (
+              <div className="staged-input-controls">
+                <span data-testid="applied-input-summary">
+                  Applied:&nbsp;
+                  {challenge.interface.inputs
+                    .map(
+                      (pin) =>
+                        `${pin.name}=${inputValues[pin.id] ?? zeroBits(pin.width)}`,
+                    )
+                    .join("  ")}
+                </span>
+                <button
+                  className="apply-inputs"
+                  data-testid="apply-inputs"
+                  disabled={
+                    testRunning ||
+                    !challenge.interface.inputs.some(
+                      (pin) =>
+                        (draftInputValues[pin.id] ??
+                          inputValues[pin.id] ??
+                          zeroBits(pin.width)) !==
+                        (inputValues[pin.id] ?? zeroBits(pin.width)),
+                    )
+                  }
+                  onClick={applyDraftInputs}
+                >
+                  Apply inputs
+                </button>
+              </div>
+            ) : null}
           </div>
           <div>
             <strong>Outputs</strong>
