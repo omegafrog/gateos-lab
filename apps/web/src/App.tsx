@@ -4109,7 +4109,7 @@ export function App() {
                 {([
                   {
                     id: "inputs",
-                    title: "Inputs",
+                    title: "입력 (Inputs)",
                     pins: componentPins(spec).filter(
                       (pin) =>
                         pin.direction === "input" ||
@@ -4118,7 +4118,7 @@ export function App() {
                   },
                   {
                     id: "outputs",
-                    title: "Outputs",
+                    title: "출력 (Outputs)",
                     pins: componentPins(spec).filter(
                       (pin) =>
                         pin.direction === "output" ||
