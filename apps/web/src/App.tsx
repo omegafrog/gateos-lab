@@ -1961,7 +1961,7 @@ export function App() {
           <section className="truth-table-panel" data-testid="target-truth-table">
             <div className="truth-table-header">
               <div>
-                <strong>Target truth table</strong>
+                <strong>목표 진리표 (Truth Table)</strong>
                 <p>
                   이 회로가 만족해야 하는 전체 입출력 관계입니다. 행을 클릭하면
                   해당 입력 조합을 회로에 바로 적용합니다.
@@ -2079,11 +2079,11 @@ export function App() {
                 {table.description ? <p>{table.description}</p> : null}
                 {table.timing ? (
                   <p className="reference-timing">
-                    <strong>Timing:</strong> {table.timing}
+                    <strong>동작 시점 (Timing):</strong> {table.timing}
                   </p>
                 ) : null}
               </div>
-              <span>State / characteristic table</span>
+              <span>상태표 (State / Characteristic Table)</span>
             </div>
 
             <div className="reference-table-scroll">
