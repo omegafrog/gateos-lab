@@ -60,6 +60,44 @@ interface PreviewState {
   signals: Record<string, string>;
 }
 
+type VisualTestStatus = "idle" | "running" | "pass" | "fail";
+
+interface VisualTestCase {
+  id: string;
+  visibility: "visible" | "hidden";
+  inputs: Readonly<Record<string, number | string>>;
+  expected: Readonly<Record<string, number | string>>;
+}
+
+interface VisualTestState {
+  status: VisualTestStatus;
+  actual?: Record<string, string>;
+  error?: string;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function literalToVector(value: number | string, width: number): BitVector {
+  return typeof value === "number"
+    ? BitVector.fromNumber(value, width)
+    : BitVector.fromBinary(value);
+}
+
+function formatSignals(values: Readonly<Record<string, number | string>>): string {
+  return Object.entries(values)
+    .map(([name, value]) => `${name.toUpperCase()}=${value}`)
+    .join("  ");
+}
+
+function formatActual(values: Readonly<Record<string, string>> | undefined): string {
+  if (!values) return "—";
+  return Object.entries(values)
+    .map(([name, value]) => `${name.toUpperCase()}=${value}`)
+    .join("  ");
+}
+
 function emptyProject(): ProjectState {
   return { circuits: {}, published: {}, completed: [] };
 }
@@ -222,6 +260,9 @@ export function App() {
   const [drag, setDrag] = useState<DragState | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, 0 | 1>>({});
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
+  const [testStates, setTestStates] = useState<Record<string, VisualTestState>>({});
+  const [activeTestId, setActiveTestId] = useState<string | null>(null);
+  const [testRunning, setTestRunning] = useState(false);
   const [loadError, setLoadError] = useState<string>("");
   const svgRef = useRef<SVGSVGElement | null>(null);
   const undoRef = useRef<Record<string, CircuitDefinition[]>>({});
@@ -272,6 +313,9 @@ export function App() {
     setPendingPin(null);
     setSelectedInstance(null);
     setTestResult(null);
+    setTestStates({});
+    setActiveTestId(null);
+    setTestRunning(false);
   }, [challenge?.id]);
 
   const circuit = useMemo(() => {
@@ -280,6 +324,26 @@ export function App() {
   }, [challenge, project.circuits]);
 
   const registry = useMemo(() => buildRegistry(project), [project.published]);
+
+  const visualTestCases = useMemo<VisualTestCase[]>(() => {
+    if (!challenge) return [];
+
+    const cases: VisualTestCase[] = [];
+    challenge.validators.forEach((validator, validatorIndex) => {
+      if (validator.type !== "truthTable") return;
+
+      validator.cases.forEach((testCase, caseIndex) => {
+        cases.push({
+          id: `truth-${validatorIndex}-${caseIndex}`,
+          visibility: validator.visibility ?? "visible",
+          inputs: testCase.in,
+          expected: testCase.out,
+        });
+      });
+    });
+
+    return cases;
+  }, [challenge]);
 
   function updateCircuit(
     updater: (current: CircuitDefinition) => CircuitDefinition,
@@ -305,6 +369,8 @@ export function App() {
       },
     }));
     setTestResult(null);
+    setTestStates({});
+    setActiveTestId(null);
   }
 
   function undo(): void {
@@ -326,6 +392,8 @@ export function App() {
       },
     }));
     setTestResult(null);
+    setTestStates({});
+    setActiveTestId(null);
     setPendingPin(null);
     setSelectedInstance(null);
   }
@@ -349,6 +417,8 @@ export function App() {
       },
     }));
     setTestResult(null);
+    setTestStates({});
+    setActiveTestId(null);
     setPendingPin(null);
     setSelectedInstance(null);
   }
@@ -393,6 +463,35 @@ export function App() {
     }
   }, [challenge, circuit, registry, inputValues]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent): void {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest(
+          "input, textarea, select, button, [contenteditable='true']",
+        )
+      ) {
+        return;
+      }
+
+      if (
+        selectedInstance &&
+        (event.key === "Delete" || event.key === "Backspace")
+      ) {
+        event.preventDefault();
+        removeSelectedInstance();
+      }
+
+      if (event.key === "Escape") {
+        setPendingPin(null);
+        setSelectedInstance(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedInstance, challenge?.id]);
+
   if (loadError) {
     return (
       <main className="fatal">
@@ -412,6 +511,9 @@ export function App() {
   }
 
   const currentIndex = challenges.findIndex((item) => item.id === challenge.id);
+  const passedVisualTests = visualTestCases.filter(
+    (testCase) => testStates[testCase.id]?.status === "pass",
+  ).length;
   const allowedPalette = (challenge.allowedComponents ?? [])
     .map((id) => {
       try {
@@ -570,15 +672,112 @@ export function App() {
     );
   }
 
-  function runTests(): void {
-    if (!challenge || !circuit) return;
-    const result = runChallenge(
-      challenge,
-      circuit,
-      registry,
-      createBuiltinPrimitiveRegistry(),
+  function evaluateVisualTest(testCase: VisualTestCase): VisualTestState {
+    if (!challenge || !circuit) {
+      return { status: "fail", error: "No active challenge" };
+    }
+
+    try {
+      const netlist = compileCircuit(circuit, registry);
+      const simulator = new Simulator(
+        netlist,
+        createBuiltinPrimitiveRegistry(),
+      );
+
+      for (const pin of challenge.interface.inputs) {
+        const literal = testCase.inputs[pin.id];
+        if (literal === undefined) {
+          throw new Error(`Test case is missing input ${pin.id}`);
+        }
+        simulator.setInput(pin.id, literalToVector(literal, pin.width));
+      }
+
+      simulator.settle();
+
+      const actual: Record<string, string> = {};
+      let passed = true;
+
+      for (const pin of challenge.interface.outputs) {
+        const expectedLiteral = testCase.expected[pin.id];
+        if (expectedLiteral === undefined) {
+          throw new Error(`Test case is missing expected output ${pin.id}`);
+        }
+
+        const expected = literalToVector(expectedLiteral, pin.width);
+        const output = simulator.readOutput(pin.id);
+        actual[pin.id] = output.toBinary();
+
+        if (!output.equals(expected)) passed = false;
+      }
+
+      return {
+        status: passed ? "pass" : "fail",
+        actual,
+      };
+    } catch (error) {
+      return {
+        status: "fail",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  async function runTests(): Promise<void> {
+    if (!challenge || !circuit || testRunning) return;
+
+    setTestRunning(true);
+    setTestResult(null);
+    setTestStates(
+      Object.fromEntries(
+        visualTestCases.map((testCase) => [
+          testCase.id,
+          { status: "idle" as const },
+        ]),
+      ),
     );
-    setTestResult(result);
+
+    try {
+      for (const testCase of visualTestCases) {
+        setActiveTestId(testCase.id);
+        setTestStates((current) => ({
+          ...current,
+          [testCase.id]: { status: "running" },
+        }));
+
+        const animatedInputs: Record<string, 0 | 1> = {};
+        for (const pin of challenge.interface.inputs) {
+          const literal = testCase.inputs[pin.id];
+          if (literal === 0 || literal === 1) {
+            animatedInputs[pin.id] = literal;
+          } else if (typeof literal === "string" && pin.width === 1) {
+            animatedInputs[pin.id] = literal.endsWith("1") ? 1 : 0;
+          }
+        }
+        setInputValues((current) => ({ ...current, ...animatedInputs }));
+
+        // Let the learner see the case propagate through the circuit.
+        await sleep(420);
+
+        const state = evaluateVisualTest(testCase);
+        setTestStates((current) => ({
+          ...current,
+          [testCase.id]: state,
+        }));
+
+        await sleep(state.status === "pass" ? 180 : 420);
+      }
+
+      const result = runChallenge(
+        challenge,
+        circuit,
+        registry,
+        createBuiltinPrimitiveRegistry(),
+      );
+      setTestResult(result);
+    } finally {
+      setActiveTestId(null);
+      setTestRunning(false);
+    }
   }
 
   function publish(): void {
@@ -679,8 +878,12 @@ export function App() {
             <p>{challenge.description}</p>
           </div>
           <div className="run-actions">
-            <button className="primary" onClick={runTests}>
-              Run tests
+            <button
+              className="primary"
+              disabled={testRunning}
+              onClick={() => void runTests()}
+            >
+              {testRunning ? "Testing…" : "Run all tests"}
             </button>
             <button
               className="success"
@@ -699,6 +902,7 @@ export function App() {
               <button
                 key={pin.id}
                 className="io-value"
+                disabled={testRunning}
                 onClick={() =>
                   setInputValues((current) => ({
                     ...current,
@@ -724,7 +928,7 @@ export function App() {
         <section className="canvas-frame">
           <svg
             ref={svgRef}
-            className="circuit-canvas"
+            className={testRunning ? "circuit-canvas testing" : "circuit-canvas"}
             viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
             onPointerMove={moveDrag}
             onPointerUp={() => setDrag(null)}
@@ -857,6 +1061,10 @@ export function App() {
                   key={instance.id}
                   className="component"
                   onPointerDown={(event) => beginDrag(event, instance.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedInstance(instance.id);
+                  }}
                 >
                   <rect
                     x={position.x}
@@ -974,6 +1182,95 @@ export function App() {
           </svg>
         </section>
 
+        <section className="test-runner">
+          <div className="test-runner-header">
+            <div>
+              <strong>Verification</strong>
+              <p className="muted">
+                테스트를 실행하면 각 입력 조합이 회로에 실제로 적용되고,
+                신호가 전파된 뒤 결과를 비교합니다.
+              </p>
+            </div>
+            <div className="test-summary">
+              <span>
+                {passedVisualTests}/{visualTestCases.length} cases
+              </span>
+              {testResult ? (
+                <strong className={testResult.passed ? "pass" : "fail"}>
+                  {testResult.passed ? "ALL TESTS PASSED" : "TEST FAILED"}
+                </strong>
+              ) : (
+                <strong>{testRunning ? "RUNNING" : "NOT VERIFIED"}</strong>
+              )}
+            </div>
+          </div>
+
+          <div className="test-case-list">
+            {visualTestCases.map((testCase, index) => {
+              const state = testStates[testCase.id] ?? { status: "idle" as const };
+              const reveal =
+                testCase.visibility === "visible" || state.status !== "idle";
+              const isActive = activeTestId === testCase.id;
+
+              return (
+                <div
+                  key={testCase.id}
+                  className={[
+                    "test-case-row",
+                    state.status,
+                    isActive ? "active" : "",
+                  ].join(" ")}
+                >
+                  <span className="test-case-number">{index + 1}</span>
+                  <div>
+                    <small>INPUT</small>
+                    <code>
+                      {reveal
+                        ? formatSignals(testCase.inputs)
+                        : "hidden until execution"}
+                    </code>
+                  </div>
+                  <div>
+                    <small>EXPECTED</small>
+                    <code>
+                      {reveal
+                        ? formatSignals(testCase.expected)
+                        : "hidden until execution"}
+                    </code>
+                  </div>
+                  <div>
+                    <small>ACTUAL</small>
+                    <code>
+                      {state.error
+                        ? state.error
+                        : formatActual(state.actual)}
+                    </code>
+                  </div>
+                  <span className="test-case-status">
+                    {state.status === "idle"
+                      ? "○"
+                      : state.status === "running"
+                        ? "▶"
+                        : state.status === "pass"
+                          ? "✓"
+                          : "✗"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {testResult && !testResult.passed ? (
+            <div className="validation-errors">
+              {testResult.tests
+                .filter((test) => !test.passed && test.type !== "truthTable")
+                .map((test, index) => (
+                  <p key={index}>✗ {test.message}</p>
+                ))}
+            </div>
+          ) : null}
+        </section>
+
         <section className="bottom-panel">
           <div>
             <strong>Wiring</strong>
@@ -987,33 +1284,16 @@ export function App() {
           <div>
             <strong>Selection</strong>
             <p className="muted">
-              블록을 드래그해 이동합니다.
+              컴포넌트를 클릭하면 선택이 유지됩니다. 드래그로 이동하고
+              Delete/Backspace 또는 아래 버튼으로 삭제할 수 있습니다.
             </p>
             <button
-              disabled={!selectedInstance}
+              className="danger"
+              disabled={!selectedInstance || testRunning}
               onClick={removeSelectedInstance}
             >
-              Delete component
+              Delete selected component
             </button>
-          </div>
-          <div className="test-results">
-            <strong>Tests</strong>
-            {!testResult ? (
-              <p className="muted">Run tests to validate the circuit.</p>
-            ) : (
-              <>
-                <p className={testResult.passed ? "pass" : "fail"}>
-                  {testResult.passed ? "PASS" : "FAIL"}
-                </p>
-                <ul>
-                  {testResult.tests.map((test, index) => (
-                    <li key={`${test.validatorIndex}-${test.caseIndex ?? "x"}-${index}`}>
-                      {test.passed ? "✓" : "✗"} {test.message}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
           </div>
         </section>
       </main>
@@ -1036,6 +1316,22 @@ export function App() {
               : "—"}
           </dd>
         </dl>
+
+        <h2>Selected component</h2>
+        {selectedInstance ? (
+          <div className="selected-component-card">
+            <code>{selectedInstance}</code>
+            <button
+              className="danger"
+              disabled={testRunning}
+              onClick={removeSelectedInstance}
+            >
+              Delete
+            </button>
+          </div>
+        ) : (
+          <p className="muted">Click a component to select it.</p>
+        )}
 
         <h2>Live signals</h2>
         <div className="signal-list">
