@@ -1165,3 +1165,14 @@ button:disabled {
   color: #737d8b;
   font-size: 10px;
 }
+
+
+.reference-timing {
+  margin-top: 7px !important;
+  padding: 7px 9px;
+  border-left: 3px solid #6757aa;
+  border-radius: 4px;
+  background: #f7f5ff;
+  color: #514a68 !important;
+  font-size: 11px !important;
+}
