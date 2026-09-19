@@ -178,7 +178,7 @@ export function compileCircuit(
   walk(circuit, "root");
 
   const verticesByRoot = new Map<string, string[]>();
-  for (const vertex of uf.entries().sort()) {
+  for (const vertex of [...uf.entries()].sort()) {
     const root = uf.find(vertex);
     const group = verticesByRoot.get(root) ?? [];
     group.push(vertex);
