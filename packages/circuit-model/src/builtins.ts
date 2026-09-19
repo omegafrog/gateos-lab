@@ -13,6 +13,31 @@ export const NAND_COMPONENT: PrimitiveComponentSpec = {
   ],
 };
 
+export const CLOCK_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.clock",
+  name: "Clock",
+  primitiveId: "builtin.clock",
+  pins: [
+    { id: "out", name: "CLK", direction: "output", width: 1 },
+  ],
+};
+
+export const DFF_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.dff",
+  name: "D Flip-Flop",
+  primitiveId: "builtin.dff",
+  pins: [
+    { id: "d", name: "D", direction: "input", width: 1 },
+    { id: "q", name: "Q", direction: "output", width: 1 },
+  ],
+};
+
 export function createBuiltinComponentRegistry(): ComponentRegistry {
-  return new ComponentRegistry([NAND_COMPONENT]);
+  return new ComponentRegistry([
+    NAND_COMPONENT,
+    CLOCK_COMPONENT,
+    DFF_COMPONENT,
+  ]);
 }
