@@ -117,6 +117,36 @@ describe("sequential simulation", () => {
     expect(simulator.cycle).toBe(2);
   });
 
+  it("serializes and restores sequential state", () => {
+    const netlist = compileCircuit(
+      dffCircuit(),
+      createBuiltinComponentRegistry(),
+    );
+    const primitives = createBuiltinPrimitiveRegistry();
+
+    const original = new Simulator(netlist, primitives);
+    original.setInput("d", BitVector.fromBinary("1"));
+    original.stepClock();
+
+    const snapshot = JSON.parse(
+      JSON.stringify(original.snapshot()),
+    ) as ReturnType<Simulator["snapshot"]>;
+
+    const restored = new Simulator(
+      netlist,
+      createBuiltinPrimitiveRegistry(),
+    );
+    restored.restore(snapshot);
+
+    expect(restored.readOutput("q").toBinary()).toBe("1");
+    expect(restored.cycle).toBe(1);
+
+    restored.setInput("d", BitVector.fromBinary("0"));
+    restored.stepClock();
+    expect(restored.readOutput("q").toBinary()).toBe("0");
+    expect(restored.cycle).toBe(2);
+  });
+
   it("drives the Clock primitive high on rising and low on falling edges", () => {
     const circuit: CircuitDefinition = {
       schema: "gateos.circuit/v1",
