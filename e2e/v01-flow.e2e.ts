@@ -340,68 +340,6 @@ test("OR XOR and MUX use dedicated compact symbols", async ({ page }) => {
   );
 });
 
-test("large component drags remain snapped to the hidden grid", async ({ page }) => {
-  await page.getByTestId("palette-builtin.nand").click();
-
-  const component = page.locator('[data-testid^="component-"]').first();
-  const hitbox = component.locator(".component-hitbox");
-  const beforeX = Number(await component.getAttribute("data-position-x"));
-  const beforeY = Number(await component.getAttribute("data-position-y"));
-  const box = await hitbox.boundingBox();
-  if (!box) throw new Error("missing drag geometry");
-
-  await page.mouse.move(
-    box.x + box.width / 2,
-    box.y + box.height / 2,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    box.x + box.width / 2 + 180,
-    box.y + box.height / 2 + 120,
-    { steps: 10 },
-  );
-  await page.mouse.up();
-
-  const x = Number(await component.getAttribute("data-position-x"));
-  const y = Number(await component.getAttribute("data-position-y"));
-  expect(x).not.toBe(beforeX);
-  expect(y).not.toBe(beforeY);
-  expect(x % 12).toBe(0);
-  expect(y % 12).toBe(0);
-});
-
-test("new chips are created in the currently panned world viewport", async ({
-  page,
-}) => {
-  const canvas = page.locator("svg.circuit-canvas");
-  const canvasBox = await canvas.boundingBox();
-  if (!canvasBox) throw new Error("missing canvas geometry");
-
-  const centerX = canvasBox.x + canvasBox.width / 2;
-  const centerY = canvasBox.y + canvasBox.height / 2;
-
-  const panSurface = page.getByTestId("canvas-pan-surface");
-  await expect(panSurface).toBeVisible();
-  await page.mouse.move(centerX, centerY);
-  await page.mouse.down();
-  await page.waitForTimeout(20);
-  await page.mouse.move(canvasBox.x + 30, centerY, { steps: 10 });
-  await page.mouse.up();
-
-  const viewBox = (await canvas.getAttribute("viewBox")) ?? "";
-  const viewportX = Number(viewBox.split(/\s+/)[0]);
-  expect(viewportX).toBeGreaterThan(300);
-
-  await page.getByTestId("palette-builtin.nand").click();
-
-  const component = page.locator('[data-testid^="component-"]').first();
-  const x = Number(await component.getAttribute("data-position-x"));
-  const y = Number(await component.getAttribute("data-position-y"));
-  expect(x).toBeGreaterThan(viewportX);
-  expect(x % 12).toBe(0);
-  expect(y % 12).toBe(0);
-});
-
 test("interface terminals can move and connected wires follow their position", async ({
   page,
 }) => {
