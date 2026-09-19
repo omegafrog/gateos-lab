@@ -1,0 +1,282 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "cpu.register-transfer4",
+  "title": "Register-to-Register Transfer",
+  "description": "Register File을 사용해 외부 DATA를 Register에 load하거나, SRC Register의 값을 DST Register로 복사하는 transfer unit을 만드세요. MOVE=1이면 SRC→DST 전송이 LOAD보다 우선합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "data",
+        "name": "DATA",
+        "width": 4
+      },
+      {
+        "id": "src",
+        "name": "SRC",
+        "width": 2
+      },
+      {
+        "id": "dst",
+        "name": "DST",
+        "width": 2
+      },
+      {
+        "id": "load",
+        "name": "LOAD",
+        "width": 1
+      },
+      {
+        "id": "move",
+        "name": "MOVE",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "src_q",
+        "name": "SRC_Q",
+        "width": 4
+      },
+      {
+        "id": "dst_q",
+        "name": "DST_Q",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "user.register-file4",
+    "user.mux4",
+    "user.or"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "data": 6,
+            "src": 0,
+            "dst": 1,
+            "load": 1,
+            "move": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "data": 3,
+            "dst": 2
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "src": 1,
+            "dst": 2
+          }
+        },
+        {
+          "expect": {
+            "src_q": 6,
+            "dst_q": 3
+          }
+        },
+        {
+          "set": {
+            "move": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "src_q": 6,
+            "dst_q": 6
+          }
+        },
+        {
+          "set": {
+            "clk": 0,
+            "move": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "data": 9,
+            "src": 0,
+            "dst": 3,
+            "load": 1,
+            "move": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "data": 4,
+            "dst": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 0,
+            "src": 3,
+            "dst": 0,
+            "move": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "src_q": 9,
+            "dst_q": 9
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 3
+      }
+    }
+  ],
+  "unlocks": [
+    "cpu.alu-datapath4"
+  ],
+  "referenceTables": [
+    {
+      "id": "transfer-control",
+      "title": "Register Transfer 제어",
+      "description": "Register File의 write data를 외부 DATA 또는 SRC_Q 중 하나로 선택합니다.",
+      "timing": "LOAD/MOVE는 rising edge에서 write 여부와 write data를 결정합니다.",
+      "columns": [
+        {
+          "id": "load",
+          "label": "LOAD",
+          "group": "input"
+        },
+        {
+          "id": "move",
+          "label": "MOVE",
+          "group": "input"
+        },
+        {
+          "id": "writeData",
+          "label": "write data",
+          "group": "state"
+        },
+        {
+          "id": "we",
+          "label": "WE",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "동작",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "load": "0",
+          "move": "0",
+          "writeData": "—",
+          "we": "0",
+          "meaning": "Hold"
+        },
+        {
+          "load": "1",
+          "move": "0",
+          "writeData": "DATA",
+          "we": "1",
+          "meaning": "외부 값 load"
+        },
+        {
+          "load": "—",
+          "move": "1",
+          "writeData": "SRC_Q",
+          "we": "1",
+          "meaning": "SRC → DST"
+        }
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "Register File의 출력도 다시 입력이 될 수 있습니다",
+      "body": "SRC read port로 읽은 QA를 다시 Register File의 D로 보내면 Register끼리 값을 복사할 수 있습니다."
+    },
+    {
+      "level": 2,
+      "title": "write data 선택과 WE 생성",
+      "body": "MUX4로 DATA와 SRC_Q 중 하나를 선택하고, MOVE를 selector로 사용하세요. WE는 LOAD OR MOVE입니다."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "RF.RADDR_A=SRC, RF.RADDR_B=DST, RF.WADDR=DST. MUX(A=DATA,B=RF.QA,SEL=MOVE)→RF.D, OR(LOAD,MOVE)→RF.WE, RF.QA→SRC_Q, RF.QB→DST_Q로 연결하세요."
+    }
+  ]
+}
