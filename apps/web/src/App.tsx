@@ -2810,7 +2810,7 @@ export function App() {
                         event.clientX,
                         event.clientY,
                       );
-                    }
+                    }}
                   />
                   {(connection.route ?? []).map((node, nodeIndex) => (
                     <circle
