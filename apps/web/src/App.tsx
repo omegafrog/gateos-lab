@@ -371,6 +371,7 @@ export function App() {
   }
 
   function addComponent(componentId: string): void {
+    if (!circuit) return;
     const count = circuit.instances.length;
     const id = `u${Date.now().toString(36)}-${count}`;
     updateCircuit((current) => ({
@@ -391,6 +392,7 @@ export function App() {
   }
 
   function onPinClick(endpoint: CircuitEndpoint): void {
+    if (!circuit) return;
     if (!pendingPin) {
       setPendingPin(endpoint);
       return;
@@ -456,6 +458,7 @@ export function App() {
     event: ReactPointerEvent<SVGGElement>,
     instanceId: string,
   ): void {
+    if (!circuit) return;
     event.stopPropagation();
     const position = instancePosition(circuit, instanceId);
     const rect = svgRef.current?.getBoundingClientRect();
@@ -495,6 +498,7 @@ export function App() {
   }
 
   function runTests(): void {
+    if (!challenge || !circuit) return;
     const result = runChallenge(
       challenge,
       circuit,
@@ -505,7 +509,7 @@ export function App() {
   }
 
   function publish(): void {
-    if (!testResult?.passed) return;
+    if (!testResult?.passed || !challenge || !circuit) return;
     const id = publishedId(challenge.id);
     const publishedCircuit: CircuitDefinition = {
       ...circuit,
@@ -526,6 +530,7 @@ export function App() {
   }
 
   function resetChallenge(): void {
+    if (!challenge) return;
     setProject((previous) => {
       const circuits = { ...previous.circuits };
       delete circuits[challenge.id];
