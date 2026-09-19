@@ -1350,6 +1350,7 @@ export function App() {
                   item.id === challenge.id ? "active" : "",
                   completed ? "complete" : "",
                 ].join(" ")}
+                data-testid={`challenge-${item.id}`}
                 disabled={!unlocked}
                 onClick={() => setSelectedId(item.id)}
               >
@@ -1367,7 +1368,11 @@ export function App() {
             <p className="muted">Required chips are not published yet.</p>
           ) : (
             allowedPalette.map((spec) => (
-              <button key={spec.id} onClick={() => addComponent(spec.id)}>
+              <button
+                key={spec.id}
+                data-testid={`palette-${spec.id}`}
+                onClick={() => addComponent(spec.id)}
+              >
                 <strong>{componentDisplayName(spec)}</strong>
                 <small>{spec.id}</small>
               </button>
@@ -1392,6 +1397,7 @@ export function App() {
           <div className="run-actions">
             <button
               className="primary"
+              data-testid="run-tests"
               disabled={testRunning}
               onClick={() => void runTests()}
             >
@@ -1399,6 +1405,7 @@ export function App() {
             </button>
             <button
               className="success"
+              data-testid="publish-chip"
               disabled={!testResult?.passed}
               onClick={publish}
             >
@@ -1578,6 +1585,10 @@ export function App() {
                         ? "pin pending"
                         : "pin"
                     }
+                    data-testid={`pin-interface-${pin.id}`}
+                    data-pin-id={pin.id}
+                    data-testid={`pin-interface-${pin.id}`}
+                    data-pin-id={pin.id}
                     cx={point.x}
                     cy={point.y}
                     r="8"
@@ -1643,6 +1654,8 @@ export function App() {
                 <g
                   key={instance.id}
                   className="component"
+                  data-testid={`component-${instance.id}`}
+                  data-instance-id={instance.id}
                   onPointerDown={(event) => beginDrag(event, instance.id)}
                   onDoubleClick={(event) => {
                     event.stopPropagation();
@@ -1709,6 +1722,8 @@ export function App() {
                               ? "pin pending"
                               : "pin"
                           }
+                          data-pin-id={pin.id}
+                          data-pin-id={pin.id}
                           cx={point.x}
                           cy={point.y}
                           r="7"
@@ -1797,7 +1812,10 @@ export function App() {
                 {passedVisualTests}/{visualTestCases.length} cases
               </span>
               {testResult ? (
-                <strong className={testResult.passed ? "pass" : "fail"}>
+                <strong
+                  data-testid="test-overall-result"
+                  className={testResult.passed ? "pass" : "fail"}
+                >
                   {testResult.passed ? "ALL TESTS PASSED" : "TEST FAILED"}
                 </strong>
               ) : (
