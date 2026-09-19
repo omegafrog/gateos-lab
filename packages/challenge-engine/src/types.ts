@@ -77,6 +77,7 @@ export interface ChallengeDefinition {
     outputs: readonly ChallengePin[];
   };
   allowedComponents?: readonly string[];
+  initialInputs?: Readonly<Record<string, SignalLiteral>>;
   referenceTables?: readonly ChallengeReferenceTable[];
   validators: readonly ChallengeValidator[];
   unlocks?: readonly string[];
