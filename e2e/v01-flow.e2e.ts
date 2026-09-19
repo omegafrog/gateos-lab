@@ -17,6 +17,22 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
+test("curriculum is split into stage pages instead of one long list", async ({
+  page,
+}) => {
+  await expect(page.getByTestId("stage-title")).toHaveText("Logic Foundations");
+  await expect(page.getByTestId("stage-challenge-list").locator(".challenge-item")).toHaveCount(7);
+
+  await expect(page.getByTestId("challenge-logic.not")).toBeVisible();
+  await expect(page.getByTestId("challenge-arithmetic.full-adder")).toBeVisible();
+  await expect(page.getByTestId("challenge-state.sr-latch")).toHaveCount(0);
+  await expect(page.getByTestId("challenge-cpu.alu-datapath4")).toHaveCount(0);
+
+  await expect(page.getByTestId("stage-state")).toBeDisabled();
+  await expect(page.getByTestId("stage-memory")).toBeDisabled();
+  await expect(page.getByTestId("stage-cpu")).toBeDisabled();
+});
+
 test("builds NOT, verifies it, publishes it, and persists progression", async ({
   page,
 }) => {
@@ -704,6 +720,10 @@ test("challenge 11 completion unlocks the multi-bit curriculum slice", async ({
   });
   await page.reload();
 
+  await expect(page.getByTestId("stage-title")).toHaveText(
+    "Multi-bit Building Blocks",
+  );
+
   const mux4 = page.getByTestId("challenge-routing.mux4");
   await expect(mux4).toBeEnabled();
   await mux4.click();
@@ -717,4 +737,15 @@ test("challenge 11 completion unlocks the multi-bit curriculum slice", async ({
   await expect(
     page.getByTestId("challenge-state.program-counter4"),
   ).toBeVisible();
+  await expect(page.getByTestId("challenge-logic.not")).toHaveCount(0);
+
+  await page.getByTestId("stage-state").click();
+  await expect(page.getByTestId("stage-title")).toHaveText("State & Sequential");
+  await expect(page.getByTestId("challenge-state.sr-latch")).toBeVisible();
+  await expect(page.getByTestId("challenge-routing.mux4")).toHaveCount(0);
+
+  await page.getByTestId("stage-multibit").click();
+  await expect(page.getByTestId("stage-title")).toHaveText(
+    "Multi-bit Building Blocks",
+  );
 });
