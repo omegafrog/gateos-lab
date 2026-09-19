@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/circuit-model" },
+    { "path": "./packages/circuit-compiler" },
+    { "path": "./packages/sim-core" },
+    { "path": "./apps/web" }
+  ]
+}
