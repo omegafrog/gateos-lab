@@ -82,6 +82,89 @@ describe("TraceRecorder", () => {
     expect(trace.frames).toHaveLength(1);
   });
 
+  it("rewinds state held by a NAND feedback loop", () => {
+    const latch: CircuitDefinition = {
+      schema: "gateos.circuit/v1",
+      id: "test.sr-latch",
+      name: "NAND SR Latch",
+      pins: [
+        { id: "sbar", name: "S̅", direction: "input", width: 1 },
+        { id: "rbar", name: "R̅", direction: "input", width: 1 },
+        { id: "q", name: "Q", direction: "output", width: 1 },
+        { id: "nq", name: "Q̅", direction: "output", width: 1 },
+      ],
+      instances: [
+        { id: "qGate", componentId: "builtin.nand" },
+        { id: "nqGate", componentId: "builtin.nand" },
+      ],
+      connections: [
+        {
+          id: "s",
+          from: { kind: "interface", pinId: "sbar" },
+          to: { kind: "instance", instanceId: "qGate", pinId: "a" },
+        },
+        {
+          id: "r",
+          from: { kind: "interface", pinId: "rbar" },
+          to: { kind: "instance", instanceId: "nqGate", pinId: "a" },
+        },
+        {
+          id: "feedback-q",
+          from: { kind: "instance", instanceId: "qGate", pinId: "out" },
+          to: { kind: "instance", instanceId: "nqGate", pinId: "b" },
+        },
+        {
+          id: "feedback-nq",
+          from: { kind: "instance", instanceId: "nqGate", pinId: "out" },
+          to: { kind: "instance", instanceId: "qGate", pinId: "b" },
+        },
+        {
+          id: "q",
+          from: { kind: "instance", instanceId: "qGate", pinId: "out" },
+          to: { kind: "interface", pinId: "q" },
+        },
+        {
+          id: "nq",
+          from: { kind: "instance", instanceId: "nqGate", pinId: "out" },
+          to: { kind: "interface", pinId: "nq" },
+        },
+      ],
+    };
+
+    const simulator = new Simulator(
+      compileCircuit(latch, createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+
+    simulator.setInput("sbar", BitVector.fromBinary("0"));
+    simulator.setInput("rbar", BitVector.fromBinary("1"));
+    simulator.settle();
+    expect(simulator.readOutput("q").toBinary()).toBe("1");
+    expect(simulator.readOutput("nq").toBinary()).toBe("0");
+
+    simulator.setInput("sbar", BitVector.fromBinary("1"));
+    simulator.settle();
+
+    const trace = new TraceRecorder(simulator);
+
+    simulator.setInput("rbar", BitVector.fromBinary("0"));
+    simulator.settle();
+    expect(simulator.readOutput("q").toBinary()).toBe("0");
+    expect(simulator.readOutput("nq").toBinary()).toBe("1");
+
+    const changed = trace.capture("reset latch");
+    expect(changed.driverChanges.length).toBeGreaterThan(0);
+
+    trace.rewind();
+
+    expect(simulator.readOutput("q").toBinary()).toBe("1");
+    expect(simulator.readOutput("nq").toBinary()).toBe("0");
+    expect(simulator.snapshot().inputs).toMatchObject({
+      sbar: "1",
+      rbar: "1",
+    });
+  });
+
   it("retains only the configured number of delta frames", () => {
     const { simulator } = runtime();
     const trace = new TraceRecorder(simulator, { maxFrames: 2 });
