@@ -89,8 +89,8 @@ test("component dragging snaps to the hidden placement grid", async ({ page }) =
 
   const beforeX = Number(await component.getAttribute("data-position-x"));
   const beforeY = Number(await component.getAttribute("data-position-y"));
-  expect(beforeX % 24).toBe(0);
-  expect(beforeY % 24).toBe(0);
+  expect(beforeX % 12).toBe(0);
+  expect(beforeY % 12).toBe(0);
 
   const box = await component.boundingBox();
   if (!box) throw new Error("missing component bounding box");
@@ -110,8 +110,8 @@ test("component dragging snaps to the hidden placement grid", async ({ page }) =
   const afterX = Number(await component.getAttribute("data-position-x"));
   const afterY = Number(await component.getAttribute("data-position-y"));
 
-  expect(afterX % 24).toBe(0);
-  expect(afterY % 24).toBe(0);
+  expect(afterX % 12).toBe(0);
+  expect(afterY % 12).toBe(0);
   expect(afterX).not.toBe(beforeX);
   expect(afterY).not.toBe(beforeY);
 });
@@ -406,8 +406,8 @@ test("new chips are created in the currently panned world viewport", async ({
   const x = Number(await component.getAttribute("data-position-x"));
   const y = Number(await component.getAttribute("data-position-y"));
   expect(x).toBeGreaterThan(viewportX);
-  expect(x % 24).toBe(0);
-  expect(y % 24).toBe(0);
+  expect(x % 12).toBe(0);
+  expect(y % 12).toBe(0);
 });
 
 test("interface terminals can move and connected wires follow their position", async ({
@@ -449,8 +449,8 @@ test("interface terminals can move and connected wires follow their position", a
   const afterY = await inputTerminal.getAttribute("data-terminal-y");
   expect(afterX).not.toBe(beforeX);
   expect(afterY).not.toBe(beforeY);
-  expect(Number(afterX) % 24).toBe(0);
-  expect(Number(afterY) % 24).toBe(0);
+  expect(Number(afterX) % 12).toBe(0);
+  expect(Number(afterY) % 12).toBe(0);
   expect(await firstWire.getAttribute("d")).not.toBe(beforeWire);
 
   const outputTerminal = page.getByTestId("output-out");
@@ -548,8 +548,8 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
 
   const draftX = Number(await draftEnd.getAttribute("cx"));
   const draftY = Number(await draftEnd.getAttribute("cy"));
-  expect(draftX % 24).toBe(0);
-  expect(draftY % 24).toBe(0);
+  expect(draftX % 12).toBe(0);
+  expect(draftY % 12).toBe(0);
 
   const endBox = await draftEnd.boundingBox();
   if (!endBox) throw new Error("missing draft wire node geometry");
@@ -595,8 +595,8 @@ test("clicking an existing wire adds a movable snapped anchor", async ({ page })
 
   const beforeX = Number(await node.getAttribute("cx"));
   const beforeY = Number(await node.getAttribute("cy"));
-  expect(beforeX % 24).toBe(0);
-  expect(beforeY % 24).toBe(0);
+  expect(beforeX % 12).toBe(0);
+  expect(beforeY % 12).toBe(0);
 
   const box = await node.boundingBox();
   if (!box) throw new Error("missing route node geometry");
@@ -612,7 +612,83 @@ test("clicking an existing wire adds a movable snapped anchor", async ({ page })
 
   const afterX = Number(await node.getAttribute("cx"));
   const afterY = Number(await node.getAttribute("cy"));
-  expect(afterX % 24).toBe(0);
-  expect(afterY % 24).toBe(0);
+  expect(afterX % 12).toBe(0);
+  expect(afterY % 12).toBe(0);
   expect(afterX === beforeX && afterY === beforeY).toBe(false);
+});
+
+test("all component ports land on the same hidden 12-unit grid", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const pins = component.locator("circle.pin");
+  const count = await pins.count();
+  expect(count).toBeGreaterThan(0);
+
+  for (let index = 0; index < count; index += 1) {
+    const pin = pins.nth(index);
+    const x = Number(await pin.getAttribute("cx"));
+    const y = Number(await pin.getAttribute("cy"));
+    expect(x % 12).toBe(0);
+    expect(y % 12).toBe(0);
+  }
+
+  for (const pinId of ["in", "out"]) {
+    const pin = page.getByTestId(`pin-interface-${pinId}`);
+    const x = Number(await pin.getAttribute("cx"));
+    const y = Number(await pin.getAttribute("cy"));
+    expect(x % 12).toBe(0);
+    expect(y % 12).toBe(0);
+  }
+});
+
+test("saved pre-grid coordinates migrate onto the current hidden grid", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  await connect(
+    page,
+    page.getByTestId("pin-interface-in"),
+    component.locator('[data-pin-id="a"]'),
+  );
+  await page.waitForTimeout(100);
+
+  await page.evaluate(() => {
+    const raw = localStorage.getItem("gateos-lab:v0.1");
+    if (!raw) throw new Error("missing saved project");
+    const project = JSON.parse(raw);
+    const circuit = project.circuits["logic.not"];
+    circuit.instances[0].position = { x: 365, y: 221 };
+    circuit.layout = {
+      ...(circuit.layout ?? {}),
+      interfacePositions: {
+        in: { x: 137, y: 119 },
+        out: { x: 787, y: 203 },
+      },
+    };
+    circuit.connections[0].route = [{ x: 277, y: 199 }];
+    localStorage.setItem("gateos-lab:v0.1", JSON.stringify(project));
+  });
+
+  await page.reload();
+
+  const migrated = page.locator('[data-testid^="component-"]').first();
+  const componentX = Number(await migrated.getAttribute("data-position-x"));
+  const componentY = Number(await migrated.getAttribute("data-position-y"));
+  expect(componentX % 12).toBe(0);
+  expect(componentY % 12).toBe(0);
+
+  const input = page.getByTestId("input-in");
+  const output = page.getByTestId("output-out");
+  expect(Number(await input.getAttribute("data-terminal-x")) % 12).toBe(0);
+  expect(Number(await input.getAttribute("data-terminal-y")) % 12).toBe(0);
+  expect(Number(await output.getAttribute("data-terminal-x")) % 12).toBe(0);
+  expect(Number(await output.getAttribute("data-terminal-y")) % 12).toBe(0);
+
+  const routeNode = page.locator("circle.wire-node:not(.draft)").first();
+  await expect(routeNode).toBeVisible();
+  expect(Number(await routeNode.getAttribute("cx")) % 12).toBe(0);
+  expect(Number(await routeNode.getAttribute("cy")) % 12).toBe(0);
 });
