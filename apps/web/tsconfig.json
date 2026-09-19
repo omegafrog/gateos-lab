@@ -11,6 +11,7 @@
     { "path": "../../packages/circuit-model" },
     { "path": "../../packages/circuit-compiler" },
     { "path": "../../packages/sim-core" },
-    { "path": "../../packages/challenge-engine" }
+    { "path": "../../packages/challenge-engine" },
+    { "path": "../../packages/trace-engine" }
   ]
 }
