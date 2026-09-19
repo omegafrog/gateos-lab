@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ComponentRegistry,
   NAND_COMPONENT,
-} from "../packages/circuit-model/src/index.js";
+} from "@gateos/circuit-model";
 
 describe("ComponentRegistry", () => {
   it("rejects duplicate component ids", () => {
