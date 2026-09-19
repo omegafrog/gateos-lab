@@ -1,23 +1,27 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-async function connect(from: Locator, to: Locator): Promise<void> {
+async function connect(
+  page: Page,
+  from: Locator,
+  to: Locator,
+): Promise<void> {
   const fromBox = await from.boundingBox();
   const toBox = await to.boundingBox();
   if (!fromBox || !toBox) {
     throw new Error("missing pin geometry for wire drag");
   }
 
-  await from.page().mouse.move(
+  await page.mouse.move(
     fromBox.x + fromBox.width / 2,
     fromBox.y + fromBox.height / 2,
   );
-  await from.page().mouse.down();
-  await from.page().mouse.move(
+  await page.mouse.down();
+  await page.mouse.move(
     toBox.x + toBox.width / 2,
     toBox.y + toBox.height / 2,
     { steps: 8 },
   );
-  await from.page().mouse.up();
+  await page.mouse.up();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -42,9 +46,9 @@ test("builds NOT, verifies it, publishes it, and persists progression", async ({
   const nandB = component.locator('[data-pin-id="b"]');
   const nandOut = component.locator('[data-pin-id="out"]');
 
-  await connect(input, nandA);
-  await connect(input, nandB);
-  await connect(nandOut, output);
+  await connect(page, input, nandA);
+  await connect(page, input, nandB);
+  await connect(page, nandOut, output);
 
   await page.getByTestId("run-tests").click();
   await expect(page.getByTestId("test-overall-result")).toHaveText(
@@ -221,9 +225,9 @@ test("canvas input and output terminals keep wiring ports and show values", asyn
   await expect(inputTerminal).toHaveAttribute("data-applied-value", "0");
   await expect(outputTerminal).toHaveAttribute("data-value", "X");
 
-  await connect(inputPort, component.locator('[data-pin-id="a"]'));
-  await connect(inputPort, component.locator('[data-pin-id="b"]'));
-  await connect(component.locator('[data-pin-id="out"]'), outputPort);
+  await connect(page, inputPort, component.locator('[data-pin-id="a"]'));
+  await connect(page, inputPort, component.locator('[data-pin-id="b"]'));
+  await connect(page, component.locator('[data-pin-id="out"]'), outputPort);
 
   await expect(outputTerminal).toHaveAttribute("data-value", "1");
 
@@ -409,9 +413,9 @@ test("interface terminals can move and connected wires follow their position", a
   const inputPort = page.getByTestId("pin-interface-in");
   const outputPort = page.getByTestId("pin-interface-out");
 
-  await connect(inputPort, component.locator('[data-pin-id="a"]'));
-  await connect(inputPort, component.locator('[data-pin-id="b"]'));
-  await connect(component.locator('[data-pin-id="out"]'), outputPort);
+  await connect(page, inputPort, component.locator('[data-pin-id="a"]'));
+  await connect(page, inputPort, component.locator('[data-pin-id="b"]'));
+  await connect(page, component.locator('[data-pin-id="out"]'), outputPort);
 
   const firstWire = page.locator("path.wire").first();
   const beforeWire = await firstWire.getAttribute("d");
@@ -482,7 +486,7 @@ test("wire drag creates an orthogonal path", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
   const component = page.locator('[data-testid^="component-"]').first();
-  await connect(
+  await connect(page, 
     page.getByTestId("pin-interface-in"),
     component.locator('[data-pin-id="a"]'),
   );
