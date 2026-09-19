@@ -96,8 +96,8 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "D Latch state table",
-      "description": "Storage is controlled by ENABLE, not by a clock edge.",
+      "title": "D Latch 상태표",
+      "description": "ENABLE이 열려 있을 때 D를 따라가고, 닫히면 feedback으로 마지막 Q를 유지합니다.",
       "columns": [
         {
           "id": "enable",
@@ -111,17 +111,17 @@
         },
         {
           "id": "qt",
-          "label": "Q(before)",
+          "label": "Q(적용 전)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(after settle)",
+          "label": "Q(settle 후)",
           "group": "output"
         },
         {
           "id": "meaning",
-          "label": "Meaning",
+          "label": "의미",
           "group": "note"
         }
       ],
@@ -131,36 +131,36 @@
           "d": "X",
           "qt": "0",
           "qnext": "0",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         },
         {
           "enable": "0",
           "d": "X",
           "qt": "1",
           "qnext": "1",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         },
         {
           "enable": "1",
           "d": "0",
           "qt": "X",
           "qnext": "0",
-          "meaning": "Follow D"
+          "meaning": "D를 따라감 (transparent)"
         },
         {
           "enable": "1",
           "d": "1",
           "qt": "X",
           "qnext": "1",
-          "meaning": "Follow D"
+          "meaning": "D를 따라감 (transparent)"
         }
       ],
       "notes": [
-        "ENABLE=1: Q follows D after the circuit settles.",
-        "ENABLE=0: the feedback path preserves the previous Q.",
-        "X means that input does not affect the resulting state."
+        "ENABLE=1이면 latch가 열려 있어 Q가 D를 따라갑니다.",
+        "ENABLE=0이면 feedback 경로가 이전 Q를 유지합니다.",
+        "X는 해당 값이 결과 상태에 영향을 주지 않는다는 뜻입니다."
       ],
-      "timing": "Level-sensitive — no clock edge. ENABLE=1 is transparent; ENABLE=0 stores."
+      "timing": "레벨 민감(level-sensitive) — Clock edge가 아니라 ENABLE의 레벨로 동작합니다."
     }
   ]
 }
