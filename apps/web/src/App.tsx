@@ -5,7 +5,6 @@ import {
   useState,
   type ChangeEvent,
   type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
 } from "react";
 import {
   BitVector,
@@ -1276,11 +1275,6 @@ export function App() {
     });
   }
 
-  function handleWheel(event: ReactWheelEvent<SVGSVGElement>): void {
-    event.preventDefault();
-    zoomAt(event.clientX, event.clientY, event.deltaY > 0 ? 1.12 : 0.89);
-  }
-
   function resetViewport(): void {
     setViewport({
       x: 0,
@@ -1949,7 +1943,6 @@ export function App() {
             ref={svgRef}
             className={testRunning ? "circuit-canvas testing" : "circuit-canvas"}
             viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
-            onWheel={handleWheel}
             onPointerMove={moveDrag}
             onPointerUp={() => {
               setDrag(null);
