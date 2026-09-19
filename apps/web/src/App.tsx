@@ -41,19 +41,11 @@ interface CurriculumManifest {
   challenges: readonly { id: string; file: string }[];
 }
 
-interface ProbeDefinition {
-  id: string;
-  name: string;
-  vertex: string;
-  width: number;
-}
-
 interface ProjectState {
   schema: typeof PROJECT_SCHEMA;
   circuits: Record<string, CircuitDefinition>;
   published: Record<string, CircuitDefinition>;
   completed: string[];
-  probes: Record<string, ProbeDefinition[]>;
 }
 
 interface ProjectLoadResult {
@@ -169,7 +161,6 @@ function emptyProject(): ProjectState {
     circuits: {},
     published: {},
     completed: [],
-    probes: {},
   };
 }
 
@@ -202,7 +193,6 @@ function normalizeProject(value: unknown, strictSchema = false): ProjectState {
     published:
       raw.published && typeof raw.published === "object" ? raw.published : {},
     completed: Array.isArray(raw.completed) ? raw.completed : [],
-    probes: raw.probes && typeof raw.probes === "object" ? raw.probes : {},
   };
 }
 
@@ -985,17 +975,14 @@ export function App() {
     if (!traceRuntime || !challenge || !simulationRuntime.netlist) return;
 
     traceRuntime.clearWatches();
-    for (const probe of project.probes[challenge.id] ?? []) {
-      const net = simulationRuntime.netlist.nets.find((candidate) =>
-        candidate.sourceVertices.includes(probe.vertex),
-      );
-      if (net) traceRuntime.watch(net.id);
+    for (const pin of challenge.interface.outputs) {
+      const netId = simulationRuntime.netlist.rootOutputs[pin.id];
+      if (netId) traceRuntime.watch(netId);
     }
     setTraceRevision((current) => current + 1);
   }, [
     traceRuntime,
     challenge,
-    project.probes,
     simulationRuntime.netlist,
   ]);
 
@@ -1637,16 +1624,12 @@ export function App() {
     ) ?? false;
 
   const traceFrames = traceRuntime?.frames.slice(-16) ?? [];
-  const activeProbes = project.probes[challenge.id] ?? [];
-  const probeNetIds = new Map<string, string>();
-  if (simulationRuntime.netlist) {
-    for (const probe of activeProbes) {
-      const net = simulationRuntime.netlist.nets.find((candidate) =>
-        candidate.sourceVertices.includes(probe.vertex),
-      );
-      if (net) probeNetIds.set(probe.id, net.id);
-    }
-  }
+  const waveformOutputs = challenge.interface.outputs.map((pin) => ({
+    id: pin.id,
+    name: pin.name,
+    width: pin.width,
+    netId: simulationRuntime.netlist?.rootOutputs[pin.id],
+  }));
   void traceRevision;
 
   function addComponent(componentId: string): void {
@@ -2063,71 +2046,6 @@ export function App() {
     const pastedIds = newInstances.map((instance) => instance.id);
     setSelectedInstances(pastedIds);
     setSelectedInstance(pastedIds[0] ?? null);
-  }
-
-  function addProbe(): void {
-    if (!challenge || !displayCircuit || !selectedConnection) return;
-    const connection = displayCircuit.connections.find(
-      (candidate) => candidate.id === selectedConnection,
-    );
-    if (!connection) return;
-
-    const vertex = signalVertex(connection.from, inspection.prefix);
-    const width = endpointWidth(
-      connection.from,
-      challenge,
-      displayCircuit,
-      registry,
-    );
-    const existing = project.probes[challenge.id] ?? [];
-    if (existing.some((probe) => probe.vertex === vertex)) return;
-
-    const probe: ProbeDefinition = {
-      id: `probe-${Date.now().toString(36)}`,
-      name: `Probe ${existing.length + 1}`,
-      vertex,
-      width,
-    };
-
-    setProject((previous) => ({
-      ...previous,
-      probes: {
-        ...previous.probes,
-        [challenge.id]: [...existing, probe],
-      },
-    }));
-  }
-
-  function removeProbe(id: string): void {
-    if (!challenge) return;
-    const probes = project.probes[challenge.id] ?? [];
-    setProject((previous) => ({
-      ...previous,
-      probes: {
-        ...previous.probes,
-        [challenge.id]: probes.filter((probe) => probe.id !== id),
-      },
-    }));
-  }
-
-  function renameProbe(id: string): void {
-    if (!challenge) return;
-    const probes = project.probes[challenge.id] ?? [];
-    const current = probes.find((probe) => probe.id === id);
-    if (!current) return;
-
-    const nextName = window.prompt("Probe name", current.name)?.trim();
-    if (!nextName) return;
-
-    setProject((previous) => ({
-      ...previous,
-      probes: {
-        ...previous.probes,
-        [challenge.id]: probes.map((probe) =>
-          probe.id === id ? { ...probe, name: nextName } : probe,
-        ),
-      },
-    }));
   }
 
   function exportProject(): void {
@@ -4170,8 +4088,7 @@ export function App() {
               <div>
                 <strong>Waveform</strong>
                 <p className="muted">
-                  Probes are sampled after each captured edge/clock step. Rewind restores the
-                  previous simulator state.
+                  회로 output을 각 edge/clock step 뒤에 자동으로 기록합니다. Rewind는 이전 simulator state를 복원합니다.
                 </p>
               </div>
               <div>
@@ -4185,11 +4102,7 @@ export function App() {
               </div>
             </div>
 
-            {activeProbes.length === 0 ? (
-              <p className="waveform-empty">
-                Select a wire in the Inspector and add a Probe to watch it here.
-              </p>
-            ) : traceFrames.length === 0 ? (
+            {traceFrames.length === 0 ? (
               <p className="waveform-empty">
                 Step the clock or an edge to capture the first waveform sample.
               </p>
@@ -4201,7 +4114,7 @@ export function App() {
                     gridTemplateColumns: `150px repeat(${traceFrames.length}, minmax(54px, 1fr))`,
                   }}
                 >
-                  <div className="waveform-corner">signal / frame</div>
+                  <div className="waveform-corner">output / frame</div>
                   {traceFrames.map((frame) => (
                     <div key={frame.index} className="waveform-frame-label">
                       <strong>{frame.index}</strong>
@@ -4209,32 +4122,29 @@ export function App() {
                     </div>
                   ))}
 
-                  {activeProbes.flatMap((probe) => {
-                    const netId = probeNetIds.get(probe.id);
-                    return [
-                      <div key={`${probe.id}-name`} className="waveform-name">
-                        <strong>{probe.name}</strong>
-                        <small>{probe.width}b</small>
-                      </div>,
-                      ...traceFrames.map((frame) => {
-                        const value = netId
-                          ? frame.signalSamples[netId] ?? "·"
-                          : "·";
-                        return (
-                          <div
-                            key={`${probe.id}-${frame.index}`}
-                            className={[
-                              "waveform-cell",
-                              value.includes("X") ? "unknown" : "",
-                            ].join(" ")}
-                            title={frame.label ?? `frame ${frame.index}`}
-                          >
-                            {value}
-                          </div>
-                        );
-                      }),
-                    ];
-                  })}
+                  {waveformOutputs.flatMap((output) => [
+                    <div key={`${output.id}-name`} className="waveform-name">
+                      <strong>{output.name}</strong>
+                      <small>{output.width}b</small>
+                    </div>,
+                    ...traceFrames.map((frame) => {
+                      const value = output.netId
+                        ? frame.signalSamples[output.netId] ?? "·"
+                        : "·";
+                      return (
+                        <div
+                          key={`${output.id}-${frame.index}`}
+                          className={[
+                            "waveform-cell",
+                            value.includes("X") ? "unknown" : "",
+                          ].join(" ")}
+                          title={frame.label ?? `frame ${frame.index}`}
+                        >
+                          {value}
+                        </div>
+                      );
+                    }),
+                  ])}
                 </div>
               </div>
             )}
@@ -4497,7 +4407,6 @@ export function App() {
                 <dd><code>{signalHex(value)}</code></dd>
               </dl>
               <div className="signal-actions">
-                <button onClick={addProbe}>Add probe</button>
                 <button
                   className="danger"
                   disabled={isInspectingNested}
@@ -4622,39 +4531,6 @@ export function App() {
         })() : (
           <p className="muted">Click a component to select it.</p>
         )}
-
-        <h2>Probes</h2>
-        <div className="probe-list">
-          {(project.probes[challenge.id] ?? []).length === 0 ? (
-            <p className="muted">Select a wire and add a probe.</p>
-          ) : (
-            (project.probes[challenge.id] ?? []).map((probe) => {
-              const value = preview.signals[probe.vertex] ?? "X";
-              return (
-                <div key={probe.id} className="probe-card">
-                  <button
-                    className="probe-name"
-                    title="Rename probe"
-                    onClick={() => renameProbe(probe.id)}
-                  >
-                    {probe.name}
-                  </button>
-                  <code className={value.includes("X") ? "unknown-value" : ""}>
-                    {value}
-                  </code>
-                  <small>{signalHex(value)}</small>
-                  <button
-                    className="probe-remove"
-                    title="Remove probe"
-                    onClick={() => removeProbe(probe.id)}
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
 
         <h2>Live signals</h2>
         <div className="signal-list">
