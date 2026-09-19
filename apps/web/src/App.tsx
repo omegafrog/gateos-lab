@@ -276,11 +276,21 @@ function instancePosition(
   return instance?.position ?? { x: 360, y: 220 };
 }
 
-const COMPACT_COMPONENT_WIDTH = 92;
-const COMPACT_PIN_GAP = 20;
-const COMPACT_MIN_HEIGHT = 52;
-const TERMINAL_BODY_WIDTH = 100;
-const TERMINAL_PORT_GAP = 12;
+const PLACEMENT_GRID = 24;
+const COMPACT_COMPONENT_WIDTH = PLACEMENT_GRID * 4;
+const TERMINAL_BODY_WIDTH = PLACEMENT_GRID * 4;
+const TERMINAL_PORT_GAP = PLACEMENT_GRID / 2;
+
+function snapCoordinate(value: number): number {
+  return Math.round(value / PLACEMENT_GRID) * PLACEMENT_GRID;
+}
+
+function snapPoint(point: Point): Point {
+  return {
+    x: snapCoordinate(point.x),
+    y: snapCoordinate(point.y),
+  };
+}
 
 function componentGeometry(spec: ComponentSpec): {
   width: number;
@@ -299,7 +309,7 @@ function componentGeometry(spec: ComponentSpec): {
 
   return {
     width: COMPACT_COMPONENT_WIDTH,
-    height: Math.max(COMPACT_MIN_HEIGHT, 18 + rows * COMPACT_PIN_GAP),
+    height: (rows + 1) * PLACEMENT_GRID,
     inputPins,
     outputPins,
   };
@@ -418,14 +428,17 @@ function interfacePinPoint(
 
   const inputIndex = inputPins.findIndex((pin) => pin.id === pinId);
   if (inputIndex >= 0) {
-    return { x: 132, y: 112 + inputIndex * 82 };
+    return snapPoint({
+      x: 144,
+      y: 120 + inputIndex * PLACEMENT_GRID * 4,
+    });
   }
 
   const outputIndex = outputPins.findIndex((pin) => pin.id === pinId);
-  return {
+  return snapPoint({
     x: CANVAS_WIDTH - 132,
-    y: 112 + Math.max(outputIndex, 0) * 82,
-  };
+    y: 120 + Math.max(outputIndex, 0) * PLACEMENT_GRID * 4,
+  });
 }
 
 function getEndpointPoint(
@@ -444,14 +457,8 @@ function getEndpointPoint(
   );
 }
 
-function orthogonalWirePath(from: Point, to: Point): string {
-  const midX = from.x + (to.x - from.x) / 2;
-  return [
-    `M ${from.x} ${from.y}`,
-    `H ${midX}`,
-    `V ${to.y}`,
-    `H ${to.x}`,
-  ].join(" ");
+function wirePath(from: Point, to: Point): string {
+  return `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
 }
 
 function endpointRole(
@@ -1281,10 +1288,10 @@ export function App() {
     if (!circuit || isInspectingNested) return;
     const count = circuit.instances.length;
     const id = `u${Date.now().toString(36)}-${count}`;
-    const position = {
-      x: viewport.x + viewport.width * 0.38 + (count % 3) * 36,
-      y: viewport.y + viewport.height * 0.32 + (count % 3) * 28,
-    };
+    const position = snapPoint({
+      x: viewport.x + viewport.width * 0.38 + (count % 3) * PLACEMENT_GRID * 2,
+      y: viewport.y + viewport.height * 0.32 + (count % 3) * PLACEMENT_GRID * 2,
+    });
     updateCircuit((current) => ({
       ...current,
       instances: [
@@ -1463,10 +1470,10 @@ export function App() {
       return {
         ...instance,
         id,
-        position: {
-          x: position.x + 36,
-          y: position.y + 36,
-        },
+        position: snapPoint({
+          x: position.x + PLACEMENT_GRID * 2,
+          y: position.y + PLACEMENT_GRID * 2,
+        }),
       };
     });
 
@@ -1748,10 +1755,10 @@ export function App() {
     const point = canvasPoint(event);
 
     if (interfaceDrag) {
-      const next = {
+      const next = snapPoint({
         x: point.x - interfaceDrag.offsetX,
         y: point.y - interfaceDrag.offsetY,
-      };
+      });
 
       updateCircuit(
         (current) => {
@@ -1787,10 +1794,10 @@ export function App() {
           if (instance.id !== drag.instanceId) return instance;
           return {
             ...instance,
-            position: {
+            position: snapPoint({
               x: point.x - drag.offsetX,
               y: point.y - drag.offsetY,
-            },
+            }),
           };
         }),
       }),
@@ -2405,7 +2412,7 @@ export function App() {
         <section className="canvas-frame">
           <div className="canvas-toolbar">
             <div className="canvas-toolbar-info">
-              <span>빈 공간 드래그: 이동 · 줌: + / −</span>
+              <span>빈 공간 드래그: 이동 · 소자 배치: 숨은 grid snap · 줌: + / −</span>
               {preview.error ? (
                 <span className="error-text">{preview.error}</span>
               ) : null}
@@ -2525,22 +2532,12 @@ export function App() {
               setSelectedConnection(null);
             }}
           >
-            <defs>
-              <pattern
-                id="grid"
-                width="24"
-                height="24"
-                patternUnits="userSpaceOnUse"
-              >
-                <path d="M 24 0 L 0 0 0 24" className="grid-line" />
-              </pattern>
-            </defs>
             <rect
               x={viewport.x - viewport.width * 50}
               y={viewport.y - viewport.height * 50}
               width={viewport.width * 100}
               height={viewport.height * 100}
-              fill="url(#grid)"
+              fill="transparent"
               onPointerDown={beginPan}
             />
             {(displayCircuit?.connections ?? []).map((connection) => {
@@ -2575,7 +2572,7 @@ export function App() {
                     wireValueClass,
                     selectedConnection === connection.id ? "selected" : "",
                   ].join(" ")}
-                  d={orthogonalWirePath(from, to)}
+                  d={wirePath(from, to)}
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedConnection(connection.id);
@@ -2588,7 +2585,7 @@ export function App() {
             {pendingPin && wirePointer && displayCircuit ? (
               <path
                 className="wire wire-preview"
-                d={orthogonalWirePath(
+                d={wirePath(
                   getEndpointPoint(pendingPin, displayCircuit, registry),
                   wirePointer,
                 )}
@@ -3543,7 +3540,7 @@ export function App() {
             <strong>Wiring</strong>
             <p className="muted">
               핀에서 마우스를 누른 채 다른 핀까지 드래그한 뒤 놓으면 연결됩니다.
-              Wire는 직각으로 배치되며, 클릭해서 선택한 뒤 Delete/Backspace로 제거할 수 있습니다.
+              Wire는 수평/수직/대각선으로 연결되며, 클릭해서 선택한 뒤 Delete/Backspace로 제거할 수 있습니다.
             </p>
             {pendingPin ? (
               <p>
