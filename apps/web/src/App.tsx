@@ -2922,6 +2922,8 @@ export function App() {
               width={viewport.width * 100}
               height={viewport.height * 100}
               fill="transparent"
+              pointerEvents="all"
+              data-testid="canvas-pan-surface"
               onPointerDown={beginPan}
             />
             {(displayCircuit?.connections ?? []).map((connection) => {
