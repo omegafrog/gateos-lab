@@ -770,3 +770,51 @@ button:disabled {
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+
+
+.component-inspector-card {
+  display: block;
+}
+
+.component-inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.component-inspector-header > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.component-pin-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e8ee;
+}
+
+.component-pin-inspector > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+}
+
+.component-pin-inspector span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  font-weight: 700;
+}
+
+.component-pin-inspector small {
+  color: #818a97;
+  font-weight: 400;
+}
