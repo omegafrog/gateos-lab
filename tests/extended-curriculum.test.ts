@@ -341,6 +341,9 @@ describe("extended curriculum", () => {
       "15-register4.challenge.json",
       "16-counter4.challenge.json",
       "17-program-counter4.challenge.json",
+      "18-decoder2to4.challenge.json",
+      "19-ram4.challenge.json",
+      "20-ram16.challenge.json",
     ];
 
     for (const file of files) {
@@ -355,10 +358,35 @@ describe("extended curriculum", () => {
       "15-register4.challenge.json",
       "16-counter4.challenge.json",
       "17-program-counter4.challenge.json",
+      "19-ram4.challenge.json",
+      "20-ram16.challenge.json",
     ]) {
       const challenge = readChallenge(file);
       expect(challenge.referenceTables?.length).toBeGreaterThan(0);
       expect(challenge.validators.some((validator) => validator.type === "sequence")).toBe(true);
     }
+  });
+
+  it("defines the memory track as decoder -> RAM4 -> RAM16", () => {
+    const decoder = readChallenge("18-decoder2to4.challenge.json");
+    const ram4 = readChallenge("19-ram4.challenge.json");
+    const ram16 = readChallenge("20-ram16.challenge.json");
+
+    expect(decoder.interface.inputs).toEqual([
+      { id: "addr", name: "ADDR", width: 2 },
+    ]);
+    expect(decoder.unlocks).toContain("memory.ram4");
+
+    expect(ram4.interface.inputs.find((pin) => pin.id === "addr")?.width).toBe(2);
+    expect(ram4.interface.inputs.find((pin) => pin.id === "d")?.width).toBe(4);
+    expect(ram4.allowedComponents).toContain("user.register4");
+    expect(ram4.allowedComponents).toContain("user.decoder2to4");
+    expect(ram4.unlocks).toContain("memory.ram16");
+
+    expect(ram16.interface.inputs.find((pin) => pin.id === "addr")?.width).toBe(4);
+    expect(ram16.interface.inputs.find((pin) => pin.id === "d")?.width).toBe(4);
+    expect(ram16.allowedComponents).toContain("user.ram4");
+    expect(ram16.allowedComponents).not.toContain("builtin.ram");
+    expect(ram16.validators.some((validator) => validator.type === "sequence")).toBe(true);
   });
 });
