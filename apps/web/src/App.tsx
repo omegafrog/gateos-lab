@@ -1309,6 +1309,46 @@ export function App() {
   }, [challenge, simulationRuntime, simulationRevision]);
 
   useEffect(() => {
+    function handleGlobalWirePointerUp(event: PointerEvent): void {
+      const activePendingWire = pendingWireRef.current;
+      if (!activePendingWire || !wireDraggingRef.current) return;
+
+      const hit = document.elementFromPoint(event.clientX, event.clientY);
+      const endpointElement =
+        hit instanceof Element
+          ? hit.closest("[data-wire-endpoint]")
+          : null;
+      const endpointValue =
+        endpointElement?.getAttribute("data-wire-endpoint");
+      const targetEndpoint = endpointValue
+        ? parseEndpointKey(endpointValue)
+        : null;
+
+      if (targetEndpoint) {
+        finishWireConnection(
+          targetEndpoint,
+          event.clientX,
+          event.clientY,
+        );
+      } else {
+        placeDraftWireNode(event.clientX, event.clientY);
+      }
+    }
+
+    window.addEventListener(
+      "pointerup",
+      handleGlobalWirePointerUp,
+      true,
+    );
+    return () =>
+      window.removeEventListener(
+        "pointerup",
+        handleGlobalWirePointerUp,
+        true,
+      );
+  });
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
       const target = event.target as HTMLElement | null;
       if (
