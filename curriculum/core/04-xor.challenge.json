@@ -5,29 +5,98 @@
   "description": "NOT, AND, OR을 조합해 두 입력이 다를 때만 1이 되는 XOR를 만드세요.",
   "interface": {
     "inputs": [
-      { "id": "a", "name": "A", "width": 1 },
-      { "id": "b", "name": "B", "width": 1 }
+      {
+        "id": "a",
+        "name": "A",
+        "width": 1
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 1
+      }
     ],
-    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 1
+      }
+    ]
   },
-  "allowedComponents": ["user.not", "user.and", "user.or"],
+  "allowedComponents": [
+    "user.not",
+    "user.and",
+    "user.or"
+  ],
   "validators": [
     {
       "type": "truthTable",
       "visibility": "visible",
       "cases": [
-        { "in": { "a": 0, "b": 0 }, "out": { "out": 0 } },
-        { "in": { "a": 0, "b": 1 }, "out": { "out": 1 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 0
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 0,
+            "b": 1
+          },
+          "out": {
+            "out": 1
+          }
+        }
       ]
     },
     {
       "type": "truthTable",
       "visibility": "hidden",
       "cases": [
-        { "in": { "a": 1, "b": 0 }, "out": { "out": 1 } },
-        { "in": { "a": 1, "b": 1 }, "out": { "out": 0 } }
+        {
+          "in": {
+            "a": 1,
+            "b": 0
+          },
+          "out": {
+            "out": 1
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 1
+          },
+          "out": {
+            "out": 0
+          }
+        }
       ]
     }
   ],
-  "unlocks": ["routing.mux2"]
+  "unlocks": [
+    "routing.mux2"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "서로 다를 때만 1",
+      "body": "XOR는 A=1,B=0 또는 A=0,B=1인 두 경우를 합친 논리입니다."
+    },
+    {
+      "level": 2,
+      "title": "두 경로 만들기",
+      "body": "A AND NOT B 경로와 NOT A AND B 경로를 각각 만든 뒤 두 결과를 OR로 합쳐보세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "A와 B를 각각 한 번씩 반전해 A·B̅, A̅·B를 두 AND로 만들고, 두 AND 출력을 OR에 넣어 OUT으로 연결하세요."
+    }
+  ]
 }
