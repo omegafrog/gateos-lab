@@ -721,6 +721,7 @@ export function App() {
   const [testStates, setTestStates] = useState<Record<string, VisualTestState>>({});
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
   const [testRunning, setTestRunning] = useState(false);
+  const [revealedHintCount, setRevealedHintCount] = useState(0);
   const [loadError, setLoadError] = useState<string>("");
   const svgRef = useRef<SVGSVGElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -792,6 +793,7 @@ export function App() {
     setTestStates({});
     setActiveTestId(null);
     setTestRunning(false);
+    setRevealedHintCount(0);
   }, [challenge?.id]);
 
   const circuit = useMemo(() => {
@@ -2516,6 +2518,62 @@ export function App() {
             </button>
           </div>
         </section>
+
+        {(challenge.hints?.length ?? 0) > 0 ? (
+          <section className="hint-panel" data-testid="hints-panel">
+            <div className="hint-panel-header">
+              <div>
+                <strong>단계별 힌트</strong>
+                <p>
+                  막혔을 때만 한 단계씩 확인하세요. 뒤 단계일수록 연결 방법을
+                  더 구체적으로 알려줍니다.
+                </p>
+              </div>
+              {revealedHintCount < (challenge.hints?.length ?? 0) ? (
+                <button
+                  className="hint-reveal-button"
+                  data-testid="reveal-hint"
+                  onClick={() =>
+                    setRevealedHintCount((current) =>
+                      Math.min(
+                        current + 1,
+                        challenge.hints?.length ?? current,
+                      ),
+                    )
+                  }
+                >
+                  힌트 {revealedHintCount + 1}단계 보기
+                </button>
+              ) : (
+                <span className="hint-complete">3단계까지 확인함</span>
+              )}
+            </div>
+
+            {revealedHintCount === 0 ? (
+              <p className="hint-locked-message">
+                아직 힌트를 열지 않았습니다.
+              </p>
+            ) : (
+              <div className="hint-list">
+                {(challenge.hints ?? [])
+                  .slice(0, revealedHintCount)
+                  .map((hint) => (
+                    <article
+                      key={hint.level}
+                      className={`hint-card hint-level-${hint.level}`}
+                      data-testid={`hint-level-${hint.level}`}
+                    >
+                      <div className="hint-card-title">
+                        <span>{hint.level}단계</span>
+                        <strong>{hint.title}</strong>
+                      </div>
+                      <p>{hint.body}</p>
+                    </article>
+                  ))}
+              </div>
+            )}
+          </section>
+        ) : null}
 
         {targetTruthRows.length > 0 ? (
           <section className="truth-table-panel" data-testid="target-truth-table">
