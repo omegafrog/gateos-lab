@@ -1546,3 +1546,105 @@ button:disabled {
   cursor: pointer;
   pointer-events: stroke;
 }
+
+
+/* Progressive learning hints */
+.hint-panel {
+  margin: 12px 0;
+  overflow: hidden;
+  border: 1px solid #d8dde6;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.hint-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  background: #fbfcfe;
+  border-bottom: 1px solid #e7eaf0;
+}
+
+.hint-panel-header p,
+.hint-locked-message,
+.hint-card p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.hint-panel-header p {
+  color: #6e7785;
+}
+
+.hint-reveal-button {
+  flex: 0 0 auto;
+  border: 1px solid #7a86d8;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: #f4f5ff;
+  color: #4053bd;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hint-reveal-button:hover {
+  background: #e9ecff;
+}
+
+.hint-locked-message {
+  padding: 12px 14px;
+  color: #7b8492;
+}
+
+.hint-list {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.hint-card {
+  padding: 10px 12px;
+  border: 1px solid #e0e4eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.hint-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint-card-title > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #5e6877;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.hint-level-1 {
+  border-left: 4px solid #7f94c9;
+}
+
+.hint-level-2 {
+  border-left: 4px solid #c69a43;
+}
+
+.hint-level-3 {
+  border-left: 4px solid #b66b45;
+}
+
+.hint-complete {
+  color: #667181;
+  font-size: 11px;
+  font-weight: 700;
+}
