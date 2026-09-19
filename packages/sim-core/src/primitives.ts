@@ -6,6 +6,7 @@ import {
 
 export type PrimitiveInputs = Readonly<Record<string, BitVector>>;
 export type PrimitiveOutputs = Readonly<Record<string, BitVector>>;
+export type ClockEdge = "rising" | "falling";
 
 export type PrimitiveEvaluator = (
   inputs: PrimitiveInputs,
@@ -13,20 +14,68 @@ export type PrimitiveEvaluator = (
   node: CompiledNode,
 ) => PrimitiveOutputs;
 
+export interface SequentialPrimitiveDefinition<State = unknown> {
+  createState(
+    params: Readonly<Record<string, unknown>>,
+    node: CompiledNode,
+  ): State;
+
+  sample(
+    inputs: PrimitiveInputs,
+    state: State,
+    edge: ClockEdge,
+    params: Readonly<Record<string, unknown>>,
+    node: CompiledNode,
+  ): State;
+
+  outputs(
+    state: State,
+    params: Readonly<Record<string, unknown>>,
+    node: CompiledNode,
+  ): PrimitiveOutputs;
+}
+
 export class PrimitiveRegistry {
   readonly #evaluators = new Map<string, PrimitiveEvaluator>();
+  readonly #sequential = new Map<
+    string,
+    SequentialPrimitiveDefinition<unknown>
+  >();
 
   register(id: string, evaluator: PrimitiveEvaluator): void {
-    if (this.#evaluators.has(id)) {
+    if (this.#evaluators.has(id) || this.#sequential.has(id)) {
       throw new Error(`Primitive evaluator already registered: ${id}`);
     }
     this.#evaluators.set(id, evaluator);
   }
 
+  registerSequential<State>(
+    id: string,
+    definition: SequentialPrimitiveDefinition<State>,
+  ): void {
+    if (this.#evaluators.has(id) || this.#sequential.has(id)) {
+      throw new Error(`Primitive evaluator already registered: ${id}`);
+    }
+    this.#sequential.set(
+      id,
+      definition as SequentialPrimitiveDefinition<unknown>,
+    );
+  }
+
   get(id: string): PrimitiveEvaluator {
     const evaluator = this.#evaluators.get(id);
-    if (!evaluator) throw new Error(`Unknown primitive evaluator: ${id}`);
+    if (!evaluator) throw new Error(`Unknown combinational primitive: ${id}`);
     return evaluator;
+  }
+
+  getSequential(id: string): SequentialPrimitiveDefinition<unknown> {
+    const definition = this.#sequential.get(id);
+    if (!definition) throw new Error(`Unknown sequential primitive: ${id}`);
+    return definition;
+  }
+
+  isSequential(id: string): boolean {
+    return this.#sequential.has(id);
   }
 }
 
@@ -44,6 +93,27 @@ export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
     return {
       out: a.zip(b, logicNand),
     };
+  });
+
+  registry.registerSequential<BitVector>("builtin.clock", {
+    createState: () => BitVector.zeros(1),
+    sample: (_inputs, state, edge) =>
+      edge === "rising" ? BitVector.ones(1) : BitVector.zeros(1),
+    outputs: (state) => ({ out: state }),
+  });
+
+  registry.registerSequential<BitVector>("builtin.dff", {
+    createState: () => BitVector.unknown(1),
+    sample: (inputs, state, edge) => {
+      if (edge === "falling") return state;
+      const d = inputs.d;
+      if (!d) throw new Error("D Flip-Flop requires input 'd'");
+      if (d.width !== 1) {
+        throw new Error(`D Flip-Flop expects 1-bit D, got ${d.width}`);
+      }
+      return d;
+    },
+    outputs: (state) => ({ q: state }),
   });
 
   return registry;
