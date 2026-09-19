@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "tsc -b ../../packages/circuit-model ../../packages/circuit-compiler ../../packages/sim-core ../../packages/challenge-engine",
     "dev": "vite",
     "build": "vite build"
   },
