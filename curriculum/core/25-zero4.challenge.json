@@ -1,0 +1,152 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "logic.zero4",
+  "title": "4-bit Zero Detector",
+  "description": "4-bit IN이 0000일 때만 ZERO=1이 되는 Zero Detector를 만드세요. CPU의 Zero flag에 사용됩니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "in",
+        "name": "IN",
+        "width": 4
+      }
+    ],
+    "outputs": [
+      {
+        "id": "zero",
+        "name": "ZERO",
+        "width": 1
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split4",
+    "user.or",
+    "user.not"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "in": 0
+          },
+          "out": {
+            "zero": 1
+          }
+        },
+        {
+          "in": {
+            "in": 1
+          },
+          "out": {
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "in": 8
+          },
+          "out": {
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "in": 15
+          },
+          "out": {
+            "zero": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        {
+          "in": {
+            "in": 2
+          },
+          "out": {
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "in": 10
+          },
+          "out": {
+            "zero": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 5
+      }
+    }
+  ],
+  "unlocks": [
+    "arithmetic.alu4"
+  ],
+  "referenceTables": [
+    {
+      "id": "zero-flag",
+      "title": "Zero flag 동작",
+      "description": "네 bit 중 하나라도 1이면 결과는 zero가 아닙니다.",
+      "columns": [
+        {
+          "id": "in",
+          "label": "IN[3:0]",
+          "group": "input"
+        },
+        {
+          "id": "zero",
+          "label": "ZERO",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "의미",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "in": "0000",
+          "zero": "1",
+          "meaning": "결과가 0"
+        },
+        {
+          "in": "0001~1111",
+          "zero": "0",
+          "meaning": "결과가 0이 아님"
+        }
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "하나라도 1이면 zero가 아닙니다",
+      "body": "네 bit를 모두 OR한 값이 1이면 IN은 0이 아닙니다. 마지막에 그 결과를 반전하면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "OR tree 구성",
+      "body": "B0/B1을 OR, B2/B3을 OR한 뒤 두 중간 결과를 다시 OR하세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "Split4→OR 두 개→OR 한 개→NOT 순서로 연결하고 마지막 NOT.OUT을 ZERO에 연결하세요."
+    }
+  ]
+}
