@@ -463,11 +463,11 @@ function getEndpointPoint(
 }
 
 function wirePath(points: readonly Point[]): string {
-  if (points.length === 0) return "";
-  const [first, ...rest] = points;
+  const first = points[0];
+  if (!first) return "";
   return [
     `M ${first.x} ${first.y}`,
-    ...rest.map((point) => `L ${point.x} ${point.y}`),
+    ...points.slice(1).map((point) => `L ${point.x} ${point.y}`),
   ].join(" ");
 }
 
@@ -518,10 +518,14 @@ function routeInsertionIndex(
   let bestDistance = Number.POSITIVE_INFINITY;
 
   for (let index = 0; index < points.length - 1; index += 1) {
+    const start = points[index];
+    const end = points[index + 1];
+    if (!start || !end) continue;
+
     const distance = pointToSegmentDistanceSquared(
       point,
-      points[index],
-      points[index + 1],
+      start,
+      end,
     );
     if (distance < bestDistance) {
       bestDistance = distance;
@@ -1640,15 +1644,17 @@ export function App() {
           };
         };
 
+        const route = connection.route?.map((point) => ({
+          x: point.x + PLACEMENT_GRID * 2,
+          y: point.y + PLACEMENT_GRID * 2,
+        }));
+
         return {
           ...connection,
           id: `paste-wire-${stamp}-${index}`,
           from: mapEndpoint(connection.from),
           to: mapEndpoint(connection.to),
-          route: connection.route?.map((point) => ({
-            x: point.x + PLACEMENT_GRID * 2,
-            y: point.y + PLACEMENT_GRID * 2,
-          })),
+          ...(route ? { route } : {}),
         };
       },
     );
@@ -1874,6 +1880,7 @@ export function App() {
     event.stopPropagation();
     event.preventDefault();
     const last = wireRoutePoints[wireRoutePoints.length - 1];
+    if (!last) return;
     setWirePointer(last);
     setWireDragging(true);
     setWireHoverTarget(null);
