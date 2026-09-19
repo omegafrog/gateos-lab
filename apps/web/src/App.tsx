@@ -1978,6 +1978,62 @@ export function App() {
           </section>
         ) : null}
 
+        {(challenge.referenceTables ?? []).map((table) => (
+          <section
+            key={table.id}
+            className="reference-table-panel"
+            data-testid={`reference-table-${table.id}`}
+          >
+            <div className="reference-table-header">
+              <div>
+                <strong>{table.title}</strong>
+                {table.description ? <p>{table.description}</p> : null}
+              </div>
+              <span>State / characteristic table</span>
+            </div>
+
+            <div className="reference-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    {table.columns.map((column) => (
+                      <th
+                        key={column.id}
+                        className={`reference-column-${column.group ?? "note"}`}
+                      >
+                        {column.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.rows.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {table.columns.map((column) => (
+                        <td key={column.id}>
+                          {column.group === "note" ? (
+                            <span>{row[column.id] ?? "—"}</span>
+                          ) : (
+                            <code>{row[column.id] ?? "—"}</code>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {table.notes && table.notes.length > 0 ? (
+              <div className="reference-table-notes">
+                {table.notes.map((note, index) => (
+                  <span key={index}>• {note}</span>
+                ))}
+              </div>
+            ) : null}
+          </section>
+        ))}
+
         <div className="hierarchy-bar">
           <div className="breadcrumbs">
             <button
