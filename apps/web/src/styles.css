@@ -1346,3 +1346,76 @@ button:disabled {
   background: #5267d8;
   color: white;
 }
+
+
+/* Compact reusable circuit symbols */
+.component-hitbox {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+
+.compact-symbol {
+  pointer-events: none;
+}
+
+.logic-symbol-body,
+.chip-symbol-body {
+  fill: #ffffff;
+  stroke: #6f7a8a;
+  stroke-width: 2;
+}
+
+.logic-symbol-bubble {
+  fill: #ffffff;
+  stroke: #6f7a8a;
+  stroke-width: 2;
+}
+
+.logic-symbol-lead {
+  stroke: #6f7a8a;
+  stroke-width: 2;
+}
+
+.compact-symbol.selected .logic-symbol-body,
+.compact-symbol.selected .logic-symbol-bubble,
+.compact-symbol.selected .chip-symbol-body {
+  stroke: #445bd0;
+  stroke-width: 3;
+  filter: drop-shadow(0 1px 3px rgb(68 91 208 / 22%));
+}
+
+.compact-symbol.selected .logic-symbol-lead {
+  stroke: #445bd0;
+  stroke-width: 3;
+}
+
+.compact-symbol-label {
+  fill: #263141;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.compact-pin-name {
+  fill: #697483;
+  font-size: 7px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.component .pin {
+  transition:
+    r 100ms ease,
+    fill 100ms ease,
+    stroke-width 100ms ease;
+}
+
+.component:hover .pin {
+  r: 6.5px;
+}
+
+.chip-symbol-body {
+  fill: #f9fafc;
+}
