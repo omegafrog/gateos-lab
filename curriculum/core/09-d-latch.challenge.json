@@ -162,5 +162,22 @@
       ],
       "timing": "레벨 민감(level-sensitive) — Clock edge가 아니라 ENABLE의 레벨로 동작합니다."
     }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "D를 SR Latch 입력으로 바꾸기",
+      "body": "D Latch는 D 하나를 그대로 저장하는 것이 아니라, ENABLE과 D를 이용해 SR Latch의 active-low S̅/R̅ 신호를 만들어 사용합니다."
+    },
+    {
+      "level": 2,
+      "title": "ENABLE이 1일 때만 Set/Reset 허용",
+      "body": "ENABLE=1일 때 D=1이면 Set, D=0이면 Reset이 되게 해야 합니다. D와 NOT D를 각각 ENABLE과 NAND해보세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "S̅=NAND(D, ENABLE), R̅=NAND(NOT D, ENABLE)을 만들고 이 둘을 SR Latch의 S̅/R̅에 연결하세요. SR Latch의 Q가 최종 Q입니다."
+    }
   ]
 }
