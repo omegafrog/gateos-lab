@@ -270,6 +270,69 @@ function instancePosition(
   return instance?.position ?? { x: 360, y: 220 };
 }
 
+const COMPACT_COMPONENT_WIDTH = 92;
+const COMPACT_PIN_GAP = 20;
+const COMPACT_MIN_HEIGHT = 52;
+
+function componentGeometry(spec: ComponentSpec): {
+  width: number;
+  height: number;
+  inputPins: ReturnType<typeof componentPins>;
+  outputPins: ReturnType<typeof componentPins>;
+} {
+  const pins = componentPins(spec);
+  const inputPins = pins.filter(
+    (pin) => pin.direction === "input" || pin.direction === "inout",
+  );
+  const outputPins = pins.filter(
+    (pin) => pin.direction === "output" || pin.direction === "inout",
+  );
+  const rows = Math.max(inputPins.length, outputPins.length, 1);
+
+  return {
+    width: COMPACT_COMPONENT_WIDTH,
+    height: Math.max(COMPACT_MIN_HEIGHT, 18 + rows * COMPACT_PIN_GAP),
+    inputPins,
+    outputPins,
+  };
+}
+
+function compactComponentLabel(spec: ComponentSpec): string {
+  const id = spec.id.toLowerCase();
+  if (id.includes("half-adder")) return "HA";
+  if (id.includes("full-adder")) return "FA";
+  if (id.includes("sr-latch")) return "SR";
+  if (id.includes("d-latch")) return "DL";
+  if (id.includes("dff")) return "DFF";
+  if (id.includes("register")) return "REG";
+  if (id.includes("mux")) return "MUX";
+  if (id.includes("xor")) return "XOR";
+  if (id.includes("and")) return "AND";
+  if (id.includes("or")) return "OR";
+  if (id.includes("not")) return "NOT";
+  if (id.includes("nand")) return "NAND";
+
+  const letters = spec.name
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
+
+  return letters.slice(0, 4) || spec.name.slice(0, 4).toUpperCase();
+}
+
+function compactSymbolKind(spec: ComponentSpec):
+  | "nand"
+  | "not"
+  | "and"
+  | "generic" {
+  const id = spec.id.toLowerCase();
+  if (id === "builtin.nand" || id.endsWith(".nand")) return "nand";
+  if (id.includes("not")) return "not";
+  if (id.endsWith(".and") || id.includes("user.and")) return "and";
+  return "generic";
+}
+
 function componentPinPoint(
   circuit: CircuitDefinition,
   registry: ComponentRegistry,
@@ -285,25 +348,26 @@ function componentPinPoint(
   if (!pin) return { x: 0, y: 0 };
 
   const position = instance.position ?? { x: 360, y: 220 };
-  const inputPins = pins.filter(
-    (candidate) => candidate.direction === "input" || candidate.direction === "inout",
-  );
-  const outputPins = pins.filter(
-    (candidate) => candidate.direction === "output" || candidate.direction === "inout",
-  );
+  const geometry = componentGeometry(spec);
 
   if (pin.direction === "output") {
-    const index = outputPins.findIndex((candidate) => candidate.id === pin.id);
+    const index = geometry.outputPins.findIndex(
+      (candidate) => candidate.id === pin.id,
+    );
+    const step = geometry.height / (geometry.outputPins.length + 1);
     return {
-      x: position.x + 140,
-      y: position.y + 36 + Math.max(index, 0) * 28,
+      x: position.x + geometry.width,
+      y: position.y + step * (Math.max(index, 0) + 1),
     };
   }
 
-  const index = inputPins.findIndex((candidate) => candidate.id === pin.id);
+  const index = geometry.inputPins.findIndex(
+    (candidate) => candidate.id === pin.id,
+  );
+  const step = geometry.height / (geometry.inputPins.length + 1);
   return {
     x: position.x,
-    y: position.y + 36 + Math.max(index, 0) * 28,
+    y: position.y + step * (Math.max(index, 0) + 1),
   };
 }
 
@@ -2512,14 +2576,12 @@ export function App() {
               const spec = registry.get(instance.componentId);
               const pins = componentPins(spec);
               const position = instance.position ?? { x: 360, y: 220 };
-              const inputs = pins.filter(
-                (pin) => pin.direction === "input" || pin.direction === "inout",
-              );
-              const outputs = pins.filter(
-                (pin) => pin.direction === "output" || pin.direction === "inout",
-              );
-              const rows = Math.max(inputs.length, outputs.length, 1);
-              const height = 58 + rows * 28;
+              const geometry = componentGeometry(spec);
+              const inputs = geometry.inputPins;
+              const outputs = geometry.outputPins;
+              const symbolKind = compactSymbolKind(spec);
+              const symbolLabel = compactComponentLabel(spec);
+              const selected = selectedInstances.includes(instance.id);
 
               return (
                 <g
@@ -2551,26 +2613,139 @@ export function App() {
                     }
                   }}
                 >
-                  <rect
-                    x={position.x}
-                    y={position.y}
-                    width="140"
-                    height={height}
-                    rx="10"
-                    className={
-                      selectedInstances.includes(instance.id)
-                        ? "component-body selected"
-                        : "component-body"
-                    }
-                  />
-                  <text
-                    x={position.x + 70}
-                    y={position.y + 24}
-                    textAnchor="middle"
-                    className="component-title"
-                  >
-                    {componentDisplayName(spec)}
-                  </text>
+                  {symbolKind === "nand" ? (
+                    <g
+                      className={[
+                        "compact-symbol",
+                        "logic-symbol",
+                        selected ? "selected" : "",
+                      ].join(" ")}
+                    >
+                      <path
+                        d={[
+                          `M ${position.x + 18} ${position.y + 8}`,
+                          `L ${position.x + 44} ${position.y + 8}`,
+                          `A ${geometry.height / 2 - 8} ${geometry.height / 2 - 8} 0 0 1`,
+                          `${position.x + 44} ${position.y + geometry.height - 8}`,
+                          `L ${position.x + 18} ${position.y + geometry.height - 8}`,
+                          "Z",
+                        ].join(" ")}
+                        className="logic-symbol-body"
+                      />
+                      <circle
+                        cx={position.x + 73}
+                        cy={position.y + geometry.height / 2}
+                        r="5"
+                        className="logic-symbol-bubble"
+                      />
+                      <line
+                        x1={position.x + 78}
+                        y1={position.y + geometry.height / 2}
+                        x2={position.x + geometry.width}
+                        y2={position.y + geometry.height / 2}
+                        className="logic-symbol-lead"
+                      />
+                      <text
+                        x={position.x + 38}
+                        y={position.y + geometry.height / 2 + 4}
+                        textAnchor="middle"
+                        className="compact-symbol-label"
+                      >
+                        NAND
+                      </text>
+                    </g>
+                  ) : symbolKind === "not" ? (
+                    <g
+                      className={[
+                        "compact-symbol",
+                        "logic-symbol",
+                        selected ? "selected" : "",
+                      ].join(" ")}
+                    >
+                      <path
+                        d={[
+                          `M ${position.x + 18} ${position.y + 9}`,
+                          `L ${position.x + 67} ${position.y + geometry.height / 2}`,
+                          `L ${position.x + 18} ${position.y + geometry.height - 9}`,
+                          "Z",
+                        ].join(" ")}
+                        className="logic-symbol-body"
+                      />
+                      <circle
+                        cx={position.x + 73}
+                        cy={position.y + geometry.height / 2}
+                        r="5"
+                        className="logic-symbol-bubble"
+                      />
+                      <line
+                        x1={position.x + 78}
+                        y1={position.y + geometry.height / 2}
+                        x2={position.x + geometry.width}
+                        y2={position.y + geometry.height / 2}
+                        className="logic-symbol-lead"
+                      />
+                    </g>
+                  ) : symbolKind === "and" ? (
+                    <g
+                      className={[
+                        "compact-symbol",
+                        "logic-symbol",
+                        selected ? "selected" : "",
+                      ].join(" ")}
+                    >
+                      <path
+                        d={[
+                          `M ${position.x + 18} ${position.y + 8}`,
+                          `L ${position.x + 48} ${position.y + 8}`,
+                          `A ${geometry.height / 2 - 8} ${geometry.height / 2 - 8} 0 0 1`,
+                          `${position.x + 48} ${position.y + geometry.height - 8}`,
+                          `L ${position.x + 18} ${position.y + geometry.height - 8}`,
+                          "Z",
+                        ].join(" ")}
+                        className="logic-symbol-body"
+                      />
+                      <line
+                        x1={position.x + 72}
+                        y1={position.y + geometry.height / 2}
+                        x2={position.x + geometry.width}
+                        y2={position.y + geometry.height / 2}
+                        className="logic-symbol-lead"
+                      />
+                      <text
+                        x={position.x + 40}
+                        y={position.y + geometry.height / 2 + 4}
+                        textAnchor="middle"
+                        className="compact-symbol-label"
+                      >
+                        AND
+                      </text>
+                    </g>
+                  ) : (
+                    <g
+                      className={[
+                        "compact-symbol",
+                        "chip-symbol",
+                        selected ? "selected" : "",
+                      ].join(" ")}
+                    >
+                      <rect
+                        x={position.x + 10}
+                        y={position.y + 6}
+                        width={geometry.width - 20}
+                        height={geometry.height - 12}
+                        rx="7"
+                        className="chip-symbol-body"
+                      />
+                      <text
+                        x={position.x + geometry.width / 2}
+                        y={position.y + geometry.height / 2 + 4}
+                        textAnchor="middle"
+                        className="compact-symbol-label"
+                      >
+                        {symbolLabel}
+                      </text>
+                    </g>
+                  )}
 
                   {inputs.map((pin) => {
                     const endpoint: CircuitEndpoint = {
@@ -2596,18 +2771,19 @@ export function App() {
                           data-pin-id={pin.id}
                           cx={point.x}
                           cy={point.y}
-                          r="7"
+                          r="5.5"
                           onPointerDown={(event) => event.stopPropagation()}
                           onClick={(event) => {
                             event.stopPropagation();
                             onPinClick(endpoint);
                           }}
                         />
-                        <text x={point.x + 12} y={point.y + 4} className="pin-name">
+                        <text
+                          x={point.x + 10}
+                          y={point.y + 3}
+                          className="compact-pin-name"
+                        >
                           {pin.name}
-                        </text>
-                        <text x={point.x + 12} y={point.y + 18} className="signal-label">
-                          {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
                         </text>
                       </g>
                     );
@@ -2637,7 +2813,7 @@ export function App() {
                           data-pin-id={pin.id}
                           cx={point.x}
                           cy={point.y}
-                          r="7"
+                          r="5.5"
                           onPointerDown={(event) => event.stopPropagation()}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -2645,20 +2821,12 @@ export function App() {
                           }}
                         />
                         <text
-                          x={point.x - 12}
-                          y={point.y + 4}
+                          x={point.x - 10}
+                          y={point.y + 3}
                           textAnchor="end"
-                          className="pin-name"
+                          className="compact-pin-name"
                         >
                           {pin.name}
-                        </text>
-                        <text
-                          x={point.x - 12}
-                          y={point.y + 18}
-                          textAnchor="end"
-                          className="signal-label"
-                        >
-                          {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
                         </text>
                       </g>
                     );
