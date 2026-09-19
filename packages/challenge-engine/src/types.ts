@@ -51,6 +51,21 @@ export type ChallengeValidator =
   | StructuralValidator
   | SequenceValidator;
 
+export interface ChallengeReferenceTableColumn {
+  id: string;
+  label: string;
+  group?: "input" | "state" | "output" | "note";
+}
+
+export interface ChallengeReferenceTable {
+  id: string;
+  title: string;
+  description?: string;
+  columns: readonly ChallengeReferenceTableColumn[];
+  rows: readonly Readonly<Record<string, string>>[];
+  notes?: readonly string[];
+}
+
 export interface ChallengeDefinition {
   schema: "gateos.challenge/v1";
   id: string;
@@ -61,6 +76,7 @@ export interface ChallengeDefinition {
     outputs: readonly ChallengePin[];
   };
   allowedComponents?: readonly string[];
+  referenceTables?: readonly ChallengeReferenceTable[];
   validators: readonly ChallengeValidator[];
   unlocks?: readonly string[];
 }
