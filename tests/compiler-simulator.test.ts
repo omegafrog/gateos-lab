@@ -122,6 +122,55 @@ describe("compiler + simulator", () => {
 
 
 describe("bus primitives", () => {
+  it("splits and rejoins a 2-bit address bus without changing bit order", () => {
+    const circuit: CircuitDefinition = {
+      schema: "gateos.circuit/v1",
+      id: "test.address-bus-roundtrip",
+      name: "Address Bus Roundtrip",
+      pins: [
+        { id: "in", name: "IN", direction: "input", width: 2 },
+        { id: "out", name: "OUT", direction: "output", width: 2 },
+      ],
+      instances: [
+        { id: "split", componentId: "builtin.split2" },
+        { id: "join", componentId: "builtin.join2" },
+      ],
+      connections: [
+        {
+          id: "in-split",
+          from: { kind: "interface", pinId: "in" },
+          to: { kind: "instance", instanceId: "split", pinId: "in" },
+        },
+        {
+          id: "b0",
+          from: { kind: "instance", instanceId: "split", pinId: "b0" },
+          to: { kind: "instance", instanceId: "join", pinId: "b0" },
+        },
+        {
+          id: "b1",
+          from: { kind: "instance", instanceId: "split", pinId: "b1" },
+          to: { kind: "instance", instanceId: "join", pinId: "b1" },
+        },
+        {
+          id: "out",
+          from: { kind: "instance", instanceId: "join", pinId: "out" },
+          to: { kind: "interface", pinId: "out" },
+        },
+      ],
+    };
+
+    const simulator = new Simulator(
+      compileCircuit(circuit, createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+
+    for (const value of ["00", "01", "10", "11"]) {
+      simulator.setInput("in", BitVector.fromBinary(value));
+      simulator.settle();
+      expect(simulator.readOutput("out").toBinary()).toBe(value);
+    }
+  });
+
   it("splits and rejoins a 4-bit bus without changing bit order", () => {
     const circuit: CircuitDefinition = {
       schema: "gateos.circuit/v1",
