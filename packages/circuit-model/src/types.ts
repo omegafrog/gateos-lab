@@ -28,6 +28,11 @@ export interface CircuitConnection {
   from: CircuitEndpoint;
   to: CircuitEndpoint;
   route?: readonly WireRoutePoint[];
+  /**
+   * Optional visual-only start point for a branch. The compiler still treats
+   * `from` as the electrical source, so multiple branches share one net.
+   */
+  branchStart?: WireRoutePoint;
 }
 
 export interface ComponentInstance {
