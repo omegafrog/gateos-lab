@@ -117,6 +117,24 @@ describe("sequential simulation", () => {
     expect(simulator.cycle).toBe(2);
   });
 
+  it("resets inputs, cycle, and sequential state deterministically", () => {
+    const simulator = new Simulator(
+      compileCircuit(dffCircuit(), createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+
+    simulator.setInput("d", BitVector.fromBinary("1"));
+    simulator.stepClock();
+    expect(simulator.readOutput("q").toBinary()).toBe("1");
+    expect(simulator.cycle).toBe(1);
+
+    simulator.reset();
+
+    expect(simulator.readOutput("q").toBinary()).toBe("X");
+    expect(simulator.cycle).toBe(0);
+    expect(simulator.snapshot().inputs.d).toBe("X");
+  });
+
   it("serializes and restores sequential state", () => {
     const netlist = compileCircuit(
       dffCircuit(),
