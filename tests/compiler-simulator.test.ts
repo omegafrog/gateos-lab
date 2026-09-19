@@ -98,6 +98,51 @@ describe("compiler + simulator", () => {
     expect(simulator.readOutput("out").toBinary()).toBe("0");
   });
 
+  it("treats visual wire branches as the same electrical source net", () => {
+    const circuit: CircuitDefinition = {
+      schema: "gateos.circuit/v1",
+      id: "test.visual-branch",
+      name: "Visual Branch",
+      pins: [
+        { id: "in", name: "IN", direction: "input", width: 1 },
+        { id: "out", name: "OUT", direction: "output", width: 1 },
+      ],
+      instances: [{ id: "nand", componentId: "builtin.nand" }],
+      connections: [
+        {
+          id: "trunk",
+          from: { kind: "interface", pinId: "in" },
+          to: { kind: "instance", instanceId: "nand", pinId: "a" },
+          route: [{ x: 240, y: 120 }],
+        },
+        {
+          id: "branch",
+          from: { kind: "interface", pinId: "in" },
+          to: { kind: "instance", instanceId: "nand", pinId: "b" },
+          branchStart: { x: 240, y: 120 },
+        },
+        {
+          id: "out",
+          from: { kind: "instance", instanceId: "nand", pinId: "out" },
+          to: { kind: "interface", pinId: "out" },
+        },
+      ],
+    };
+
+    const simulator = new Simulator(
+      compileCircuit(circuit, createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+
+    simulator.setInput("in", BitVector.fromBinary("0"));
+    simulator.settle();
+    expect(simulator.readOutput("out").toBinary()).toBe("1");
+
+    simulator.setInput("in", BitVector.fromBinary("1"));
+    simulator.settle();
+    expect(simulator.readOutput("out").toBinary()).toBe("0");
+  });
+
   it("rejects width mismatches during compilation", () => {
     const bad: CircuitDefinition = {
       schema: "gateos.circuit/v1",
