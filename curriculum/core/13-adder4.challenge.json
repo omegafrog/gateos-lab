@@ -1,0 +1,160 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "arithmetic.adder4",
+  "title": "4-bit Ripple Carry Adder",
+  "description": "네 개의 Full Adder를 carry chain으로 연결해 A + B + CIN을 계산하는 4-bit Adder를 만드세요. B0가 LSB이고 마지막 carry는 COUT으로 출력합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "a",
+        "name": "A",
+        "width": 4
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 4
+      },
+      {
+        "id": "cin",
+        "name": "CIN",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sum",
+        "name": "SUM",
+        "width": 4
+      },
+      {
+        "id": "cout",
+        "name": "COUT",
+        "width": 1
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split4",
+    "builtin.join4",
+    "user.full-adder"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "a": 0,
+            "b": 0,
+            "cin": 0
+          },
+          "out": {
+            "sum": 0,
+            "cout": 0
+          }
+        },
+        {
+          "in": {
+            "a": 3,
+            "b": 5,
+            "cin": 0
+          },
+          "out": {
+            "sum": 8,
+            "cout": 0
+          }
+        },
+        {
+          "in": {
+            "a": 7,
+            "b": 8,
+            "cin": 0
+          },
+          "out": {
+            "sum": 15,
+            "cout": 0
+          }
+        },
+        {
+          "in": {
+            "a": 15,
+            "b": 1,
+            "cin": 0
+          },
+          "out": {
+            "sum": 0,
+            "cout": 1
+          }
+        },
+        {
+          "in": {
+            "a": 15,
+            "b": 15,
+            "cin": 1
+          },
+          "out": {
+            "sum": 15,
+            "cout": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        {
+          "in": {
+            "a": 6,
+            "b": 9,
+            "cin": 1
+          },
+          "out": {
+            "sum": 0,
+            "cout": 1
+          }
+        },
+        {
+          "in": {
+            "a": 4,
+            "b": 2,
+            "cin": 1
+          },
+          "out": {
+            "sum": 7,
+            "cout": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 7
+      }
+    }
+  ],
+  "unlocks": [
+    "arithmetic.incrementer4"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "carry가 다음 bit로 이동합니다",
+      "body": "LSB의 Full Adder가 만든 COUT을 다음 bit의 CIN으로 넘기는 과정을 MSB까지 반복하면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "B0부터 B3까지 ripple",
+      "body": "A/B를 Split4로 나누고 B0 쪽 Full Adder부터 연결하세요. 각 단계의 COUT은 바로 다음 단계의 CIN으로 연결합니다."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "FA0(A0,B0,CIN)→S0,C1, FA1(A1,B1,C1)→S1,C2, FA2→S2,C3, FA3→S3,COUT 순서입니다. S0~S3는 Join4로 SUM에 묶으세요."
+    }
+  ]
+}
