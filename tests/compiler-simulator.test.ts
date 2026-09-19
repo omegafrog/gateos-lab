@@ -119,3 +119,94 @@ describe("compiler + simulator", () => {
     ).toThrow(/Cannot connect 2-bit/);
   });
 });
+
+
+describe("bus primitives", () => {
+  it("splits and rejoins a 4-bit bus without changing bit order", () => {
+    const circuit: CircuitDefinition = {
+      schema: "gateos.circuit/v1",
+      id: "test.bus-roundtrip",
+      name: "Bus Roundtrip",
+      pins: [
+        { id: "in", name: "IN", direction: "input", width: 4 },
+        { id: "out", name: "OUT", direction: "output", width: 4 },
+      ],
+      instances: [
+        { id: "split", componentId: "builtin.split4" },
+        { id: "join", componentId: "builtin.join4" },
+      ],
+      connections: [
+        {
+          id: "in-split",
+          from: { kind: "interface", pinId: "in" },
+          to: { kind: "instance", instanceId: "split", pinId: "in" },
+        },
+        ...["b0", "b1", "b2", "b3"].map((pinId) => ({
+          id: `bit-${pinId}`,
+          from: { kind: "instance" as const, instanceId: "split", pinId },
+          to: { kind: "instance" as const, instanceId: "join", pinId },
+        })),
+        {
+          id: "join-out",
+          from: { kind: "instance", instanceId: "join", pinId: "out" },
+          to: { kind: "interface", pinId: "out" },
+        },
+      ],
+    };
+
+    const simulator = new Simulator(
+      compileCircuit(circuit, createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+    simulator.setInput("in", BitVector.fromBinary("1010"));
+    simulator.settle();
+    expect(simulator.readOutput("out").toBinary()).toBe("1010");
+  });
+
+  it("exposes fixed 1-bit and 4-bit constants", () => {
+    const circuit: CircuitDefinition = {
+      schema: "gateos.circuit/v1",
+      id: "test.constants",
+      name: "Constants",
+      pins: [
+        { id: "z1", name: "Z1", direction: "output", width: 1 },
+        { id: "o1", name: "O1", direction: "output", width: 1 },
+        { id: "z4", name: "Z4", direction: "output", width: 4 },
+        { id: "o4", name: "O4", direction: "output", width: 4 },
+      ],
+      instances: [
+        { id: "z1", componentId: "builtin.const1.zero" },
+        { id: "o1", componentId: "builtin.const1.one" },
+        { id: "z4", componentId: "builtin.const4.zero" },
+        { id: "o4", componentId: "builtin.const4.one" },
+      ],
+      connections: [
+        ...[
+          ["z1", "z1"],
+          ["o1", "o1"],
+          ["z4", "z4"],
+          ["o4", "o4"],
+        ].map(([instanceId, pinId]) => ({
+          id: `wire-${instanceId}`,
+          from: {
+            kind: "instance" as const,
+            instanceId: instanceId!,
+            pinId: "out",
+          },
+          to: { kind: "interface" as const, pinId: pinId! },
+        })),
+      ],
+    };
+
+    const simulator = new Simulator(
+      compileCircuit(circuit, createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+    simulator.settle();
+
+    expect(simulator.readOutput("z1").toBinary()).toBe("0");
+    expect(simulator.readOutput("o1").toBinary()).toBe("1");
+    expect(simulator.readOutput("z4").toBinary()).toBe("0000");
+    expect(simulator.readOutput("o4").toBinary()).toBe("0001");
+  });
+});
