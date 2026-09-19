@@ -1,0 +1,57 @@
+export type SignalLiteral = number | string;
+
+export interface ChallengePin {
+  id: string;
+  name: string;
+  width: number;
+}
+
+export interface TruthTableCase {
+  in: Readonly<Record<string, SignalLiteral>>;
+  out: Readonly<Record<string, SignalLiteral>>;
+}
+
+export interface TruthTableValidator {
+  type: "truthTable";
+  visibility?: "visible" | "hidden";
+  cases: readonly TruthTableCase[];
+}
+
+export interface StructuralValidator {
+  type: "structural";
+  visibility?: "visible" | "hidden";
+  rules: {
+    allowed?: readonly string[];
+    maxComponents?: number;
+  };
+}
+
+export type ChallengeValidator = TruthTableValidator | StructuralValidator;
+
+export interface ChallengeDefinition {
+  schema: "gateos.challenge/v1";
+  id: string;
+  title: string;
+  description: string;
+  interface: {
+    inputs: readonly ChallengePin[];
+    outputs: readonly ChallengePin[];
+  };
+  allowedComponents?: readonly string[];
+  validators: readonly ChallengeValidator[];
+  unlocks?: readonly string[];
+}
+
+export interface ChallengeTestResult {
+  validatorIndex: number;
+  caseIndex?: number;
+  type: ChallengeValidator["type"] | "interface" | "compile";
+  visibility: "visible" | "hidden";
+  passed: boolean;
+  message: string;
+}
+
+export interface ChallengeRunResult {
+  passed: boolean;
+  tests: readonly ChallengeTestResult[];
+}
