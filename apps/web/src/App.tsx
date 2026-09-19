@@ -224,6 +224,8 @@ export function App() {
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
   const [loadError, setLoadError] = useState<string>("");
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const undoRef = useRef<Record<string, CircuitDefinition[]>>({});
+  const redoRef = useRef<Record<string, CircuitDefinition[]>>({});
 
   useEffect(() => {
     async function loadCurriculum() {
@@ -281,9 +283,19 @@ export function App() {
 
   function updateCircuit(
     updater: (current: CircuitDefinition) => CircuitDefinition,
+    recordHistory = true,
   ): void {
     if (!challenge) return;
     const current = project.circuits[challenge.id] ?? createSubmission(challenge);
+
+    if (recordHistory) {
+      const stack = undoRef.current[challenge.id] ?? [];
+      stack.push(current);
+      if (stack.length > 100) stack.shift();
+      undoRef.current[challenge.id] = stack;
+      redoRef.current[challenge.id] = [];
+    }
+
     const next = updater(current);
     setProject((previous) => ({
       ...previous,
@@ -293,6 +305,52 @@ export function App() {
       },
     }));
     setTestResult(null);
+  }
+
+  function undo(): void {
+    if (!challenge || !circuit) return;
+    const stack = undoRef.current[challenge.id] ?? [];
+    const previousCircuit = stack.pop();
+    if (!previousCircuit) return;
+
+    const redoStack = redoRef.current[challenge.id] ?? [];
+    redoStack.push(circuit);
+    redoRef.current[challenge.id] = redoStack;
+    undoRef.current[challenge.id] = stack;
+
+    setProject((previous) => ({
+      ...previous,
+      circuits: {
+        ...previous.circuits,
+        [challenge.id]: previousCircuit,
+      },
+    }));
+    setTestResult(null);
+    setPendingPin(null);
+    setSelectedInstance(null);
+  }
+
+  function redo(): void {
+    if (!challenge || !circuit) return;
+    const stack = redoRef.current[challenge.id] ?? [];
+    const nextCircuit = stack.pop();
+    if (!nextCircuit) return;
+
+    const undoStack = undoRef.current[challenge.id] ?? [];
+    undoStack.push(circuit);
+    undoRef.current[challenge.id] = undoStack;
+    redoRef.current[challenge.id] = stack;
+
+    setProject((previous) => ({
+      ...previous,
+      circuits: {
+        ...previous.circuits,
+        [challenge.id]: nextCircuit,
+      },
+    }));
+    setTestResult(null);
+    setPendingPin(null);
+    setSelectedInstance(null);
   }
 
   const preview = useMemo<PreviewState>(() => {
@@ -458,8 +516,14 @@ export function App() {
     event: ReactPointerEvent<SVGGElement>,
     instanceId: string,
   ): void {
-    if (!circuit) return;
+    if (!circuit || !challenge) return;
     event.stopPropagation();
+
+    const stack = undoRef.current[challenge.id] ?? [];
+    stack.push(circuit);
+    if (stack.length > 100) stack.shift();
+    undoRef.current[challenge.id] = stack;
+    redoRef.current[challenge.id] = [];
     const position = instancePosition(circuit, instanceId);
     const rect = svgRef.current?.getBoundingClientRect();
     const x = rect
@@ -481,20 +545,29 @@ export function App() {
     if (!drag) return;
     const point = canvasPoint(event);
 
-    updateCircuit((current) => ({
-      ...current,
-      instances: current.instances.map((instance) =>
-        instance.id === drag.instanceId
-          ? {
-              ...instance,
-              position: {
-                x: Math.max(90, Math.min(CANVAS_WIDTH - 230, point.x - drag.offsetX)),
-                y: Math.max(30, Math.min(CANVAS_HEIGHT - 120, point.y - drag.offsetY)),
-              },
-            }
-          : instance,
-      ),
-    }));
+    updateCircuit(
+      (current) => ({
+        ...current,
+        instances: current.instances.map((instance) =>
+          instance.id === drag.instanceId
+            ? {
+                ...instance,
+                position: {
+                  x: Math.max(
+                    90,
+                    Math.min(CANVAS_WIDTH - 230, point.x - drag.offsetX),
+                  ),
+                  y: Math.max(
+                    30,
+                    Math.min(CANVAS_HEIGHT - 120, point.y - drag.offsetY),
+                  ),
+                },
+              }
+            : instance,
+        ),
+      }),
+      false,
+    );
   }
 
   function runTests(): void {
@@ -549,6 +622,8 @@ export function App() {
           <span className="muted"> · {manifest.title}</span>
         </div>
         <div className="topbar-actions">
+          <button onClick={undo}>Undo</button>
+          <button onClick={redo}>Redo</button>
           <button onClick={resetChallenge}>Reset challenge</button>
           <span className="progress">
             {project.completed.length}/{challenges.length} complete
