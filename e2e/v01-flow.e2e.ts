@@ -331,3 +331,107 @@ test("OR XOR and MUX use dedicated compact symbols", async ({ page }) => {
     "mux",
   );
 });
+
+test("chips cannot be dragged above the placement boundary", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const canvas = page.locator("svg.circuit-canvas");
+  const componentBox = await component.boundingBox();
+  const canvasBox = await canvas.boundingBox();
+  if (!componentBox || !canvasBox) {
+    throw new Error("missing drag geometry");
+  }
+
+  await page.mouse.move(
+    componentBox.x + componentBox.width / 2,
+    componentBox.y + componentBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    componentBox.x + componentBox.width / 2,
+    canvasBox.y + 4,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+
+  await expect(component).toHaveAttribute("data-position-y", "84");
+});
+
+test("interface terminals can move and connected wires follow their position", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const inputPort = page.getByTestId("pin-interface-in");
+  const outputPort = page.getByTestId("pin-interface-out");
+
+  await connect(inputPort, component.locator('[data-pin-id="a"]'));
+  await connect(inputPort, component.locator('[data-pin-id="b"]'));
+  await connect(component.locator('[data-pin-id="out"]'), outputPort);
+
+  const firstWire = page.locator("path.wire").first();
+  const beforeWire = await firstWire.getAttribute("d");
+  const inputTerminal = page.getByTestId("input-in");
+  const beforeX = await inputTerminal.getAttribute("data-terminal-x");
+  const beforeY = await inputTerminal.getAttribute("data-terminal-y");
+
+  const inputHandle = page.getByTestId("drag-interface-in");
+  const handleBox = await inputHandle.boundingBox();
+  if (!handleBox) throw new Error("missing input terminal drag handle");
+
+  await page.mouse.move(
+    handleBox.x + handleBox.width / 2,
+    handleBox.y + handleBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    handleBox.x + handleBox.width / 2 + 75,
+    handleBox.y + handleBox.height / 2 + 70,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+
+  const afterX = await inputTerminal.getAttribute("data-terminal-x");
+  const afterY = await inputTerminal.getAttribute("data-terminal-y");
+  expect(afterX).not.toBe(beforeX);
+  expect(afterY).not.toBe(beforeY);
+  expect(await firstWire.getAttribute("d")).not.toBe(beforeWire);
+
+  const outputTerminal = page.getByTestId("output-out");
+  const outputBeforeY = await outputTerminal.getAttribute("data-terminal-y");
+  const outputHandle = page.getByTestId("drag-interface-out");
+  const outputHandleBox = await outputHandle.boundingBox();
+  if (!outputHandleBox) throw new Error("missing output terminal drag handle");
+
+  await page.mouse.move(
+    outputHandleBox.x + outputHandleBox.width / 2,
+    outputHandleBox.y + outputHandleBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    outputHandleBox.x + outputHandleBox.width / 2,
+    outputHandleBox.y + outputHandleBox.height / 2 + 85,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+
+  expect(await outputTerminal.getAttribute("data-terminal-y")).not.toBe(
+    outputBeforeY,
+  );
+
+  const persistedX = await inputTerminal.getAttribute("data-terminal-x");
+  const persistedY = await inputTerminal.getAttribute("data-terminal-y");
+  await page.waitForTimeout(100);
+  await page.reload();
+
+  await expect(page.getByTestId("input-in")).toHaveAttribute(
+    "data-terminal-x",
+    persistedX ?? "",
+  );
+  await expect(page.getByTestId("input-in")).toHaveAttribute(
+    "data-terminal-y",
+    persistedY ?? "",
+  );
+});
