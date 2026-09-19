@@ -15,6 +15,18 @@ import {
   type ChallengeDefinition,
 } from "@gateos/challenge-engine";
 
+function readManifest(): {
+  title: string;
+  challenges: readonly { id: string; file: string }[];
+} {
+  return JSON.parse(
+    readFileSync(new URL("../curriculum/core/manifest.json", import.meta.url), "utf8"),
+  ) as {
+    title: string;
+    challenges: readonly { id: string; file: string }[];
+  };
+}
+
 function readChallenge(file: string): ChallengeDefinition {
   return JSON.parse(
     readFileSync(new URL(`../curriculum/core/${file}`, import.meta.url), "utf8"),
@@ -447,5 +459,23 @@ describe("extended curriculum", () => {
       ]),
     );
     expect(datapath.validators.some((validator) => validator.type === "sequence")).toBe(true);
+  });
+
+  it("loads the guided curriculum in order through challenge 29", () => {
+    const manifest = readManifest();
+    expect(manifest.challenges).toHaveLength(29);
+    expect(manifest.challenges[20]).toEqual({
+      id: "memory.ram64",
+      file: "21-ram64.challenge.json",
+    });
+    expect(manifest.challenges[25]).toEqual({
+      id: "arithmetic.alu4",
+      file: "26-alu4.challenge.json",
+    });
+    expect(manifest.challenges[28]).toEqual({
+      id: "cpu.alu-datapath4",
+      file: "29-alu-datapath4.challenge.json",
+    });
+    expect(manifest.title).toContain("CPU Datapath");
   });
 });
