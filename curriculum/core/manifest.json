@@ -1,7 +1,7 @@
 {
   "schema": "gateos.curriculum/v1",
   "id": "core.logic-v0",
-  "title": "From NAND to Register",
+  "title": "From NAND to Program Counter",
   "challenges": [
     {
       "id": "logic.not",
@@ -46,6 +46,30 @@
     {
       "id": "state.enable-register",
       "file": "11-enable-register.challenge.json"
+    },
+    {
+      "id": "routing.mux4",
+      "file": "12-mux4.challenge.json"
+    },
+    {
+      "id": "arithmetic.adder4",
+      "file": "13-adder4.challenge.json"
+    },
+    {
+      "id": "arithmetic.incrementer4",
+      "file": "14-incrementer4.challenge.json"
+    },
+    {
+      "id": "state.register4",
+      "file": "15-register4.challenge.json"
+    },
+    {
+      "id": "state.counter4",
+      "file": "16-counter4.challenge.json"
+    },
+    {
+      "id": "state.program-counter4",
+      "file": "17-program-counter4.challenge.json"
     }
   ]
 }
