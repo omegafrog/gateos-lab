@@ -8,11 +8,12 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && npm run build -w @gateos/web",
+    "build:web": "npm run build -w @gateos/web",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest run",
+    "test": "tsc -b && vitest run",
     "test:watch": "vitest",
-    "ci": "npm run typecheck && npm test"
+    "ci": "npm test && npm run build:web"
   },
   "devDependencies": {
     "typescript": "^5.8.0",
