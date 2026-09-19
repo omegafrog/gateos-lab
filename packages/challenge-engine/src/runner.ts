@@ -14,6 +14,7 @@ import type {
   ChallengePin,
   ChallengeRunResult,
   ChallengeTestResult,
+  SequenceValidator,
   SignalLiteral,
   StructuralValidator,
   TruthTableValidator,
@@ -216,6 +217,108 @@ function runTruthTableValidator(
   });
 }
 
+function runSequenceValidator(
+  validator: SequenceValidator,
+  challenge: ChallengeDefinition,
+  circuit: CircuitDefinition,
+  registry: ComponentRegistry,
+  primitives: PrimitiveRegistry,
+  validatorIndex: number,
+): ChallengeTestResult[] {
+  const visibility = validator.visibility ?? "visible";
+
+  try {
+    const simulator = new Simulator(compileCircuit(circuit, registry), primitives);
+
+    for (let stepIndex = 0; stepIndex < validator.steps.length; stepIndex += 1) {
+      const step = validator.steps[stepIndex];
+      if (!step) continue;
+
+      if ("set" in step) {
+        for (const [pinId, literal] of Object.entries(step.set)) {
+          simulator.setInput(
+            pinId,
+            literalToVector(literal, inputWidth(challenge, pinId)),
+          );
+        }
+        simulator.settle();
+        continue;
+      }
+
+      if ("edge" in step) {
+        simulator.stepEdge(step.edge);
+        continue;
+      }
+
+      if ("clock" in step) {
+        if (!Number.isInteger(step.clock) || step.clock < 0) {
+          throw new Error(`Invalid clock count at step ${stepIndex}: ${step.clock}`);
+        }
+        for (let count = 0; count < step.clock; count += 1) {
+          simulator.stepClock();
+        }
+        continue;
+      }
+
+      const mismatches: string[] = [];
+      for (const [pinId, literal] of Object.entries(step.expect)) {
+        const expected = literalToVector(
+          literal,
+          outputWidth(challenge, pinId),
+        );
+        const actual = simulator.readOutput(pinId);
+
+        if (!actual.equals(expected)) {
+          mismatches.push(
+            `${pinId}: expected ${expected.toBinary()}, got ${actual.toBinary()}`,
+          );
+        }
+      }
+
+      if (mismatches.length > 0) {
+        return [
+          {
+            validatorIndex,
+            caseIndex: stepIndex,
+            type: "sequence",
+            visibility,
+            passed: false,
+            message:
+              visibility === "hidden"
+                ? "A hidden sequence step failed"
+                : `Sequence step ${stepIndex + 1} failed: ${mismatches.join("; ")}`,
+          },
+        ];
+      }
+    }
+
+    return [
+      {
+        validatorIndex,
+        type: "sequence",
+        visibility,
+        passed: true,
+        message: "Sequence passed",
+      },
+    ];
+  } catch (error) {
+    return [
+      {
+        validatorIndex,
+        type: "sequence",
+        visibility,
+        passed: false,
+        message:
+          visibility === "hidden"
+            ? "A hidden sequence step failed"
+            : error instanceof Error
+              ? error.message
+              : String(error),
+      },
+    ];
+  }
+}
+
 export function runChallenge(
   challenge: ChallengeDefinition,
   circuit: CircuitDefinition,
@@ -261,6 +364,20 @@ export function runChallenge(
           circuit,
           validatorIndex,
           challenge.allowedComponents,
+        ),
+      );
+      return;
+    }
+
+    if (validator.type === "sequence") {
+      tests.push(
+        ...runSequenceValidator(
+          validator,
+          challenge,
+          circuit,
+          registry,
+          primitives,
+          validatorIndex,
         ),
       );
       return;
