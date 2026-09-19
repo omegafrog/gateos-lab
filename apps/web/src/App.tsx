@@ -1422,7 +1422,6 @@ export function App() {
       !challenge ||
       !circuit ||
       !pendingPin ||
-      !wireDragging ||
       isInspectingNested
     ) {
       return;
@@ -2809,6 +2808,16 @@ export function App() {
                       wireValueClass,
                       selectedConnection === connection.id ? "selected" : "",
                     ].join(" ")}
+                    d={routedWirePath(
+                      from,
+                      connection.route as readonly Point[] | undefined,
+                      to,
+                    )}
+                    pointerEvents="none"
+                  />
+                  <path
+                    className="wire-hit-target"
+                    data-testid={`wire-hit-${connection.id}`}
                     d={routedWirePath(
                       from,
                       connection.route as readonly Point[] | undefined,
