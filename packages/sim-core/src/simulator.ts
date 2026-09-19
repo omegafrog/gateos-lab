@@ -235,6 +235,37 @@ export class Simulator {
     this.stepEdge("falling");
   }
 
+  reset(): void {
+    for (const [pinId, netId] of Object.entries(this.#netlist.rootInputs)) {
+      const value = BitVector.unknown(this.widthOf(netId));
+      this.#rootInputValues.set(pinId, value);
+      this.setDriver(netId, `root-input:${pinId}`, value);
+    }
+
+    for (const node of this.#netlist.nodes) {
+      if (!this.#primitives.isSequential(node.primitiveId)) continue;
+
+      const definition = this.#primitives.getSequential(node.primitiveId);
+      const state = definition.createState(node.params, node);
+      this.#sequentialState.set(node.id, state);
+
+      const outputs = definition.outputs(state, node.params, node);
+      for (const [pinId, value] of Object.entries(outputs)) {
+        const netId = node.outputs[pinId];
+        if (!netId) {
+          throw new Error(
+            `Sequential primitive ${node.primitiveId} produced undeclared output ${pinId}`,
+          );
+        }
+        this.assertWidth(netId, value);
+        this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+      }
+    }
+
+    this.#cycle = 0;
+    this.settle();
+  }
+
   snapshot(): SimulatorSnapshot {
     const inputs: Record<string, string> = {};
     for (const [pinId, value] of this.#rootInputValues) {
