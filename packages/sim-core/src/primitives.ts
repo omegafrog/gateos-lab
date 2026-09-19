@@ -33,6 +33,18 @@ export interface SequentialPrimitiveDefinition<State = unknown> {
     params: Readonly<Record<string, unknown>>,
     node: CompiledNode,
   ): PrimitiveOutputs;
+
+  serializeState(
+    state: State,
+    params: Readonly<Record<string, unknown>>,
+    node: CompiledNode,
+  ): unknown;
+
+  deserializeState(
+    value: unknown,
+    params: Readonly<Record<string, unknown>>,
+    node: CompiledNode,
+  ): State;
 }
 
 export class PrimitiveRegistry {
@@ -100,6 +112,17 @@ export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
     sample: (_inputs, state, edge) =>
       edge === "rising" ? BitVector.ones(1) : BitVector.zeros(1),
     outputs: (state) => ({ out: state }),
+    serializeState: (state) => state.toBinary(),
+    deserializeState: (value) => {
+      if (typeof value !== "string") {
+        throw new Error("Clock state must be a binary string");
+      }
+      const state = BitVector.fromBinary(value);
+      if (state.width !== 1) {
+        throw new Error("Clock state must be 1 bit");
+      }
+      return state;
+    },
   });
 
   registry.registerSequential<BitVector>("builtin.dff", {
@@ -114,6 +137,17 @@ export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
       return d;
     },
     outputs: (state) => ({ q: state }),
+    serializeState: (state) => state.toBinary(),
+    deserializeState: (value) => {
+      if (typeof value !== "string") {
+        throw new Error("D Flip-Flop state must be a binary string");
+      }
+      const state = BitVector.fromBinary(value);
+      if (state.width !== 1) {
+        throw new Error("D Flip-Flop state must be 1 bit");
+      }
+      return state;
+    },
   });
 
   return registry;
