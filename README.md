@@ -170,4 +170,4 @@ CPU 제작.
 
 ## Status
 
-현재 guided curriculum은 NAND에서 시작해 NOT, AND, OR, XOR, MUX, Half/Full Adder, Latch/Flip-Flop, Enable Register, 4-bit MUX, Ripple Carry Adder, Incrementer, 4-bit Register, Counter, Program Counter를 거쳐 2-to-4 Address Decoder, RAM4, RAM16까지 브라우저에서 진행할 수 있다. 작은 RAM과 memory hierarchy를 직접 만든 다음 CPU datapath, computer, boot, OS 단계로 확장한다.
+현재 guided curriculum은 NAND에서 시작해 logic gate, MUX, Adder, Latch/Flip-Flop, Register, Counter, Program Counter를 거쳐 Address Decoder, RAM4/RAM16/RAM64, 4-bit bitwise logic, Zero Detector, ALU, dual-read Register File, Register-to-Register Transfer, Register → ALU → Register datapath까지 브라우저에서 진행할 수 있다. 다음 단계는 Instruction Register, fetch path, opcode decoder와 control signal을 연결해 실제 CPU 실행 흐름으로 확장하는 것이다.
