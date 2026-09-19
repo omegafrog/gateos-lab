@@ -103,8 +103,8 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "Enable Register characteristic table",
-      "description": "On a rising edge, LOAD selects whether to keep Q or capture D.",
+      "title": "Enable Register state table",
+      "description": "At each rising edge, LOAD chooses between preserving Q and capturing D.",
       "columns": [
         {
           "id": "load",
@@ -118,12 +118,12 @@
         },
         {
           "id": "qt",
-          "label": "Q(t)",
+          "label": "Q(before edge)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(t+1)",
+          "label": "Q(after edge)",
           "group": "output"
         },
         {
@@ -164,7 +164,8 @@
       ],
       "notes": [
         "Rows describe behavior at the active rising clock edge."
-      ]
+      ],
+      "timing": "Edge-triggered — LOAD is evaluated on the rising edge (↑)."
     }
   ]
 }
