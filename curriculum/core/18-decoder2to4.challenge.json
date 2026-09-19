@@ -1,0 +1,198 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "routing.decoder2to4",
+  "title": "2-to-4 Address Decoder",
+  "description": "2-bit ADDR를 네 개의 one-hot 선택선 Y0~Y3로 바꾸는 Address Decoder를 만드세요. ADDR=00이면 Y0만 1, 01이면 Y1만 1, 10이면 Y2만 1, 11이면 Y3만 1이어야 합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "addr",
+        "name": "ADDR",
+        "width": 2
+      }
+    ],
+    "outputs": [
+      {
+        "id": "y0",
+        "name": "Y0",
+        "width": 1
+      },
+      {
+        "id": "y1",
+        "name": "Y1",
+        "width": 1
+      },
+      {
+        "id": "y2",
+        "name": "Y2",
+        "width": 1
+      },
+      {
+        "id": "y3",
+        "name": "Y3",
+        "width": 1
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split2",
+    "user.not",
+    "user.and"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "addr": 0
+          },
+          "out": {
+            "y0": 1,
+            "y1": 0,
+            "y2": 0,
+            "y3": 0
+          }
+        },
+        {
+          "in": {
+            "addr": 1
+          },
+          "out": {
+            "y0": 0,
+            "y1": 1,
+            "y2": 0,
+            "y3": 0
+          }
+        },
+        {
+          "in": {
+            "addr": 2
+          },
+          "out": {
+            "y0": 0,
+            "y1": 0,
+            "y2": 1,
+            "y3": 0
+          }
+        },
+        {
+          "in": {
+            "addr": 3
+          },
+          "out": {
+            "y0": 0,
+            "y1": 0,
+            "y2": 0,
+            "y3": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 7
+      }
+    }
+  ],
+  "unlocks": [
+    "memory.ram4"
+  ],
+  "referenceTables": [
+    {
+      "id": "address-map",
+      "title": "2-bit Address Decoder 선택표",
+      "description": "ADDR의 값 하나가 정확히 하나의 선택선(one-hot)만 활성화합니다.",
+      "columns": [
+        {
+          "id": "addr",
+          "label": "ADDR",
+          "group": "input"
+        },
+        {
+          "id": "y0",
+          "label": "Y0",
+          "group": "output"
+        },
+        {
+          "id": "y1",
+          "label": "Y1",
+          "group": "output"
+        },
+        {
+          "id": "y2",
+          "label": "Y2",
+          "group": "output"
+        },
+        {
+          "id": "y3",
+          "label": "Y3",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "선택",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "addr": "00",
+          "y0": "1",
+          "y1": "0",
+          "y2": "0",
+          "y3": "0",
+          "meaning": "word 0"
+        },
+        {
+          "addr": "01",
+          "y0": "0",
+          "y1": "1",
+          "y2": "0",
+          "y3": "0",
+          "meaning": "word 1"
+        },
+        {
+          "addr": "10",
+          "y0": "0",
+          "y1": "0",
+          "y2": "1",
+          "y3": "0",
+          "meaning": "word 2"
+        },
+        {
+          "addr": "11",
+          "y0": "0",
+          "y1": "0",
+          "y2": "0",
+          "y3": "1",
+          "meaning": "word 3"
+        }
+      ],
+      "notes": [
+        "Split2의 B0가 LSB, B1이 MSB입니다.",
+        "Decoder는 memory에서 어느 word에 write할지 선택하는 데 사용됩니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "주소는 두 bit의 조합입니다",
+      "body": "ADDR의 두 bit A1,A0를 풀어보면 00,01,10,11 네 경우뿐입니다. 각 경우마다 선택선 하나만 1이 되면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "원래 bit와 반전 bit를 조합",
+      "body": "Split2로 A0,A1을 얻고 NOT으로 A̅0,A̅1을 만든 뒤, AND 네 개로 네 주소 조합을 각각 검출하세요."
+    },
+    {
+      "level": 3,
+      "title": "연결식",
+      "body": "Y0=A̅1·A̅0, Y1=A̅1·A0, Y2=A1·A̅0, Y3=A1·A0가 되도록 연결하세요."
+    }
+  ]
+}
