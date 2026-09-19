@@ -735,3 +735,48 @@ test("component pin names live in the inspector instead of the canvas", async ({
   await expect(page.getByTestId("component-io-pin-b")).toContainText("1 bit");
   await expect(page.getByTestId("component-io-pin-out")).toContainText("1 bit");
 });
+
+
+test("challenge 11 completion unlocks the multi-bit curriculum slice", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        circuits: {},
+        published: {},
+        completed: [
+          "logic.not",
+          "logic.and",
+          "logic.or",
+          "logic.xor",
+          "routing.mux2",
+          "arithmetic.half-adder",
+          "arithmetic.full-adder",
+          "state.sr-latch",
+          "state.d-latch",
+          "state.dff",
+          "state.enable-register",
+        ],
+        probes: {},
+      }),
+    );
+  });
+  await page.reload();
+
+  const mux4 = page.getByTestId("challenge-routing.mux4");
+  await expect(mux4).toBeEnabled();
+  await mux4.click();
+
+  await expect(
+    page.getByRole("heading", { name: "4-bit Multiplexer" }),
+  ).toBeVisible();
+  await expect(page.getByTestId("palette-builtin.split4")).toBeVisible();
+  await expect(page.getByTestId("palette-builtin.join4")).toBeVisible();
+
+  await expect(
+    page.getByTestId("challenge-state.program-counter4"),
+  ).toBeVisible();
+});
