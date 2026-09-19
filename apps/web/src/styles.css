@@ -1471,3 +1471,30 @@ button:disabled {
 .interface-terminal {
   user-select: none;
 }
+
+
+/* Drag-to-connect orthogonal wiring */
+.wire {
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.wire-preview {
+  stroke: #6b7bd8;
+  stroke-width: 3;
+  stroke-dasharray: 7 5;
+  opacity: 0.85;
+}
+
+.pin.wire-source {
+  fill: #e1912d;
+  stroke: #fff1d5;
+  stroke-width: 4;
+}
+
+.pin.wire-target {
+  fill: #3e9b63;
+  stroke: #ddf6e7;
+  stroke-width: 5;
+  r: 8px;
+}
