@@ -627,6 +627,57 @@ export function App() {
     return cases;
   }, [challenge]);
 
+  const targetTruthRows = useMemo(() => {
+    if (!challenge) return [];
+
+    const rows = new Map<
+      string,
+      {
+        id: string;
+        inputs: Readonly<Record<string, number | string>>;
+        expected: Readonly<Record<string, number | string>>;
+      }
+    >();
+
+    for (const testCase of visualTestCases) {
+      const key = challenge.interface.inputs
+        .map((pin) => {
+          const literal = testCase.inputs[pin.id];
+          if (literal === undefined) return "?";
+          return literalToVector(literal, pin.width).toBinary();
+        })
+        .join("|");
+
+      if (!rows.has(key)) {
+        rows.set(key, {
+          id: `target-${key}`,
+          inputs: testCase.inputs,
+          expected: testCase.expected,
+        });
+      }
+    }
+
+    return [...rows.values()].sort((left, right) => {
+      const leftKey = challenge.interface.inputs
+        .map((pin) => {
+          const literal = left.inputs[pin.id];
+          return literal === undefined
+            ? ""
+            : literalToVector(literal, pin.width).toBinary();
+        })
+        .join("");
+      const rightKey = challenge.interface.inputs
+        .map((pin) => {
+          const literal = right.inputs[pin.id];
+          return literal === undefined
+            ? ""
+            : literalToVector(literal, pin.width).toBinary();
+        })
+        .join("");
+      return leftKey.localeCompare(rightKey);
+    });
+  }, [challenge, visualTestCases]);
+
   const visualSequenceSteps = useMemo<VisualSequenceStep[]>(() => {
     if (!challenge) return [];
 
@@ -647,6 +698,55 @@ export function App() {
 
     return steps;
   }, [challenge]);
+
+  function applyTruthRow(
+    inputs: Readonly<Record<string, number | string>>,
+  ): void {
+    if (!challenge || testRunning) return;
+
+    const next: Record<string, string> = {};
+    for (const pin of challenge.interface.inputs) {
+      const literal = inputs[pin.id];
+      if (literal === undefined) continue;
+      next[pin.id] = literalToVector(literal, pin.width).toBinary();
+    }
+
+    setInputValues((current) => ({
+      ...current,
+      ...next,
+    }));
+  }
+
+  function truthRowIsActive(
+    inputs: Readonly<Record<string, number | string>>,
+  ): boolean {
+    if (!challenge) return false;
+
+    return challenge.interface.inputs.every((pin) => {
+      const literal = inputs[pin.id];
+      if (literal === undefined) return false;
+      return (
+        inputValues[pin.id] ===
+        literalToVector(literal, pin.width).toBinary()
+      );
+    });
+  }
+
+  function truthRowMatches(
+    expected: Readonly<Record<string, number | string>>,
+  ): boolean {
+    if (!challenge) return false;
+
+    return challenge.interface.outputs.every((pin) => {
+      const literal = expected[pin.id];
+      if (literal === undefined) return false;
+      const expectedValue = literalToVector(
+        literal,
+        pin.width,
+      ).toBinary();
+      return preview.outputs[pin.id] === expectedValue;
+    });
+  }
 
   function updateCircuit(
     updater: (current: CircuitDefinition) => CircuitDefinition,
@@ -1768,6 +1868,116 @@ export function App() {
           </div>
         </section>
 
+        {targetTruthRows.length > 0 ? (
+          <section className="truth-table-panel" data-testid="target-truth-table">
+            <div className="truth-table-header">
+              <div>
+                <strong>Target truth table</strong>
+                <p>
+                  이 회로가 만족해야 하는 전체 입출력 관계입니다. 행을 클릭하면
+                  해당 입력 조합을 회로에 바로 적용합니다.
+                </p>
+              </div>
+              <span>{targetTruthRows.length} rows</span>
+            </div>
+
+            <div className="truth-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    {challenge.interface.inputs.map((pin) => (
+                      <th key={`in-${pin.id}`} className="truth-input-column">
+                        {pin.name}
+                        {pin.width > 1 ? <small>{pin.width}b</small> : null}
+                      </th>
+                    ))}
+                    <th className="truth-divider" aria-hidden="true" />
+                    {challenge.interface.outputs.map((pin) => (
+                      <th key={`out-${pin.id}`} className="truth-output-column">
+                        {pin.name}
+                        {pin.width > 1 ? <small>{pin.width}b</small> : null}
+                      </th>
+                    ))}
+                    <th className="truth-status-column">Now</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {targetTruthRows.map((row, rowIndex) => {
+                    const active = truthRowIsActive(row.inputs);
+                    const matches = active && truthRowMatches(row.expected);
+
+                    return (
+                      <tr
+                        key={row.id}
+                        data-testid={`truth-row-${rowIndex}`}
+                        className={active ? "active" : ""}
+                        onClick={() => applyTruthRow(row.inputs)}
+                        title="Apply this input combination"
+                      >
+                        {challenge.interface.inputs.map((pin) => {
+                          const literal = row.inputs[pin.id];
+                          const value =
+                            literal === undefined
+                              ? "?"
+                              : literalToVector(
+                                  literal,
+                                  pin.width,
+                                ).toBinary();
+                          return (
+                            <td key={`in-${pin.id}`}>
+                              <code>{value}</code>
+                              {pin.width > 1 ? (
+                                <small>{signalHex(value)}</small>
+                              ) : null}
+                            </td>
+                          );
+                        })}
+                        <td className="truth-divider" aria-hidden="true" />
+                        {challenge.interface.outputs.map((pin) => {
+                          const literal = row.expected[pin.id];
+                          const value =
+                            literal === undefined
+                              ? "?"
+                              : literalToVector(
+                                  literal,
+                                  pin.width,
+                                ).toBinary();
+                          return (
+                            <td key={`out-${pin.id}`}>
+                              <code>{value}</code>
+                              {pin.width > 1 ? (
+                                <small>{signalHex(value)}</small>
+                              ) : null}
+                            </td>
+                          );
+                        })}
+                        <td className="truth-live-status">
+                          {active ? (
+                            <span className={matches ? "match" : "mismatch"}>
+                              {matches ? "✓" : "≠"}
+                            </span>
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="truth-table-legend">
+              <span>
+                <strong>✓</strong> 현재 회로 출력이 목표와 일치
+              </span>
+              <span>
+                <strong>≠</strong> 현재 입력은 이 행이지만 출력이 아직 다름
+              </span>
+            </div>
+          </section>
+        ) : null}
+
         <div className="hierarchy-bar">
           <div className="breadcrumbs">
             <button
@@ -1808,6 +2018,7 @@ export function App() {
                   <button
                     key={pin.id}
                     className="io-value"
+                    data-testid={`input-${pin.id}`}
                     disabled={testRunning}
                     onClick={() =>
                       setInputValues((current) => ({
