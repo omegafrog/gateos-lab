@@ -13,6 +13,7 @@ import type {
 export interface SimulatorSnapshot {
   schema: "gateos.sim-state/v1";
   cycle: number;
+  inputs: Record<string, string>;
   sequential: Record<
     string,
     {
@@ -40,6 +41,7 @@ export class Simulator {
   readonly #consumers = new Map<string, Set<string>>();
   readonly #nodes = new Map<string, CompiledNode>();
   readonly #sequentialState = new Map<string, unknown>();
+  readonly #rootInputValues = new Map<string, BitVector>();
   readonly #queue: string[] = [];
   readonly #queued = new Set<string>();
   #cycle = 0;
@@ -56,10 +58,12 @@ export class Simulator {
     }
 
     for (const [pinId, netId] of Object.entries(netlist.rootInputs)) {
+      const initial = BitVector.unknown(this.widthOf(netId));
+      this.#rootInputValues.set(pinId, initial);
       this.setDriver(
         netId,
         `root-input:${pinId}`,
-        BitVector.unknown(this.widthOf(netId)),
+        initial,
       );
     }
 
@@ -113,6 +117,7 @@ export class Simulator {
     const netId = this.#netlist.rootInputs[pinId];
     if (!netId) throw new Error(`Unknown root input: ${pinId}`);
     this.assertWidth(netId, value);
+    this.#rootInputValues.set(pinId, value);
     this.setDriver(netId, `root-input:${pinId}`, value);
   }
 
@@ -231,6 +236,11 @@ export class Simulator {
   }
 
   snapshot(): SimulatorSnapshot {
+    const inputs: Record<string, string> = {};
+    for (const [pinId, value] of this.#rootInputValues) {
+      inputs[pinId] = value.toBinary();
+    }
+
     const sequential: SimulatorSnapshot["sequential"] = {};
 
     for (const node of this.#netlist.nodes) {
@@ -251,6 +261,7 @@ export class Simulator {
     return {
       schema: "gateos.sim-state/v1",
       cycle: this.#cycle,
+      inputs,
       sequential,
     };
   }
@@ -261,6 +272,17 @@ export class Simulator {
     }
     if (!Number.isInteger(snapshot.cycle) || snapshot.cycle < 0) {
       throw new Error(`Invalid simulator cycle: ${snapshot.cycle}`);
+    }
+
+    for (const [pinId, netId] of Object.entries(this.#netlist.rootInputs)) {
+      const encoded = snapshot.inputs[pinId];
+      if (encoded === undefined) {
+        throw new Error(`Snapshot is missing root input ${pinId}`);
+      }
+      const value = BitVector.fromBinary(encoded);
+      this.assertWidth(netId, value);
+      this.#rootInputValues.set(pinId, value);
+      this.setDriver(netId, `root-input:${pinId}`, value);
     }
 
     for (const node of this.#netlist.nodes) {
