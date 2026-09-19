@@ -67,6 +67,12 @@ export interface ChallengeReferenceTable {
   notes?: readonly string[];
 }
 
+export interface ChallengeHint {
+  level: 1 | 2 | 3;
+  title: string;
+  body: string;
+}
+
 export interface ChallengeDefinition {
   schema: "gateos.challenge/v1";
   id: string;
@@ -78,6 +84,7 @@ export interface ChallengeDefinition {
   };
   allowedComponents?: readonly string[];
   initialInputs?: Readonly<Record<string, SignalLiteral>>;
+  hints?: readonly [ChallengeHint, ChallengeHint, ChallengeHint];
   referenceTables?: readonly ChallengeReferenceTable[];
   validators: readonly ChallengeValidator[];
   unlocks?: readonly string[];
