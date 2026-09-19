@@ -340,21 +340,6 @@ function endpointKey(endpoint: CircuitEndpoint): string {
     : `instance:${endpoint.instanceId}:${endpoint.pinId}`;
 }
 
-function parseEndpointKey(value: string): CircuitEndpoint | null {
-  const parts = value.split(":");
-  if (parts[0] === "interface" && parts[1]) {
-    return { kind: "interface", pinId: parts[1] };
-  }
-  if (parts[0] === "instance" && parts[1] && parts[2]) {
-    return {
-      kind: "instance",
-      instanceId: parts[1],
-      pinId: parts[2],
-    };
-  }
-  return null;
-}
-
 function instancePosition(
   circuit: CircuitDefinition,
   instanceId: string,
