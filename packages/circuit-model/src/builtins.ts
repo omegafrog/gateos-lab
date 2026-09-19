@@ -47,6 +47,22 @@ export const JOIN2_COMPONENT: PrimitiveComponentSpec = {
   ],
 };
 
+export const SPLIT6_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.split6",
+  name: "Split6",
+  primitiveId: "builtin.split6",
+  pins: [
+    { id: "in", name: "IN", direction: "input", width: 6 },
+    { id: "b0", name: "B0", direction: "output", width: 1 },
+    { id: "b1", name: "B1", direction: "output", width: 1 },
+    { id: "b2", name: "B2", direction: "output", width: 1 },
+    { id: "b3", name: "B3", direction: "output", width: 1 },
+    { id: "b4", name: "B4", direction: "output", width: 1 },
+    { id: "b5", name: "B5", direction: "output", width: 1 },
+  ],
+};
+
 export const SPLIT4_COMPONENT: PrimitiveComponentSpec = {
   kind: "primitive",
   id: "builtin.split4",
@@ -125,6 +141,7 @@ export function createBuiltinComponentRegistry(): ComponentRegistry {
     DFF_COMPONENT,
     SPLIT2_COMPONENT,
     JOIN2_COMPONENT,
+    SPLIT6_COMPONENT,
     SPLIT4_COMPONENT,
     JOIN4_COMPONENT,
     CONST1_ZERO_COMPONENT,
