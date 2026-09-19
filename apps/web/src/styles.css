@@ -1477,6 +1477,7 @@ button:disabled {
   stroke-width: 3;
   stroke-dasharray: 7 5;
   opacity: 0.85;
+  pointer-events: none !important;
 }
 
 .pin.wire-source {
@@ -1529,6 +1530,7 @@ button:disabled {
   stroke-width: 4;
   stroke-dasharray: none;
   opacity: 0.9;
+  pointer-events: none !important;
 }
 
 
