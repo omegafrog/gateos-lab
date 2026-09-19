@@ -110,3 +110,19 @@ test("mouse wheel does not zoom the circuit canvas", async ({ page }) => {
 
   await expect(canvas).toHaveAttribute("viewBox", before ?? "");
 });
+
+test("target truth table is visible and rows can drive circuit inputs", async ({
+  page,
+}) => {
+  const table = page.getByTestId("target-truth-table");
+  await expect(table).toBeVisible();
+
+  await expect(page.getByTestId("truth-row-0")).toBeVisible();
+  await expect(page.getByTestId("truth-row-1")).toBeVisible();
+
+  await page.getByTestId("truth-row-1").click();
+  await expect(page.getByTestId("input-in")).toContainText("IN: 1");
+
+  await page.getByTestId("truth-row-0").click();
+  await expect(page.getByTestId("input-in")).toContainText("IN: 0");
+});
