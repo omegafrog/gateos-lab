@@ -10,6 +10,18 @@ import type {
   PrimitiveRegistry,
 } from "./primitives.js";
 
+export interface SimulatorSnapshot {
+  schema: "gateos.sim-state/v1";
+  cycle: number;
+  sequential: Record<
+    string,
+    {
+      primitiveId: string;
+      state: unknown;
+    }
+  >;
+}
+
 export class OscillationError extends Error {
   constructor(readonly iterations: number) {
     super(
@@ -216,6 +228,77 @@ export class Simulator {
   stepClock(): void {
     this.stepEdge("rising");
     this.stepEdge("falling");
+  }
+
+  snapshot(): SimulatorSnapshot {
+    const sequential: SimulatorSnapshot["sequential"] = {};
+
+    for (const node of this.#netlist.nodes) {
+      if (!this.#primitives.isSequential(node.primitiveId)) continue;
+
+      const state = this.#sequentialState.get(node.id);
+      if (state === undefined) {
+        throw new Error(`Missing sequential state for ${node.id}`);
+      }
+
+      const definition = this.#primitives.getSequential(node.primitiveId);
+      sequential[node.id] = {
+        primitiveId: node.primitiveId,
+        state: definition.serializeState(state, node.params, node),
+      };
+    }
+
+    return {
+      schema: "gateos.sim-state/v1",
+      cycle: this.#cycle,
+      sequential,
+    };
+  }
+
+  restore(snapshot: SimulatorSnapshot): void {
+    if (snapshot.schema !== "gateos.sim-state/v1") {
+      throw new Error(`Unsupported simulator snapshot: ${snapshot.schema}`);
+    }
+    if (!Number.isInteger(snapshot.cycle) || snapshot.cycle < 0) {
+      throw new Error(`Invalid simulator cycle: ${snapshot.cycle}`);
+    }
+
+    for (const node of this.#netlist.nodes) {
+      if (!this.#primitives.isSequential(node.primitiveId)) continue;
+
+      const entry = snapshot.sequential[node.id];
+      if (!entry) {
+        throw new Error(`Snapshot is missing state for ${node.id}`);
+      }
+      if (entry.primitiveId !== node.primitiveId) {
+        throw new Error(
+          `Snapshot primitive mismatch for ${node.id}: ${entry.primitiveId} !== ${node.primitiveId}`,
+        );
+      }
+
+      const definition = this.#primitives.getSequential(node.primitiveId);
+      const state = definition.deserializeState(
+        entry.state,
+        node.params,
+        node,
+      );
+      this.#sequentialState.set(node.id, state);
+
+      const outputs = definition.outputs(state, node.params, node);
+      for (const [pinId, value] of Object.entries(outputs)) {
+        const netId = node.outputs[pinId];
+        if (!netId) {
+          throw new Error(
+            `Sequential primitive ${node.primitiveId} produced undeclared output ${pinId}`,
+          );
+        }
+        this.assertWidth(netId, value);
+        this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+      }
+    }
+
+    this.#cycle = snapshot.cycle;
+    this.settle();
   }
 
   private readNodeInputs(node: CompiledNode): PrimitiveInputs {
