@@ -1,7 +1,7 @@
 {
   "schema": "gateos.curriculum/v1",
   "id": "core.logic-v0",
-  "title": "From NAND to RAM16",
+  "title": "From NAND to CPU Datapath",
   "challenges": [
     {
       "id": "logic.not",
@@ -82,6 +82,42 @@
     {
       "id": "memory.ram16",
       "file": "20-ram16.challenge.json"
+    },
+    {
+      "id": "memory.ram64",
+      "file": "21-ram64.challenge.json"
+    },
+    {
+      "id": "logic.and4",
+      "file": "22-and4.challenge.json"
+    },
+    {
+      "id": "logic.or4",
+      "file": "23-or4.challenge.json"
+    },
+    {
+      "id": "logic.xor4",
+      "file": "24-xor4.challenge.json"
+    },
+    {
+      "id": "logic.zero4",
+      "file": "25-zero4.challenge.json"
+    },
+    {
+      "id": "arithmetic.alu4",
+      "file": "26-alu4.challenge.json"
+    },
+    {
+      "id": "memory.register-file4",
+      "file": "27-register-file4.challenge.json"
+    },
+    {
+      "id": "cpu.register-transfer4",
+      "file": "28-register-transfer4.challenge.json"
+    },
+    {
+      "id": "cpu.alu-datapath4",
+      "file": "29-alu-datapath4.challenge.json"
     }
   ]
 }
