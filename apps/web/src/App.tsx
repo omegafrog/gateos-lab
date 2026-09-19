@@ -444,6 +444,43 @@ function getEndpointPoint(
   );
 }
 
+function orthogonalWirePath(from: Point, to: Point): string {
+  const midX = from.x + (to.x - from.x) / 2;
+  return [
+    `M ${from.x} ${from.y}`,
+    `H ${midX}`,
+    `V ${to.y}`,
+    `H ${to.x}`,
+  ].join(" ");
+}
+
+function endpointRole(
+  endpoint: CircuitEndpoint,
+  circuit: CircuitDefinition,
+  registry: ComponentRegistry,
+): "source" | "destination" | "inout" {
+  if (endpoint.kind === "interface") {
+    const pin = circuit.pins.find((candidate) => candidate.id === endpoint.pinId);
+    if (!pin || pin.direction === "inout") return "inout";
+    return pin.direction === "input" ? "source" : "destination";
+  }
+
+  const instance = circuit.instances.find(
+    (candidate) => candidate.id === endpoint.instanceId,
+  );
+  if (!instance) return "inout";
+
+  try {
+    const pin = componentPins(registry.get(instance.componentId)).find(
+      (candidate) => candidate.id === endpoint.pinId,
+    );
+    if (!pin || pin.direction === "inout") return "inout";
+    return pin.direction === "output" ? "source" : "destination";
+  } catch {
+    return "inout";
+  }
+}
+
 function signalVertex(endpoint: CircuitEndpoint, path = "root"): string {
   return endpoint.kind === "interface"
     ? `${path}::self::${endpoint.pinId}`
@@ -491,6 +528,9 @@ export function App() {
   const [project, setProject] = useState<ProjectState>(initialProject.project);
   const [projectError, setProjectError] = useState(initialProject.error ?? "");
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
+  const [wirePointer, setWirePointer] = useState<Point | null>(null);
+  const [wireHoverTarget, setWireHoverTarget] =
+    useState<CircuitEndpoint | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
@@ -1260,45 +1300,88 @@ export function App() {
     setSelectedInstances([id]);
   }
 
-  function onPinClick(endpoint: CircuitEndpoint): void {
-    if (!challenge || !circuit || isInspectingNested) return;
-    if (!pendingPin) {
-      setPendingPin(endpoint);
-      return;
-    }
+  function beginWireConnection(
+    event: ReactPointerEvent<SVGCircleElement>,
+    endpoint: CircuitEndpoint,
+  ): void {
+    if (!challenge || !circuit || isInspectingNested || testRunning) return;
+    event.stopPropagation();
+    event.preventDefault();
+
+    setPendingPin(endpoint);
+    setWirePointer(clientToCanvasPoint(event.clientX, event.clientY));
+    setWireHoverTarget(null);
+    setSelectedConnection(null);
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+    setProjectError("");
+  }
+
+  function finishWireConnection(endpoint: CircuitEndpoint): void {
+    if (!challenge || !circuit || !pendingPin || isInspectingNested) return;
 
     if (endpointKey(pendingPin) === endpointKey(endpoint)) {
       setPendingPin(null);
+      setWirePointer(null);
+      setWireHoverTarget(null);
       return;
     }
 
-    const fromWidth = endpointWidth(
+    const pendingWidth = endpointWidth(
       pendingPin,
       challenge,
       circuit,
       registry,
     );
-    const toWidth = endpointWidth(
+    const endpointPinWidth = endpointWidth(
       endpoint,
       challenge,
       circuit,
       registry,
     );
 
-    if (fromWidth !== toWidth) {
+    if (pendingWidth !== endpointPinWidth) {
       setProjectError(
-        `Cannot connect ${fromWidth}-bit pin to ${toWidth}-bit pin.`,
+        `${pendingWidth}-bit 핀과 ${endpointPinWidth}-bit 핀은 연결할 수 없습니다.`,
       );
       setPendingPin(null);
+      setWirePointer(null);
+      setWireHoverTarget(null);
       return;
     }
 
-    setProjectError("");
+    const pendingRole = endpointRole(pendingPin, circuit, registry);
+    const targetRole = endpointRole(endpoint, circuit, registry);
+
+    if (
+      pendingRole !== "inout" &&
+      targetRole !== "inout" &&
+      pendingRole === targetRole
+    ) {
+      setProjectError(
+        pendingRole === "source"
+          ? "출력(source)끼리는 연결할 수 없습니다."
+          : "입력(destination)끼리는 연결할 수 없습니다.",
+      );
+      setPendingPin(null);
+      setWirePointer(null);
+      setWireHoverTarget(null);
+      return;
+    }
+
+    const from =
+      pendingRole === "destination" && targetRole === "source"
+        ? endpoint
+        : pendingPin;
+    const to =
+      pendingRole === "destination" && targetRole === "source"
+        ? pendingPin
+        : endpoint;
 
     const connection: CircuitConnection = {
       id: `w-${Date.now().toString(36)}-${circuit.connections.length}`,
-      from: pendingPin,
-      to: endpoint,
+      from,
+      to,
     };
 
     updateCircuit((current) => ({
@@ -1306,6 +1389,9 @@ export function App() {
       connections: [...current.connections, connection],
     }));
     setPendingPin(null);
+    setWirePointer(null);
+    setWireHoverTarget(null);
+    setProjectError("");
   }
 
   function removeConnection(id: string): void {
@@ -1641,6 +1727,11 @@ export function App() {
   }
 
   function moveDrag(event: ReactPointerEvent<SVGSVGElement>): void {
+    if (pendingPin) {
+      setWirePointer(canvasPoint(event));
+      return;
+    }
+
     if (pan) {
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -2413,18 +2504,25 @@ export function App() {
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
+              if (pendingPin) {
+                setPendingPin(null);
+                setWirePointer(null);
+                setWireHoverTarget(null);
+              }
             }}
             onPointerLeave={() => {
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
+              setPendingPin(null);
+              setWirePointer(null);
+              setWireHoverTarget(null);
             }}
             onClick={() => {
-              if (drag || interfaceDrag || pan) return;
+              if (drag || interfaceDrag || pan || pendingPin) return;
               setSelectedInstance(null);
               setSelectedInstances([]);
               setSelectedConnection(null);
-              setPendingPin(null);
             }}
           >
             <defs>
@@ -2456,7 +2554,6 @@ export function App() {
                 displayCircuit!,
                 registry,
               );
-              const curve = Math.max(60, Math.abs(to.x - from.x) * 0.4);
               const sourceValue =
                 preview.signals[
                   signalVertex(connection.from, inspection.prefix)
@@ -2478,7 +2575,7 @@ export function App() {
                     wireValueClass,
                     selectedConnection === connection.id ? "selected" : "",
                   ].join(" ")}
-                  d={`M ${from.x} ${from.y} C ${from.x + curve} ${from.y}, ${to.x - curve} ${to.y}, ${to.x} ${to.y}`}
+                  d={orthogonalWirePath(from, to)}
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedConnection(connection.id);
@@ -2487,6 +2584,17 @@ export function App() {
                 />
               );
             })}
+
+            {pendingPin && wirePointer && displayCircuit ? (
+              <path
+                className="wire wire-preview"
+                d={orthogonalWirePath(
+                  getEndpointPoint(pendingPin, displayCircuit, registry),
+                  wirePointer,
+                )}
+                pointerEvents="none"
+              />
+            ) : null}
 
             {displayInputPins.map((pin) => {
               const point = interfacePinPoint(displayCircuit!, pin.id);
@@ -2592,21 +2700,40 @@ export function App() {
                     </g>
                   ) : null}
                   <circle
-                    className={
+                    className={[
+                      "pin",
+                      "interface-port",
                       pendingPin &&
                       endpointKey(pendingPin) === endpointKey(endpoint)
-                        ? "pin pending"
-                        : "pin interface-port"
-                    }
+                        ? "wire-source"
+                        : "",
+                      wireHoverTarget &&
+                      endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                        ? "wire-target"
+                        : "",
+                    ].join(" ")}
                     data-testid={`pin-interface-${pin.id}`}
                     data-pin-id={pin.id}
                     cx={point.x}
                     cy={point.y}
                     r="8"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
+                    onPointerDown={(event) =>
+                      beginWireConnection(event, endpoint)
+                    }
+                    onPointerEnter={() => {
+                      if (pendingPin) setWireHoverTarget(endpoint);
+                    }}
+                    onPointerLeave={() => {
+                      if (
+                        wireHoverTarget &&
+                        endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                      ) {
+                        setWireHoverTarget(null);
+                      }
+                    }}
+                    onPointerUp={(event) => {
                       event.stopPropagation();
-                      onPinClick(endpoint);
+                      finishWireConnection(endpoint);
                     }}
                   />
                 </g>
@@ -2694,21 +2821,40 @@ export function App() {
                     </g>
                   ) : null}
                   <circle
-                    className={
+                    className={[
+                      "pin",
+                      "interface-port",
                       pendingPin &&
                       endpointKey(pendingPin) === endpointKey(endpoint)
-                        ? "pin pending"
-                        : "pin interface-port"
-                    }
+                        ? "wire-source"
+                        : "",
+                      wireHoverTarget &&
+                      endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                        ? "wire-target"
+                        : "",
+                    ].join(" ")}
                     data-testid={`pin-interface-${pin.id}`}
                     data-pin-id={pin.id}
                     cx={point.x}
                     cy={point.y}
                     r="8"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
+                    onPointerDown={(event) =>
+                      beginWireConnection(event, endpoint)
+                    }
+                    onPointerEnter={() => {
+                      if (pendingPin) setWireHoverTarget(endpoint);
+                    }}
+                    onPointerLeave={() => {
+                      if (
+                        wireHoverTarget &&
+                        endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                      ) {
+                        setWireHoverTarget(null);
+                      }
+                    }}
+                    onPointerUp={(event) => {
                       event.stopPropagation();
-                      onPinClick(endpoint);
+                      finishWireConnection(endpoint);
                     }}
                   />
                 </g>
@@ -3036,20 +3182,38 @@ export function App() {
                     return (
                       <g key={pin.id}>
                         <circle
-                          className={
+                          className={[
+                            "pin",
                             pendingPin &&
                             endpointKey(pendingPin) === endpointKey(endpoint)
-                              ? "pin pending"
-                              : "pin"
-                          }
+                              ? "wire-source"
+                              : "",
+                            wireHoverTarget &&
+                            endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                              ? "wire-target"
+                              : "",
+                          ].join(" ")}
                           data-pin-id={pin.id}
                           cx={point.x}
                           cy={point.y}
                           r="5.5"
-                          onPointerDown={(event) => event.stopPropagation()}
-                          onClick={(event) => {
+                          onPointerDown={(event) =>
+                            beginWireConnection(event, endpoint)
+                          }
+                          onPointerEnter={() => {
+                            if (pendingPin) setWireHoverTarget(endpoint);
+                          }}
+                          onPointerLeave={() => {
+                            if (
+                              wireHoverTarget &&
+                              endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                            ) {
+                              setWireHoverTarget(null);
+                            }
+                          }}
+                          onPointerUp={(event) => {
                             event.stopPropagation();
-                            onPinClick(endpoint);
+                            finishWireConnection(endpoint);
                           }}
                         />
                         <text
@@ -3078,20 +3242,38 @@ export function App() {
                     return (
                       <g key={pin.id}>
                         <circle
-                          className={
+                          className={[
+                            "pin",
                             pendingPin &&
                             endpointKey(pendingPin) === endpointKey(endpoint)
-                              ? "pin pending"
-                              : "pin"
-                          }
+                              ? "wire-source"
+                              : "",
+                            wireHoverTarget &&
+                            endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                              ? "wire-target"
+                              : "",
+                          ].join(" ")}
                           data-pin-id={pin.id}
                           cx={point.x}
                           cy={point.y}
                           r="5.5"
-                          onPointerDown={(event) => event.stopPropagation()}
-                          onClick={(event) => {
+                          onPointerDown={(event) =>
+                            beginWireConnection(event, endpoint)
+                          }
+                          onPointerEnter={() => {
+                            if (pendingPin) setWireHoverTarget(endpoint);
+                          }}
+                          onPointerLeave={() => {
+                            if (
+                              wireHoverTarget &&
+                              endpointKey(wireHoverTarget) === endpointKey(endpoint)
+                            ) {
+                              setWireHoverTarget(null);
+                            }
+                          }}
+                          onPointerUp={(event) => {
                             event.stopPropagation();
-                            onPinClick(endpoint);
+                            finishWireConnection(endpoint);
                           }}
                         />
                         <text
@@ -3360,11 +3542,16 @@ export function App() {
           <div>
             <strong>Wiring</strong>
             <p className="muted">
-              핀 하나를 클릭한 뒤 연결할 다른 핀을 클릭하세요. 선을 클릭하면 선택되고,
-              Delete/Backspace로 제거할 수 있습니다.
+              핀에서 마우스를 누른 채 다른 핀까지 드래그한 뒤 놓으면 연결됩니다.
+              Wire는 직각으로 배치되며, 클릭해서 선택한 뒤 Delete/Backspace로 제거할 수 있습니다.
             </p>
             {pendingPin ? (
-              <p>Selected pin: <code>{endpointKey(pendingPin)}</code></p>
+              <p>
+                연결 중: <code>{endpointKey(pendingPin)}</code>
+                {wireHoverTarget ? (
+                  <> → <code>{endpointKey(wireHoverTarget)}</code></>
+                ) : null}
+              </p>
             ) : null}
           </div>
           <div>
