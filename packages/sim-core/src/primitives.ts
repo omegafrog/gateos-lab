@@ -94,6 +94,53 @@ export class PrimitiveRegistry {
 export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
   const registry = new PrimitiveRegistry();
 
+  registry.register("builtin.split4", (inputs) => {
+    const input = inputs.in;
+    if (!input) throw new Error("Split4 requires input 'in'");
+    if (input.width !== 4) {
+      throw new Error(`Split4 expects a 4-bit input, got ${input.width}`);
+    }
+
+    return {
+      b0: BitVector.fromLSB([input.get(0)]),
+      b1: BitVector.fromLSB([input.get(1)]),
+      b2: BitVector.fromLSB([input.get(2)]),
+      b3: BitVector.fromLSB([input.get(3)]),
+    };
+  });
+
+  registry.register("builtin.join4", (inputs) => {
+    const bits = ["b0", "b1", "b2", "b3"].map((id) => inputs[id]);
+    if (bits.some((bit) => !bit)) {
+      throw new Error("Join4 requires inputs b0, b1, b2, b3");
+    }
+    for (const bit of bits) {
+      if (!bit || bit.width !== 1) {
+        throw new Error("Join4 expects four 1-bit inputs");
+      }
+    }
+
+    return {
+      out: BitVector.fromLSB(bits.map((bit) => bit!.get(0))),
+    };
+  });
+
+  registry.register("builtin.const1.zero", () => ({
+    out: BitVector.zeros(1),
+  }));
+
+  registry.register("builtin.const1.one", () => ({
+    out: BitVector.ones(1),
+  }));
+
+  registry.register("builtin.const4.zero", () => ({
+    out: BitVector.zeros(4),
+  }));
+
+  registry.register("builtin.const4.one", () => ({
+    out: BitVector.fromBigInt(1n, 4),
+  }));
+
   registry.register("builtin.nand", (inputs) => {
     const a = inputs.a;
     const b = inputs.b;
