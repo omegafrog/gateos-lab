@@ -24,6 +24,28 @@ OS engineering
 
 기본 curriculum은 guided track을 제공하지만 플랫폼은 별도의 custom track도 지원해야 한다.
 
+### 학습 콘텐츠 언어 규칙
+
+사용자에게 개념을 설명하는 문장, 상태표/진리표 설명, 주의사항, 힌트는 **한국어를 기본**으로 작성한다.
+
+기술 용어를 억지로 번역하지 않는다. 학습에 필요한 표준 용어는 그대로 사용하거나 한국어 설명과 병기한다.
+
+예:
+
+- NAND
+- SR Latch
+- D Flip-Flop
+- Clock
+- 상승 에지(rising edge)
+- Set / Reset
+- enable
+- feedback
+- bus
+- ALU
+- MMIO
+
+UI 명령명이나 코드 식별자까지 전부 번역할 필요는 없다. 목표는 번역 자체가 아니라, 사용자가 개념을 이해하면서 실제 컴퓨터 공학 용어에도 익숙해지도록 하는 것이다.
+
 ---
 
 ## Part 1 — Boolean Logic
