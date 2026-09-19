@@ -1498,3 +1498,34 @@ button:disabled {
   stroke-width: 5;
   r: 8px;
 }
+
+
+/* Manual wire route nodes */
+.wire-node {
+  fill: #ffffff;
+  stroke: #5667c7;
+  stroke-width: 2;
+  cursor: move;
+}
+
+.wire-node:hover,
+.wire-node.selected {
+  fill: #e9edff;
+  stroke: #3d53c7;
+  stroke-width: 3;
+}
+
+.wire-node.draft {
+  fill: #fff5df;
+  stroke: #d28a2d;
+}
+
+.wire-node.wire-end {
+  cursor: crosshair;
+  filter: drop-shadow(0 0 2px rgb(210 138 45 / 35%));
+}
+
+.wire-node.wire-end:hover {
+  fill: #ffe8b8;
+  stroke-width: 3;
+}
