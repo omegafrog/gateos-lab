@@ -1,7 +1,7 @@
 {
   "schema": "gateos.curriculum/v1",
   "id": "core.logic-v0",
-  "title": "From NAND to Program Counter",
+  "title": "From NAND to RAM16",
   "challenges": [
     {
       "id": "logic.not",
@@ -70,6 +70,18 @@
     {
       "id": "state.program-counter4",
       "file": "17-program-counter4.challenge.json"
+    },
+    {
+      "id": "routing.decoder2to4",
+      "file": "18-decoder2to4.challenge.json"
+    },
+    {
+      "id": "memory.ram4",
+      "file": "19-ram4.challenge.json"
+    },
+    {
+      "id": "memory.ram16",
+      "file": "20-ram16.challenge.json"
     }
   ]
 }
