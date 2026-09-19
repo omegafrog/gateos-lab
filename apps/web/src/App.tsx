@@ -748,6 +748,7 @@ export function App() {
   const [challenges, setChallenges] = useState<ChallengeDefinition[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [activeStageIndex, setActiveStageIndex] = useState(0);
+  const [curriculumOpen, setCurriculumOpen] = useState(false);
   const [project, setProject] = useState<ProjectState>(initialProject.project);
   const [projectError, setProjectError] = useState(initialProject.error ?? "");
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
@@ -2795,6 +2796,15 @@ export function App() {
           <span className="muted"> · {manifest.title}</span>
         </div>
         <div className="topbar-actions">
+          <button
+            className="curriculum-toggle"
+            data-testid="curriculum-toggle"
+            aria-controls="curriculum-drawer"
+            aria-expanded={curriculumOpen}
+            onClick={() => setCurriculumOpen((open) => !open)}
+          >
+            {curriculumOpen ? "Hide curriculum" : "Curriculum"}
+          </button>
           <button onClick={undo}>Undo</button>
           <button onClick={redo}>Redo</button>
           <button onClick={exportProject}>Export project</button>
@@ -2815,8 +2825,29 @@ export function App() {
         </div>
       </header>
 
-      <aside className="sidebar left-panel">
-        <h2>Curriculum</h2>
+      <div
+        className={`curriculum-backdrop ${curriculumOpen ? "open" : ""}`}
+        aria-hidden="true"
+        onClick={() => setCurriculumOpen(false)}
+      />
+      <aside
+        id="curriculum-drawer"
+        className={`curriculum-drawer ${curriculumOpen ? "open" : ""}`}
+        aria-hidden={!curriculumOpen}
+      >
+        <div className="curriculum-drawer-header">
+          <div>
+            <span>Learning path</span>
+            <h2>Curriculum</h2>
+          </div>
+          <button
+            type="button"
+            aria-label="커리큘럼 닫기"
+            onClick={() => setCurriculumOpen(false)}
+          >
+            ×
+          </button>
+        </div>
         <section className="stage-pager" data-testid="curriculum-stage-pager">
           <div className="stage-pager-top">
             <button
@@ -2898,7 +2929,10 @@ export function App() {
                 ].join(" ")}
                 data-testid={`challenge-${item.id}`}
                 disabled={!unlocked}
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => {
+                  setSelectedId(item.id);
+                  setCurriculumOpen(false);
+                }}
               >
                 <span>{index + 1}</span>
                 <span>{item.title}</span>
@@ -2908,6 +2942,10 @@ export function App() {
           })}
         </nav>
 
+
+      </aside>
+
+      <aside className="sidebar left-panel component-panel">
         <h2>Components</h2>
         <div className="palette">
           {allowedPalette.length === 0 ? (
