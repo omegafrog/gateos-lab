@@ -103,8 +103,8 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "SR Latch state table",
-      "description": "This latch stores state through cross-coupled NAND feedback. There is no clock.",
+      "title": "SR Latch 상태표",
+      "description": "교차 결합(cross-coupled)된 두 NAND의 feedback으로 상태를 저장합니다. Clock은 사용하지 않습니다.",
       "columns": [
         {
           "id": "sbar",
@@ -118,27 +118,27 @@
         },
         {
           "id": "qt",
-          "label": "Q(before)",
+          "label": "Q(적용 전)",
           "group": "state"
         },
         {
           "id": "nqt",
-          "label": "Q̅(before)",
+          "label": "Q̅(적용 전)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(after settle)",
+          "label": "Q(settle 후)",
           "group": "output"
         },
         {
           "id": "nqnext",
-          "label": "Q̅(after settle)",
+          "label": "Q̅(settle 후)",
           "group": "output"
         },
         {
           "id": "meaning",
-          "label": "Meaning",
+          "label": "의미",
           "group": "note"
         }
       ],
@@ -150,7 +150,7 @@
           "nqt": "X",
           "qnext": "1",
           "nqnext": "0",
-          "meaning": "Set"
+          "meaning": "Set (설정)"
         },
         {
           "sbar": "1",
@@ -159,7 +159,7 @@
           "nqt": "X",
           "qnext": "0",
           "nqnext": "1",
-          "meaning": "Reset"
+          "meaning": "Reset (초기화)"
         },
         {
           "sbar": "1",
@@ -168,7 +168,7 @@
           "nqt": "1",
           "qnext": "0",
           "nqnext": "1",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         },
         {
           "sbar": "1",
@@ -177,7 +177,7 @@
           "nqt": "0",
           "qnext": "1",
           "nqnext": "0",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         },
         {
           "sbar": "0",
@@ -186,15 +186,15 @@
           "nqt": "X",
           "qnext": "1",
           "nqnext": "1",
-          "meaning": "Forbidden"
+          "meaning": "Forbidden (금지)"
         }
       ],
       "notes": [
-        "S̅/R̅ are active-low inputs.",
-        "With S̅=R̅=1, neither side forces a new value, so feedback preserves the previous Q/Q̅ state.",
-        "S̅=0,R̅=0 forces Q=Q̅=1 and is forbidden."
+        "S̅와 R̅는 active-low 입력입니다.",
+        "S̅=R̅=1이면 새로운 값을 강제하지 않으므로 feedback이 기존 Q/Q̅ 상태를 유지합니다.",
+        "S̅=R̅=0이면 Q=Q̅=1이 되어 서로 보수 관계가 깨지므로 금지 상태입니다."
       ],
-      "timing": "Asynchronous — no clock. Inputs take effect after the feedback loop settles."
+      "timing": "비동기(asynchronous) — Clock 없음. S̅/R̅ 입력을 적용한 뒤 feedback이 안정(settle)되면 출력이 결정됩니다."
     }
   ],
   "initialInputs": {
