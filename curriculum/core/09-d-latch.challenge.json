@@ -1,0 +1,39 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "state.d-latch",
+  "title": "D Latch",
+  "description": "이전에 만든 SR Latch를 이용해 D와 ENABLE을 받는 level-sensitive D Latch를 만드세요. ENABLE=1일 때 Q가 D를 따라가고, ENABLE=0일 때 마지막 값을 유지해야 합니다.",
+  "interface": {
+    "inputs": [
+      { "id": "d", "name": "D", "width": 1 },
+      { "id": "enable", "name": "ENABLE", "width": 1 }
+    ],
+    "outputs": [
+      { "id": "q", "name": "Q", "width": 1 }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.nand",
+    "user.not",
+    "user.sr-latch"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        { "set": { "d": 0, "enable": 1 } },
+        { "expect": { "q": 0 } },
+        { "set": { "enable": 0, "d": 1 } },
+        { "expect": { "q": 0 } },
+        { "set": { "enable": 1 } },
+        { "expect": { "q": 1 } },
+        { "set": { "enable": 0, "d": 0 } },
+        { "expect": { "q": 1 } },
+        { "set": { "enable": 1 } },
+        { "expect": { "q": 0 } }
+      ]
+    }
+  ],
+  "unlocks": []
+}
