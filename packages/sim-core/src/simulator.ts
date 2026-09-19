@@ -237,6 +237,17 @@ export class Simulator {
   }
 
   reset(): void {
+    for (const [netId, drivers] of this.#drivers) {
+      for (const driverId of drivers.keys()) {
+        if (!driverId.startsWith("node:")) continue;
+        this.setDriver(
+          netId,
+          driverId,
+          BitVector.unknown(this.widthOf(netId)),
+        );
+      }
+    }
+
     for (const [pinId, netId] of Object.entries(this.#netlist.rootInputs)) {
       const value = BitVector.unknown(this.widthOf(netId));
       this.#rootInputValues.set(pinId, value);
