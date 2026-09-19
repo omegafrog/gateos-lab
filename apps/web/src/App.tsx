@@ -1535,6 +1535,17 @@ export function App() {
     setProjectError("");
   }
 
+  function clearPendingWireGesture(): void {
+    pendingWireRef.current = null;
+    wireRoutePointsRef.current = [];
+    wireDraggingRef.current = false;
+    setPendingPin(null);
+    setWirePointer(null);
+    setWireRoutePoints([]);
+    setWireDragging(false);
+    setWireHoverTarget(null);
+  }
+
   function finishWireConnection(endpoint: CircuitEndpoint): void {
     if (
       !challenge ||
@@ -1549,11 +1560,7 @@ export function App() {
     if (!activePendingPin) return;
 
     if (endpointKey(activePendingPin) === endpointKey(endpoint)) {
-      setPendingPin(null);
-      setWirePointer(null);
-      setWireRoutePoints([]);
-      setWireDragging(false);
-      setWireHoverTarget(null);
+      clearPendingWireGesture();
       return;
     }
 
@@ -1574,11 +1581,7 @@ export function App() {
       setProjectError(
         `${pendingWidth}-bit 핀과 ${endpointPinWidth}-bit 핀은 연결할 수 없습니다.`,
       );
-      setPendingPin(null);
-      setWirePointer(null);
-      setWireRoutePoints([]);
-      setWireDragging(false);
-      setWireHoverTarget(null);
+      clearPendingWireGesture();
       return;
     }
 
@@ -1595,11 +1598,7 @@ export function App() {
           ? "출력(source)끼리는 연결할 수 없습니다."
           : "입력(destination)끼리는 연결할 수 없습니다.",
       );
-      setPendingPin(null);
-      setWirePointer(null);
-      setWireRoutePoints([]);
-      setWireDragging(false);
-      setWireHoverTarget(null);
+      clearPendingWireGesture();
       return;
     }
 
@@ -1628,11 +1627,7 @@ export function App() {
       ...current,
       connections: [...current.connections, connection],
     }));
-    setPendingPin(null);
-    setWirePointer(null);
-    setWireRoutePoints([]);
-    setWireDragging(false);
-    setWireHoverTarget(null);
+    clearPendingWireGesture();
     setProjectError("");
   }
 
@@ -2014,6 +2009,7 @@ export function App() {
     const last = wireRoutePoints[wireRoutePoints.length - 1];
     if (!last) return;
     setWirePointer(last);
+    wireDraggingRef.current = true;
     setWireDragging(true);
     setWireHoverTarget(null);
   }
