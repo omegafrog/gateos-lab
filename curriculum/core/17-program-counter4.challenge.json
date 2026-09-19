@@ -256,7 +256,9 @@
       }
     }
   ],
-  "unlocks": [],
+  "unlocks": [
+    "routing.decoder2to4"
+  ],
   "referenceTables": [
     {
       "id": "priority",
