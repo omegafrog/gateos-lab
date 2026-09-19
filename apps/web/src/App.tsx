@@ -385,6 +385,7 @@ export function App() {
     height: CANVAS_HEIGHT,
   });
   const [inputValues, setInputValues] = useState<Record<string, 0 | 1>>({});
+  const [simulationRevision, setSimulationRevision] = useState(0);
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
   const [testStates, setTestStates] = useState<Record<string, VisualTestState>>({});
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
@@ -455,6 +456,57 @@ export function App() {
   }, [challenge, project.circuits]);
 
   const registry = useMemo(() => buildRegistry(project), [project.published]);
+
+  const simulationRuntime = useMemo(() => {
+    if (!challenge || !circuit) {
+      return {
+        simulator: null as Simulator | null,
+        netlist: null as ReturnType<typeof compileCircuit> | null,
+        error: undefined as string | undefined,
+      };
+    }
+
+    try {
+      const netlist = compileCircuit(circuit, registry);
+      const simulator = new Simulator(
+        netlist,
+        createBuiltinPrimitiveRegistry(),
+      );
+
+      for (const pin of challenge.interface.inputs) {
+        simulator.setInput(
+          pin.id,
+          BitVector.fromNumber(inputValues[pin.id] ?? 0, pin.width),
+        );
+      }
+      simulator.settle();
+
+      return { simulator, netlist, error: undefined };
+    } catch (error) {
+      return {
+        simulator: null,
+        netlist: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }, [challenge?.id, circuit, registry]);
+
+  useEffect(() => {
+    if (!challenge || !simulationRuntime.simulator) return;
+
+    try {
+      for (const pin of challenge.interface.inputs) {
+        simulationRuntime.simulator.setInput(
+          pin.id,
+          BitVector.fromNumber(inputValues[pin.id] ?? 0, pin.width),
+        );
+      }
+      simulationRuntime.simulator.settle();
+      setSimulationRevision((current) => current + 1);
+    } catch {
+      // Preview exposes simulation errors below; keep the session alive.
+    }
+  }, [challenge, inputValues, simulationRuntime]);
 
   const inspection = useMemo(() => {
     if (!circuit) {
@@ -611,32 +663,25 @@ export function App() {
   }
 
   const preview = useMemo<PreviewState>(() => {
-    if (!challenge || !circuit) return { outputs: {}, signals: {} };
+    if (!challenge || !simulationRuntime.simulator || !simulationRuntime.netlist) {
+      return {
+        outputs: {},
+        signals: {},
+        error: simulationRuntime.error,
+      };
+    }
 
     try {
-      const netlist = compileCircuit(circuit, registry);
-      const simulator = new Simulator(
-        netlist,
-        createBuiltinPrimitiveRegistry(),
-      );
-
-      for (const pin of challenge.interface.inputs) {
-        simulator.setInput(
-          pin.id,
-          BitVector.fromNumber(inputValues[pin.id] ?? 0, pin.width),
-        );
-      }
-
-      simulator.settle();
-
       const outputs: Record<string, string> = {};
       for (const pin of challenge.interface.outputs) {
-        outputs[pin.id] = simulator.readOutput(pin.id).toBinary();
+        outputs[pin.id] = simulationRuntime.simulator
+          .readOutput(pin.id)
+          .toBinary();
       }
 
       const signals: Record<string, string> = {};
-      for (const net of netlist.nets) {
-        const value = simulator.readNet(net.id).toBinary();
+      for (const net of simulationRuntime.netlist.nets) {
+        const value = simulationRuntime.simulator.readNet(net.id).toBinary();
         for (const source of net.sourceVertices) signals[source] = value;
       }
 
@@ -648,7 +693,7 @@ export function App() {
         error: error instanceof Error ? error.message : String(error),
       };
     }
-  }, [challenge, circuit, registry, inputValues]);
+  }, [challenge, simulationRuntime, simulationRevision]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
@@ -737,6 +782,39 @@ export function App() {
     const previous = challenges[index - 1];
     return previous ? project.completed.includes(previous.id) : false;
   }
+
+  function stepSimulationEdge(edge: "rising" | "falling"): void {
+    if (!simulationRuntime.simulator || testRunning) return;
+
+    try {
+      simulationRuntime.simulator.stepEdge(edge);
+      setSimulationRevision((current) => current + 1);
+    } catch (error) {
+      setProjectError(
+        error instanceof Error ? `Simulation error: ${error.message}` : String(error),
+      );
+    }
+  }
+
+  function stepSimulationClock(): void {
+    if (!simulationRuntime.simulator || testRunning) return;
+
+    try {
+      simulationRuntime.simulator.stepClock();
+      setSimulationRevision((current) => current + 1);
+    } catch (error) {
+      setProjectError(
+        error instanceof Error ? `Simulation error: ${error.message}` : String(error),
+      );
+    }
+  }
+
+  const hasSequentialNodes =
+    simulationRuntime.netlist?.nodes.some(
+      (node) =>
+        node.primitiveId === "builtin.clock" ||
+        node.primitiveId === "builtin.dff",
+    ) ?? false;
 
   function addComponent(componentId: string): void {
     if (!circuit || isInspectingNested) return;
@@ -1471,6 +1549,35 @@ export function App() {
             ))}
           </div>
           {preview.error ? <span className="error-text">{preview.error}</span> : null}
+          {hasSequentialNodes ? (
+            <div className="clock-controls">
+              <strong>Clock</strong>
+              <button
+                disabled={testRunning}
+                onClick={() => stepSimulationEdge("rising")}
+                title="Rising edge"
+              >
+                ↑ edge
+              </button>
+              <button
+                disabled={testRunning}
+                onClick={() => stepSimulationEdge("falling")}
+                title="Falling edge"
+              >
+                ↓ edge
+              </button>
+              <button
+                disabled={testRunning}
+                onClick={stepSimulationClock}
+                title="Rising + falling edge"
+              >
+                Step clock
+              </button>
+              <span>
+                cycle {simulationRuntime.simulator?.cycle ?? 0}
+              </span>
+            </div>
+          ) : null}
         </section>
 
         <section className="canvas-frame">
