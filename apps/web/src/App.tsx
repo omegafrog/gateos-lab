@@ -1232,17 +1232,22 @@ export function App() {
     }
   }
 
-  function canvasPoint(event: ReactPointerEvent<SVGSVGElement>): Point {
+  function clientToCanvasPoint(clientX: number, clientY: number): Point {
     const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return { x: event.clientX, y: event.clientY };
+    if (!rect) return { x: clientX, y: clientY };
+
     return {
       x:
         viewport.x +
-        ((event.clientX - rect.left) / rect.width) * viewport.width,
+        ((clientX - rect.left) / rect.width) * viewport.width,
       y:
         viewport.y +
-        ((event.clientY - rect.top) / rect.height) * viewport.height,
+        ((clientY - rect.top) / rect.height) * viewport.height,
     };
+  }
+
+  function canvasPoint(event: ReactPointerEvent<SVGSVGElement>): Point {
+    return clientToCanvasPoint(event.clientX, event.clientY);
   }
 
   function zoomAt(clientX: number, clientY: number, factor: number): void {
@@ -1318,18 +1323,12 @@ export function App() {
     undoRef.current[challenge.id] = stack;
     redoRef.current[challenge.id] = [];
     const position = instancePosition(circuit, instanceId);
-    const rect = svgRef.current?.getBoundingClientRect();
-    const x = rect
-      ? ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH
-      : event.clientX;
-    const y = rect
-      ? ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT
-      : event.clientY;
+    const point = clientToCanvasPoint(event.clientX, event.clientY);
 
     setDrag({
       instanceId,
-      offsetX: x - position.x,
-      offsetY: y - position.y,
+      offsetX: point.x - position.x,
+      offsetY: point.y - position.y,
     });
     setSelectedInstance(instanceId);
   }
