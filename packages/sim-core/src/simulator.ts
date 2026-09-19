@@ -4,7 +4,11 @@ import {
   type CompiledNetlist,
   type CompiledNode,
 } from "@gateos/circuit-model";
-import type { PrimitiveRegistry } from "./primitives.js";
+import type {
+  ClockEdge,
+  PrimitiveInputs,
+  PrimitiveRegistry,
+} from "./primitives.js";
 
 export class OscillationError extends Error {
   constructor(readonly iterations: number) {
@@ -23,8 +27,10 @@ export class Simulator {
   readonly #drivers = new Map<string, Map<string, BitVector>>();
   readonly #consumers = new Map<string, Set<string>>();
   readonly #nodes = new Map<string, CompiledNode>();
+  readonly #sequentialState = new Map<string, unknown>();
   readonly #queue: string[] = [];
   readonly #queued = new Set<string>();
+  #cycle = 0;
 
   constructor(netlist: CompiledNetlist, primitives: PrimitiveRegistry) {
     this.#netlist = netlist;
@@ -48,6 +54,25 @@ export class Simulator {
     for (const node of netlist.nodes) {
       this.#nodes.set(node.id, node);
 
+      if (this.#primitives.isSequential(node.primitiveId)) {
+        const definition = this.#primitives.getSequential(node.primitiveId);
+        const state = definition.createState(node.params, node);
+        this.#sequentialState.set(node.id, state);
+
+        const outputs = definition.outputs(state, node.params, node);
+        for (const [pinId, netId] of Object.entries(node.outputs)) {
+          const value = outputs[pinId];
+          if (!value) {
+            throw new Error(
+              `Sequential primitive ${node.primitiveId} did not initialize output ${pinId}`,
+            );
+          }
+          this.assertWidth(netId, value);
+          this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+        }
+        continue;
+      }
+
       for (const netId of Object.values(node.inputs)) {
         this.#consumers.get(netId)?.add(node.id);
       }
@@ -62,6 +87,14 @@ export class Simulator {
 
       this.enqueue(node.id);
     }
+
+    // Sequential outputs may feed combinational nodes that were registered later.
+    // Every combinational node is already enqueued once, so the first settle()
+    // computes a complete stable state.
+  }
+
+  get cycle(): number {
+    return this.#cycle;
   }
 
   setInput(pinId: string, value: BitVector): void {
@@ -97,12 +130,11 @@ export class Simulator {
 
       const node = this.#nodes.get(nodeId);
       if (!node) throw new Error(`Unknown node: ${nodeId}`);
-
-      const inputs: Record<string, BitVector> = {};
-      for (const [pinId, netId] of Object.entries(node.inputs)) {
-        inputs[pinId] = this.readNet(netId);
+      if (this.#primitives.isSequential(node.primitiveId)) {
+        continue;
       }
 
+      const inputs = this.readNodeInputs(node);
       const outputs = this.#primitives.get(node.primitiveId)(
         inputs,
         node.params,
@@ -124,6 +156,74 @@ export class Simulator {
     }
 
     return evaluations;
+  }
+
+  stepEdge(edge: ClockEdge): void {
+    this.settle();
+
+    const nextStates = new Map<string, unknown>();
+
+    for (const node of this.#netlist.nodes) {
+      if (!this.#primitives.isSequential(node.primitiveId)) continue;
+
+      const definition = this.#primitives.getSequential(node.primitiveId);
+      const state = this.#sequentialState.get(node.id);
+      if (state === undefined) {
+        throw new Error(`Missing sequential state for ${node.id}`);
+      }
+
+      nextStates.set(
+        node.id,
+        definition.sample(
+          this.readNodeInputs(node),
+          state,
+          edge,
+          node.params,
+          node,
+        ),
+      );
+    }
+
+    // Commit only after every sequential primitive sampled the same pre-edge
+    // circuit state. This removes update-order dependence.
+    for (const [nodeId, nextState] of nextStates) {
+      const node = this.#nodes.get(nodeId);
+      if (!node) throw new Error(`Unknown node: ${nodeId}`);
+
+      const definition = this.#primitives.getSequential(node.primitiveId);
+      this.#sequentialState.set(nodeId, nextState);
+
+      const outputs = definition.outputs(nextState, node.params, node);
+      for (const [pinId, value] of Object.entries(outputs)) {
+        const netId = node.outputs[pinId];
+        if (!netId) {
+          throw new Error(
+            `Sequential primitive ${node.primitiveId} produced undeclared output ${pinId}`,
+          );
+        }
+        this.assertWidth(netId, value);
+        this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+      }
+    }
+
+    this.settle();
+
+    if (edge === "falling") {
+      this.#cycle += 1;
+    }
+  }
+
+  stepClock(): void {
+    this.stepEdge("rising");
+    this.stepEdge("falling");
+  }
+
+  private readNodeInputs(node: CompiledNode): PrimitiveInputs {
+    const inputs: Record<string, BitVector> = {};
+    for (const [pinId, netId] of Object.entries(node.inputs)) {
+      inputs[pinId] = this.readNet(netId);
+    }
+    return inputs;
   }
 
   private enqueue(nodeId: string): void {
