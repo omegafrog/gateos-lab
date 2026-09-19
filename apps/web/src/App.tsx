@@ -2088,7 +2088,7 @@ export function App() {
       return;
     }
 
-    beginPinWireGesture(event, endpoint);
+    beginWireConnection(event, endpoint);
   }
 
   function removeConnection(id: string): void {
