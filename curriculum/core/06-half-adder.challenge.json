@@ -5,32 +5,106 @@
   "description": "두 1-bit 입력을 더해 SUM과 CARRY를 출력하는 Half Adder를 만드세요.",
   "interface": {
     "inputs": [
-      { "id": "a", "name": "A", "width": 1 },
-      { "id": "b", "name": "B", "width": 1 }
+      {
+        "id": "a",
+        "name": "A",
+        "width": 1
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 1
+      }
     ],
     "outputs": [
-      { "id": "sum", "name": "SUM", "width": 1 },
-      { "id": "carry", "name": "CARRY", "width": 1 }
+      {
+        "id": "sum",
+        "name": "SUM",
+        "width": 1
+      },
+      {
+        "id": "carry",
+        "name": "CARRY",
+        "width": 1
+      }
     ]
   },
-  "allowedComponents": ["user.xor", "user.and"],
+  "allowedComponents": [
+    "user.xor",
+    "user.and"
+  ],
   "validators": [
     {
       "type": "truthTable",
       "visibility": "visible",
       "cases": [
-        { "in": { "a": 0, "b": 0 }, "out": { "sum": 0, "carry": 0 } },
-        { "in": { "a": 1, "b": 1 }, "out": { "sum": 0, "carry": 1 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 0
+          },
+          "out": {
+            "sum": 0,
+            "carry": 0
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 1
+          },
+          "out": {
+            "sum": 0,
+            "carry": 1
+          }
+        }
       ]
     },
     {
       "type": "truthTable",
       "visibility": "hidden",
       "cases": [
-        { "in": { "a": 0, "b": 1 }, "out": { "sum": 1, "carry": 0 } },
-        { "in": { "a": 1, "b": 0 }, "out": { "sum": 1, "carry": 0 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 1
+          },
+          "out": {
+            "sum": 1,
+            "carry": 0
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 0
+          },
+          "out": {
+            "sum": 1,
+            "carry": 0
+          }
+        }
       ]
     }
   ],
-  "unlocks": ["arithmetic.full-adder"]
+  "unlocks": [
+    "arithmetic.full-adder"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "SUM과 CARRY를 따로 보기",
+      "body": "두 bit를 더했을 때 SUM은 입력이 서로 다를 때 1이고, CARRY는 두 입력이 모두 1일 때 1입니다."
+    },
+    {
+      "level": 2,
+      "title": "이미 만든 게이트 재사용",
+      "body": "SUM에는 XOR, CARRY에는 AND의 동작이 그대로 필요합니다."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "A와 B를 XOR과 AND 양쪽에 동시에 연결하고, XOR.OUT→SUM, AND.OUT→CARRY로 연결하세요."
+    }
+  ]
 }
