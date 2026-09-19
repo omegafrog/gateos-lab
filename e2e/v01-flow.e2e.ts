@@ -535,7 +535,7 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
   expect((path.match(/ L /g) ?? []).length).toBe(2);
 });
 
-test("clicking a wire segment creates a branch from that junction", async ({
+test("dragging from an existing wire creates a branch immediately", async ({
   page,
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
@@ -549,23 +549,24 @@ test("clicking a wire segment creates a branch from that junction", async ({
 
   const hitTarget = page.locator("path.wire-hit-target").first();
   await expect(hitTarget).toBeVisible();
-  await hitTarget.click();
+  const hitBox = await hitTarget.boundingBox();
+  if (!hitBox) throw new Error("missing wire geometry");
 
-  const branchEnd = page.getByTestId("draft-wire-end");
-  await expect(branchEnd).toBeVisible();
-
-  const junction = page.locator("circle.wire-junction").first();
-  await expect(junction).toBeVisible();
-  expect(Number(await junction.getAttribute("cx")) % 12).toBe(0);
-  expect(Number(await junction.getAttribute("cy")) % 12).toBe(0);
-
-  await branchEnd.hover();
+  await page.mouse.move(
+    hitBox.x + hitBox.width / 2,
+    hitBox.y + hitBox.height / 2,
+  );
   await page.mouse.down();
   await inputB.hover();
   await page.mouse.up();
 
   await expect(page.getByTestId("draft-wire-end")).toHaveCount(0);
   await expect(page.locator("path.wire:not(.wire-preview)")).toHaveCount(2);
+
+  const junction = page.locator("circle.wire-junction").first();
+  await expect(junction).toBeVisible();
+  expect(Number(await junction.getAttribute("cx")) % 12).toBe(0);
+  expect(Number(await junction.getAttribute("cy")) % 12).toBe(0);
 
   const savedBranchCount = await page.evaluate(() => {
     const raw = localStorage.getItem("gateos-lab:v0.1");
@@ -578,6 +579,53 @@ test("clicking a wire segment creates a branch from that junction", async ({
     ).length;
   });
   expect(savedBranchCount).toBe(1);
+});
+
+test("alt-dragging a wire segment inserts and moves a joint", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const source = page.getByTestId("pin-interface-in");
+  const inputA = component.locator('[data-pin-id="a"]');
+
+  await connect(page, source, inputA);
+
+  const hitTarget = page.locator("path.wire-hit-target").first();
+  const hitBox = await hitTarget.boundingBox();
+  if (!hitBox) throw new Error("missing wire geometry");
+
+  const startX = hitBox.x + hitBox.width / 2;
+  const startY = hitBox.y + hitBox.height / 2;
+
+  await page.keyboard.down("Alt");
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX, startY + 72, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+
+  const joint = page.locator("circle.wire-junction").first();
+  await expect(joint).toBeVisible();
+
+  const jointX = Number(await joint.getAttribute("cx"));
+  const jointY = Number(await joint.getAttribute("cy"));
+  expect(jointX % 12).toBe(0);
+  expect(jointY % 12).toBe(0);
+
+  const savedRoute = await page.evaluate(() => {
+    const raw = localStorage.getItem("gateos-lab:v0.1");
+    if (!raw) return [];
+    const project = JSON.parse(raw);
+    return project.circuits["logic.not"]?.connections?.[0]?.route ?? [];
+  });
+  expect(savedRoute).toHaveLength(1);
+  expect(savedRoute[0]).toEqual({ x: jointX, y: jointY });
+
+  const wire = page.locator("path.wire:not(.wire-preview)").first();
+  const path = (await wire.getAttribute("d")) ?? "";
+  expect((path.match(/ L /g) ?? []).length).toBe(2);
 });
 
 test("dragging a connected wire endpoint moves that wire to another pin", async ({
