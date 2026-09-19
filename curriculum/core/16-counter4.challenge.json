@@ -1,0 +1,302 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "state.counter4",
+  "title": "4-bit Counter",
+  "description": "RESET, ENABLE, CLK를 받는 4-bit Counter를 만드세요. RESET=1이면 다음 rising edge에서 0000, RESET=0이고 ENABLE=1이면 Q+1, ENABLE=0이면 현재 값을 유지합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "reset",
+        "name": "RESET",
+        "width": 1
+      },
+      {
+        "id": "enable",
+        "name": "ENABLE",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "q",
+        "name": "Q",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "user.register4",
+    "user.incrementer4",
+    "user.mux4",
+    "builtin.const4.zero",
+    "builtin.const1.one"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "reset": 1,
+            "enable": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "reset": 0,
+            "enable": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 2
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "enable": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 2
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "reset": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "reset": 1,
+            "enable": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "reset": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 2
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 3
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 6
+      }
+    }
+  ],
+  "unlocks": [
+    "state.program-counter4"
+  ],
+  "referenceTables": [
+    {
+      "id": "next-state",
+      "title": "4-bit Counter 상태표",
+      "description": "RESET이 가장 높은 우선순위를 가지며, 그 다음 ENABLE이 증가 여부를 결정합니다.",
+      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서 RESET/ENABLE을 평가해 다음 Q를 저장합니다.",
+      "columns": [
+        {
+          "id": "reset",
+          "label": "RESET",
+          "group": "input"
+        },
+        {
+          "id": "enable",
+          "label": "ENABLE",
+          "group": "input"
+        },
+        {
+          "id": "qt",
+          "label": "Q(edge 전)",
+          "group": "state"
+        },
+        {
+          "id": "qnext",
+          "label": "Q(edge 후)",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "의미",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "reset": "1",
+          "enable": "—",
+          "qt": "—",
+          "qnext": "0000",
+          "meaning": "Reset"
+        },
+        {
+          "reset": "0",
+          "enable": "0",
+          "qt": "Q",
+          "qnext": "Q",
+          "meaning": "Hold (유지)"
+        },
+        {
+          "reset": "0",
+          "enable": "1",
+          "qt": "Q",
+          "qnext": "Q + 1",
+          "meaning": "Count"
+        }
+      ],
+      "notes": [
+        "1111에서 증가하면 0000으로 wrap됩니다.",
+        "RESET과 ENABLE이 동시에 1이면 RESET이 우선합니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "다음 상태(next state)를 먼저 계산",
+      "body": "Counter의 현재 Q를 Incrementer에 넣어 Q+1을 만들고, ENABLE과 RESET이 어떤 값을 Register에 저장할지 선택하게 하면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "MUX 두 단계와 Register",
+      "body": "첫 4-bit MUX는 ENABLE에 따라 Q 또는 Q+1을 고르고, 두 번째 MUX는 RESET에 따라 그 결과 또는 0000을 고르세요. Register는 매 rising edge마다 선택된 값을 저장합니다."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "INC=Incrementer4(Q), MUX1(A=Q,B=INC,SEL=ENABLE), MUX2(A=MUX1.OUT,B=0000,SEL=RESET), Register4.D=MUX2.OUT로 연결하세요. Register4.LOAD는 Const 1, CLK는 외부 CLK에 연결합니다."
+    }
+  ]
+}
