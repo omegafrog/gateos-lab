@@ -27,6 +27,7 @@ import {
   type ChallengeDefinition,
   type ChallengeRunResult,
 } from "@gateos/challenge-engine";
+import { TraceRecorder } from "@gateos/trace-engine";
 
 const STORAGE_KEY = "gateos-lab:v0.1";
 const PROJECT_SCHEMA = "gateos.project/v1";
@@ -386,6 +387,7 @@ export function App() {
   });
   const [inputValues, setInputValues] = useState<Record<string, 0 | 1>>({});
   const [simulationRevision, setSimulationRevision] = useState(0);
+  const [traceRevision, setTraceRevision] = useState(0);
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
   const [testStates, setTestStates] = useState<Record<string, VisualTestState>>({});
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
@@ -507,6 +509,32 @@ export function App() {
       // Preview exposes simulation errors below; keep the session alive.
     }
   }, [challenge, inputValues, simulationRuntime]);
+
+  const traceRuntime = useMemo(
+    () =>
+      simulationRuntime.simulator
+        ? new TraceRecorder(simulationRuntime.simulator, { maxFrames: 256 })
+        : null,
+    [simulationRuntime.simulator],
+  );
+
+  useEffect(() => {
+    if (!traceRuntime || !challenge || !simulationRuntime.netlist) return;
+
+    traceRuntime.clearWatches();
+    for (const probe of project.probes[challenge.id] ?? []) {
+      const net = simulationRuntime.netlist.nets.find((candidate) =>
+        candidate.sourceVertices.includes(probe.vertex),
+      );
+      if (net) traceRuntime.watch(net.id);
+    }
+    setTraceRevision((current) => current + 1);
+  }, [
+    traceRuntime,
+    challenge,
+    project.probes,
+    simulationRuntime.netlist,
+  ]);
 
   const inspection = useMemo(() => {
     if (!circuit) {
@@ -785,11 +813,18 @@ export function App() {
     return previous ? project.completed.includes(previous.id) : false;
   }
 
+  function captureTrace(label: string): void {
+    if (!traceRuntime) return;
+    traceRuntime.capture(label);
+    setTraceRevision((current) => current + 1);
+  }
+
   function stepSimulationEdge(edge: "rising" | "falling"): void {
     if (!simulationRuntime.simulator || testRunning) return;
 
     try {
       simulationRuntime.simulator.stepEdge(edge);
+      captureTrace(`${edge} edge`);
       setSimulationRevision((current) => current + 1);
     } catch (error) {
       setProjectError(
@@ -803,10 +838,53 @@ export function App() {
 
     try {
       simulationRuntime.simulator.stepClock();
+      captureTrace("clock");
       setSimulationRevision((current) => current + 1);
     } catch (error) {
       setProjectError(
         error instanceof Error ? `Simulation error: ${error.message}` : String(error),
+      );
+    }
+  }
+
+  function rewindSimulation(): void {
+    if (!traceRuntime || !simulationRuntime.simulator || testRunning) return;
+    const frame = traceRuntime.rewind();
+    if (!frame) return;
+
+    const snapshot = simulationRuntime.simulator.snapshot();
+    const restoredInputs: Record<string, 0 | 1> = {};
+    for (const [pinId, value] of Object.entries(snapshot.inputs)) {
+      if (value === "0" || value === "1") {
+        restoredInputs[pinId] = value === "1" ? 1 : 0;
+      }
+    }
+
+    setInputValues((current) => ({ ...current, ...restoredInputs }));
+    setSimulationRevision((current) => current + 1);
+    setTraceRevision((current) => current + 1);
+  }
+
+  function clearTrace(): void {
+    if (!traceRuntime) return;
+    traceRuntime.clear();
+    setTraceRevision((current) => current + 1);
+  }
+
+  function resetSimulation(): void {
+    if (!challenge || !simulationRuntime.simulator || testRunning) return;
+
+    try {
+      simulationRuntime.simulator.reset();
+      const zeros: Record<string, 0 | 1> = {};
+      for (const pin of challenge.interface.inputs) zeros[pin.id] = 0;
+      setInputValues(zeros);
+      traceRuntime?.clear();
+      setSimulationRevision((current) => current + 1);
+      setTraceRevision((current) => current + 1);
+    } catch (error) {
+      setProjectError(
+        error instanceof Error ? `Simulation reset failed: ${error.message}` : String(error),
       );
     }
   }
@@ -817,6 +895,19 @@ export function App() {
         node.primitiveId === "builtin.clock" ||
         node.primitiveId === "builtin.dff",
     ) ?? false;
+
+  const traceFrames = traceRuntime?.frames.slice(-16) ?? [];
+  const activeProbes = project.probes[challenge.id] ?? [];
+  const probeNetIds = new Map<string, string>();
+  if (simulationRuntime.netlist) {
+    for (const probe of activeProbes) {
+      const net = simulationRuntime.netlist.nets.find((candidate) =>
+        candidate.sourceVertices.includes(probe.vertex),
+      );
+      if (net) probeNetIds.set(probe.id, net.id);
+    }
+  }
+  void traceRevision;
 
   function addComponent(componentId: string): void {
     if (!circuit || isInspectingNested) return;
@@ -1598,6 +1689,20 @@ export function App() {
               >
                 Step clock
               </button>
+              <button
+                disabled={testRunning || !(traceRuntime?.canRewind ?? false)}
+                onClick={rewindSimulation}
+                title="Restore the state before the last captured step"
+              >
+                Rewind
+              </button>
+              <button
+                disabled={testRunning}
+                onClick={resetSimulation}
+                title="Reset sequential state and cycle counter"
+              >
+                Reset sim
+              </button>
               <span>
                 cycle {simulationRuntime.simulator?.cycle ?? 0}
               </span>
@@ -1929,6 +2034,83 @@ export function App() {
             })}
           </svg>
         </section>
+
+        {hasSequentialNodes ? (
+          <section className="waveform-panel">
+            <div className="waveform-header">
+              <div>
+                <strong>Waveform</strong>
+                <p className="muted">
+                  Probes are sampled after each captured edge/clock step. Rewind restores the
+                  previous simulator state.
+                </p>
+              </div>
+              <div>
+                <span>{traceFrames.length} frames</span>
+                <button
+                  disabled={traceFrames.length === 0}
+                  onClick={clearTrace}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {activeProbes.length === 0 ? (
+              <p className="waveform-empty">
+                Select a wire in the Inspector and add a Probe to watch it here.
+              </p>
+            ) : traceFrames.length === 0 ? (
+              <p className="waveform-empty">
+                Step the clock or an edge to capture the first waveform sample.
+              </p>
+            ) : (
+              <div className="waveform-scroll">
+                <div
+                  className="waveform-grid"
+                  style={{
+                    gridTemplateColumns: `150px repeat(${traceFrames.length}, minmax(54px, 1fr))`,
+                  }}
+                >
+                  <div className="waveform-corner">signal / frame</div>
+                  {traceFrames.map((frame) => (
+                    <div key={frame.index} className="waveform-frame-label">
+                      <strong>{frame.index}</strong>
+                      <small>c{frame.cycleAfter}</small>
+                    </div>
+                  ))}
+
+                  {activeProbes.flatMap((probe) => {
+                    const netId = probeNetIds.get(probe.id);
+                    return [
+                      <div key={`${probe.id}-name`} className="waveform-name">
+                        <strong>{probe.name}</strong>
+                        <small>{probe.width}b</small>
+                      </div>,
+                      ...traceFrames.map((frame) => {
+                        const value = netId
+                          ? frame.signalSamples[netId] ?? "·"
+                          : "·";
+                        return (
+                          <div
+                            key={`${probe.id}-${frame.index}`}
+                            className={[
+                              "waveform-cell",
+                              value.includes("X") ? "unknown" : "",
+                            ].join(" ")}
+                            title={frame.label ?? `frame ${frame.index}`}
+                          >
+                            {value}
+                          </div>
+                        );
+                      }),
+                    ];
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+        ) : null}
 
         <section className="test-runner">
           <div className="test-runner-header">
