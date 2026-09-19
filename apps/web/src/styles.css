@@ -1529,3 +1529,11 @@ button:disabled {
   fill: #ffe8b8;
   stroke-width: 3;
 }
+
+
+.wire-draft-placed {
+  stroke: #6677d0;
+  stroke-width: 4;
+  stroke-dasharray: none;
+  opacity: 0.9;
+}
