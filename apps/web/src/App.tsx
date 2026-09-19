@@ -852,6 +852,29 @@ export function App() {
       return;
     }
 
+    const fromWidth = endpointWidth(
+      pendingPin,
+      challenge,
+      circuit,
+      registry,
+    );
+    const toWidth = endpointWidth(
+      endpoint,
+      challenge,
+      circuit,
+      registry,
+    );
+
+    if (fromWidth !== toWidth) {
+      setProjectError(
+        `Cannot connect ${fromWidth}-bit pin to ${toWidth}-bit pin.`,
+      );
+      setPendingPin(null);
+      return;
+    }
+
+    setProjectError("");
+
     const connection: CircuitConnection = {
       id: `w-${Date.now().toString(36)}-${circuit.connections.length}`,
       from: pendingPin,
@@ -2096,18 +2119,61 @@ export function App() {
         )}
 
         <h2>Selected component</h2>
-        {selectedInstance ? (
-          <div className="selected-component-card">
-            <code>{selectedInstance}</code>
-            <button
-              className="danger"
-              disabled={testRunning || isInspectingNested}
-              onClick={removeSelectedInstance}
-            >
-              Delete
-            </button>
-          </div>
-        ) : (
+        {selectedInstance ? (() => {
+          const instance = displayCircuit?.instances.find(
+            (candidate) => candidate.id === selectedInstance,
+          );
+          if (!instance) {
+            return <p className="muted">Selected component is unavailable.</p>;
+          }
+
+          const spec = registry.get(instance.componentId);
+          return (
+            <div className="selected-component-card component-inspector-card">
+              <div className="component-inspector-header">
+                <div>
+                  <strong>{componentDisplayName(spec)}</strong>
+                  <code>{selectedInstance}</code>
+                </div>
+                <button
+                  className="danger"
+                  disabled={testRunning || isInspectingNested}
+                  onClick={removeSelectedInstance}
+                >
+                  Delete
+                </button>
+              </div>
+              <div className="component-pin-inspector">
+                {componentPins(spec).map((pin) => {
+                  const endpoint: CircuitEndpoint = {
+                    kind: "instance",
+                    instanceId: instance.id,
+                    pinId: pin.id,
+                  };
+                  const value =
+                    preview.signals[
+                      signalVertex(endpoint, inspection.prefix)
+                    ] ?? "X";
+
+                  return (
+                    <div key={pin.id}>
+                      <span>
+                        {pin.name}
+                        <small>
+                          {pin.direction} · {pin.width}b
+                        </small>
+                      </span>
+                      <code className={value.includes("X") ? "unknown-value" : ""}>
+                        {value}
+                      </code>
+                      <code>{signalHex(value)}</code>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })() : (
           <p className="muted">Click a component to select it.</p>
         )}
 
