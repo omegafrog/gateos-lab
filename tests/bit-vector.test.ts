@@ -3,7 +3,7 @@ import {
   BitVector,
   logicNand,
   resolveLogicDrivers,
-} from "../packages/circuit-model/src/index.js";
+} from "@gateos/circuit-model";
 
 describe("BitVector", () => {
   it("round-trips binary text with X/Z values", () => {
