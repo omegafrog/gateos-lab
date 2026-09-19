@@ -79,14 +79,13 @@ test("component dragging snaps to the hidden placement grid", async ({ page }) =
   expect(beforeX % 12).toBe(0);
   expect(beforeY % 12).toBe(0);
 
-  const box = await component.boundingBox();
-  if (!box) throw new Error("missing component bounding box");
+  const hitbox = component.locator(".component-hitbox");
+  const box = await hitbox.boundingBox();
+  if (!box) throw new Error("missing component hitbox");
 
-  await page.mouse.move(
-    box.x + box.width * 0.5,
-    box.y + box.height * 0.5,
-  );
+  await hitbox.hover();
   await page.mouse.down();
+  await page.waitForTimeout(20);
   await page.mouse.move(
     box.x + box.width * 0.5 + 83,
     box.y + box.height * 0.5 + 47,
@@ -346,17 +345,16 @@ test("chips can be dragged past the old placement boundary", async ({ page }) =>
 
   const component = page.locator('[data-testid^="component-"]').first();
   const canvas = page.locator("svg.circuit-canvas");
-  const componentBox = await component.boundingBox();
+  const hitbox = component.locator(".component-hitbox");
+  const componentBox = await hitbox.boundingBox();
   const canvasBox = await canvas.boundingBox();
   if (!componentBox || !canvasBox) {
     throw new Error("missing drag geometry");
   }
 
-  await page.mouse.move(
-    componentBox.x + componentBox.width / 2,
-    componentBox.y + componentBox.height / 2,
-  );
+  await hitbox.hover();
   await page.mouse.down();
+  await page.waitForTimeout(20);
   await page.mouse.move(
     componentBox.x + componentBox.width / 2,
     canvasBox.y + 8,
@@ -378,8 +376,11 @@ test("new chips are created in the currently panned world viewport", async ({
   const centerX = canvasBox.x + canvasBox.width / 2;
   const centerY = canvasBox.y + canvasBox.height / 2;
 
+  const panSurface = page.getByTestId("canvas-pan-surface");
+  await expect(panSurface).toBeVisible();
   await page.mouse.move(centerX, centerY);
   await page.mouse.down();
+  await page.waitForTimeout(20);
   await page.mouse.move(canvasBox.x + 30, centerY, { steps: 10 });
   await page.mouse.up();
 
@@ -525,8 +526,9 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
   const waypointX = fromX + (toX - fromX) * 0.45;
   const waypointY = fromY + 72;
 
-  await page.mouse.move(fromX, fromY);
+  await from.hover();
   await page.mouse.down();
+  await page.waitForTimeout(20);
   await page.mouse.move(waypointX, waypointY, { steps: 8 });
   await page.mouse.up();
 
