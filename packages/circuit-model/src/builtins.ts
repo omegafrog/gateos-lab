@@ -23,6 +23,30 @@ export const CLOCK_COMPONENT: PrimitiveComponentSpec = {
   ],
 };
 
+export const SPLIT2_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.split2",
+  name: "Split2",
+  primitiveId: "builtin.split2",
+  pins: [
+    { id: "in", name: "IN", direction: "input", width: 2 },
+    { id: "b0", name: "B0", direction: "output", width: 1 },
+    { id: "b1", name: "B1", direction: "output", width: 1 },
+  ],
+};
+
+export const JOIN2_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.join2",
+  name: "Join2",
+  primitiveId: "builtin.join2",
+  pins: [
+    { id: "b0", name: "B0", direction: "input", width: 1 },
+    { id: "b1", name: "B1", direction: "input", width: 1 },
+    { id: "out", name: "OUT", direction: "output", width: 2 },
+  ],
+};
+
 export const SPLIT4_COMPONENT: PrimitiveComponentSpec = {
   kind: "primitive",
   id: "builtin.split4",
@@ -99,6 +123,8 @@ export function createBuiltinComponentRegistry(): ComponentRegistry {
     NAND_COMPONENT,
     CLOCK_COMPONENT,
     DFF_COMPONENT,
+    SPLIT2_COMPONENT,
+    JOIN2_COMPONENT,
     SPLIT4_COMPONENT,
     JOIN4_COMPONENT,
     CONST1_ZERO_COMPONENT,
