@@ -121,10 +121,16 @@ test("target truth table is visible and rows can drive circuit inputs", async ({
   await expect(page.getByTestId("truth-row-1")).toBeVisible();
 
   await page.getByTestId("truth-row-1").click();
-  await expect(page.getByTestId("input-in")).toContainText("IN: 1");
+  await expect(page.getByTestId("input-in")).toHaveAttribute(
+    "data-applied-value",
+    "1",
+  );
 
   await page.getByTestId("truth-row-0").click();
-  await expect(page.getByTestId("input-in")).toContainText("IN: 0");
+  await expect(page.getByTestId("input-in")).toHaveAttribute(
+    "data-applied-value",
+    "0",
+  );
 });
 
 test("state-circuit inputs are staged until Apply inputs", async ({ page }) => {
@@ -159,8 +165,22 @@ test("state-circuit inputs are staged until Apply inputs", async ({ page }) => {
   await page.getByTestId("input-sbar").click();
   await page.getByTestId("input-rbar").click();
 
-  await expect(page.getByTestId("input-sbar")).toContainText("S̅: 0");
-  await expect(page.getByTestId("input-rbar")).toContainText("R̅: 0");
+  await expect(page.getByTestId("input-sbar")).toHaveAttribute(
+    "data-draft-value",
+    "0",
+  );
+  await expect(page.getByTestId("input-rbar")).toHaveAttribute(
+    "data-draft-value",
+    "0",
+  );
+  await expect(page.getByTestId("input-sbar")).toHaveAttribute(
+    "data-applied-value",
+    "1",
+  );
+  await expect(page.getByTestId("input-rbar")).toHaveAttribute(
+    "data-applied-value",
+    "1",
+  );
 
   // Draft edits must not reach the simulator yet.
   await expect(summary).toContainText("S̅=1");
@@ -170,4 +190,29 @@ test("state-circuit inputs are staged until Apply inputs", async ({ page }) => {
 
   await expect(summary).toContainText("S̅=0");
   await expect(summary).toContainText("R̅=0");
+});
+
+test("canvas input and output terminals keep wiring ports and show values", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const inputTerminal = page.getByTestId("input-in");
+  const inputPort = page.getByTestId("pin-interface-in");
+  const outputTerminal = page.getByTestId("output-out");
+  const outputPort = page.getByTestId("pin-interface-out");
+
+  await expect(inputTerminal).toHaveAttribute("data-applied-value", "0");
+  await expect(outputTerminal).toHaveAttribute("data-value", "X");
+
+  await connect(inputPort, component.locator('[data-pin-id="a"]'));
+  await connect(inputPort, component.locator('[data-pin-id="b"]'));
+  await connect(component.locator('[data-pin-id="out"]'), outputPort);
+
+  await expect(outputTerminal).toHaveAttribute("data-value", "1");
+
+  await inputTerminal.click();
+  await expect(inputTerminal).toHaveAttribute("data-applied-value", "1");
+  await expect(outputTerminal).toHaveAttribute("data-value", "0");
 });
