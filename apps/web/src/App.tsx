@@ -664,11 +664,13 @@ export function App() {
 
   const preview = useMemo<PreviewState>(() => {
     if (!challenge || !simulationRuntime.simulator || !simulationRuntime.netlist) {
-      return {
+      const empty: PreviewState = {
         outputs: {},
         signals: {},
-        error: simulationRuntime.error,
       };
+      return simulationRuntime.error
+        ? { ...empty, error: simulationRuntime.error }
+        : empty;
     }
 
     try {
