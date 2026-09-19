@@ -171,6 +171,55 @@ describe("bus primitives", () => {
     }
   });
 
+  it("splits a 6-bit address bus with B0 as LSB", () => {
+    const circuit: CircuitDefinition = {
+      schema: "gateos.circuit/v1",
+      id: "test.split6",
+      name: "Split6",
+      pins: [
+        { id: "in", name: "IN", direction: "input", width: 6 },
+        { id: "b0", name: "B0", direction: "output", width: 1 },
+        { id: "b1", name: "B1", direction: "output", width: 1 },
+        { id: "b2", name: "B2", direction: "output", width: 1 },
+        { id: "b3", name: "B3", direction: "output", width: 1 },
+        { id: "b4", name: "B4", direction: "output", width: 1 },
+        { id: "b5", name: "B5", direction: "output", width: 1 },
+      ],
+      instances: [{ id: "split", componentId: "builtin.split6" }],
+      connections: [
+        {
+          id: "in",
+          from: { kind: "interface", pinId: "in" },
+          to: { kind: "instance", instanceId: "split", pinId: "in" },
+        },
+        ...["b0", "b1", "b2", "b3", "b4", "b5"].map((pinId) => ({
+          id: pinId,
+          from: {
+            kind: "instance" as const,
+            instanceId: "split",
+            pinId,
+          },
+          to: { kind: "interface" as const, pinId },
+        })),
+      ],
+    };
+
+    const simulator = new Simulator(
+      compileCircuit(circuit, createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+
+    simulator.setInput("in", BitVector.fromBinary("101101"));
+    simulator.settle();
+
+    expect(simulator.readOutput("b0").toBinary()).toBe("1");
+    expect(simulator.readOutput("b1").toBinary()).toBe("0");
+    expect(simulator.readOutput("b2").toBinary()).toBe("1");
+    expect(simulator.readOutput("b3").toBinary()).toBe("1");
+    expect(simulator.readOutput("b4").toBinary()).toBe("0");
+    expect(simulator.readOutput("b5").toBinary()).toBe("1");
+  });
+
   it("splits and rejoins a 4-bit bus without changing bit order", () => {
     const circuit: CircuitDefinition = {
       schema: "gateos.circuit/v1",
