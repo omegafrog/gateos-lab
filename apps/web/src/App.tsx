@@ -290,26 +290,32 @@ function componentPinPoint(
 }
 
 function interfacePinPoint(
-  challenge: ChallengeDefinition,
+  circuit: CircuitDefinition,
   pinId: string,
 ): Point {
-  const inputIndex = challenge.interface.inputs.findIndex((pin) => pin.id === pinId);
+  const inputPins = circuit.pins.filter(
+    (pin) => pin.direction === "input" || pin.direction === "inout",
+  );
+  const outputPins = circuit.pins.filter(
+    (pin) => pin.direction === "output" || pin.direction === "inout",
+  );
+
+  const inputIndex = inputPins.findIndex((pin) => pin.id === pinId);
   if (inputIndex >= 0) {
     return { x: 48, y: 100 + inputIndex * 74 };
   }
 
-  const outputIndex = challenge.interface.outputs.findIndex((pin) => pin.id === pinId);
+  const outputIndex = outputPins.findIndex((pin) => pin.id === pinId);
   return { x: CANVAS_WIDTH - 48, y: 100 + Math.max(outputIndex, 0) * 74 };
 }
 
 function getEndpointPoint(
   endpoint: CircuitEndpoint,
-  challenge: ChallengeDefinition,
   circuit: CircuitDefinition,
   registry: ComponentRegistry,
 ): Point {
   if (endpoint.kind === "interface") {
-    return interfacePinPoint(challenge, endpoint.pinId);
+    return interfacePinPoint(circuit, endpoint.pinId);
   }
   return componentPinPoint(
     circuit,
@@ -319,10 +325,10 @@ function getEndpointPoint(
   );
 }
 
-function signalVertex(endpoint: CircuitEndpoint): string {
+function signalVertex(endpoint: CircuitEndpoint, path = "root"): string {
   return endpoint.kind === "interface"
-    ? `root::self::${endpoint.pinId}`
-    : `root::inst:${endpoint.instanceId}::${endpoint.pinId}`;
+    ? `${path}::self::${endpoint.pinId}`
+    : `${path}::inst:${endpoint.instanceId}::${endpoint.pinId}`;
 }
 
 function endpointWidth(
@@ -369,6 +375,7 @@ export function App() {
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
+  const [inspectionPath, setInspectionPath] = useState<string[]>([]);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [pan, setPan] = useState<PanState | null>(null);
   const [viewport, setViewport] = useState<Viewport>({
@@ -435,6 +442,7 @@ export function App() {
     setSelectedInstance(null);
     setSelectedInstances([]);
     setSelectedConnection(null);
+    setInspectionPath([]);
     setTestResult(null);
     setTestStates({});
     setActiveTestId(null);
@@ -447,6 +455,58 @@ export function App() {
   }, [challenge, project.circuits]);
 
   const registry = useMemo(() => buildRegistry(project), [project.published]);
+
+  const inspection = useMemo(() => {
+    if (!circuit) {
+      return {
+        circuit: null as CircuitDefinition | null,
+        prefix: "root",
+        breadcrumbs: [] as { id: string; name: string }[],
+      };
+    }
+
+    let current = circuit;
+    let prefix = "root";
+    const breadcrumbs: { id: string; name: string }[] = [];
+
+    for (const instanceId of inspectionPath) {
+      const instance = current.instances.find(
+        (candidate) => candidate.id === instanceId,
+      );
+      if (!instance) break;
+
+      let spec: ComponentSpec;
+      try {
+        spec = registry.get(instance.componentId);
+      } catch {
+        break;
+      }
+
+      if (spec.kind !== "composite") break;
+
+      breadcrumbs.push({
+        id: instanceId,
+        name: componentDisplayName(spec),
+      });
+      prefix = `${prefix}/${instanceId}`;
+      current = spec.circuit;
+    }
+
+    return {
+      circuit: current,
+      prefix,
+      breadcrumbs,
+    };
+  }, [circuit, inspectionPath, registry]);
+
+  const displayCircuit = inspection.circuit;
+  const displayInputPins = displayCircuit?.pins.filter(
+    (pin) => pin.direction === "input" || pin.direction === "inout",
+  ) ?? [];
+  const displayOutputPins = displayCircuit?.pins.filter(
+    (pin) => pin.direction === "output" || pin.direction === "inout",
+  ) ?? [];
+  const isInspectingNested = inspectionPath.length > 0;
 
   const visualTestCases = useMemo<VisualTestCase[]>(() => {
     if (!challenge) return [];
@@ -679,7 +739,7 @@ export function App() {
   }
 
   function addComponent(componentId: string): void {
-    if (!circuit) return;
+    if (!circuit || isInspectingNested) return;
     const count = circuit.instances.length;
     const id = `u${Date.now().toString(36)}-${count}`;
     updateCircuit((current) => ({
@@ -701,7 +761,7 @@ export function App() {
   }
 
   function onPinClick(endpoint: CircuitEndpoint): void {
-    if (!circuit) return;
+    if (!circuit || isInspectingNested) return;
     if (!pendingPin) {
       setPendingPin(endpoint);
       return;
@@ -726,6 +786,7 @@ export function App() {
   }
 
   function removeConnection(id: string): void {
+    if (isInspectingNested) return;
     updateCircuit((current) => ({
       ...current,
       connections: current.connections.filter((connection) => connection.id !== id),
@@ -734,6 +795,7 @@ export function App() {
   }
 
   function removeSelectedInstance(): void {
+    if (isInspectingNested) return;
     const ids = new Set(
       selectedInstances.length > 0
         ? selectedInstances
@@ -765,7 +827,7 @@ export function App() {
   }
 
   function copySelection(): void {
-    if (!circuit || selectedInstances.length === 0) return;
+    if (!circuit || isInspectingNested || selectedInstances.length === 0) return;
     const ids = new Set(selectedInstances);
 
     clipboardRef.current = {
@@ -781,7 +843,7 @@ export function App() {
   }
 
   function pasteSelection(): void {
-    if (!circuit || !clipboardRef.current) return;
+    if (!circuit || isInspectingNested || !clipboardRef.current) return;
 
     const idMap = new Map<string, string>();
     const stamp = Date.now().toString(36);
@@ -830,14 +892,19 @@ export function App() {
   }
 
   function addProbe(): void {
-    if (!challenge || !circuit || !selectedConnection) return;
-    const connection = circuit.connections.find(
+    if (!challenge || !displayCircuit || !selectedConnection) return;
+    const connection = displayCircuit.connections.find(
       (candidate) => candidate.id === selectedConnection,
     );
     if (!connection) return;
 
-    const vertex = signalVertex(connection.from);
-    const width = endpointWidth(connection.from, challenge, circuit, registry);
+    const vertex = signalVertex(connection.from, inspection.prefix);
+    const width = endpointWidth(
+      connection.from,
+      challenge,
+      displayCircuit,
+      registry,
+    );
     const existing = project.probes[challenge.id] ?? [];
     if (existing.some((probe) => probe.vertex === vertex)) return;
 
@@ -998,7 +1065,7 @@ export function App() {
     event: ReactPointerEvent<SVGGElement>,
     instanceId: string,
   ): void {
-    if (!circuit || !challenge || testRunning) return;
+    if (!circuit || !challenge || testRunning || isInspectingNested) return;
     event.stopPropagation();
 
     if (!selectedInstances.includes(instanceId)) {
@@ -1199,6 +1266,36 @@ export function App() {
     }));
   }
 
+  function enterComposite(instanceId: string): void {
+    if (!displayCircuit) return;
+    const instance = displayCircuit.instances.find(
+      (candidate) => candidate.id === instanceId,
+    );
+    if (!instance) return;
+
+    try {
+      const spec = registry.get(instance.componentId);
+      if (spec.kind !== "composite") return;
+      setInspectionPath((current) => [...current, instanceId]);
+      setSelectedInstance(null);
+      setSelectedInstances([]);
+      setSelectedConnection(null);
+      setPendingPin(null);
+      resetViewport();
+    } catch {
+      // Unknown components cannot be entered.
+    }
+  }
+
+  function leaveToDepth(depth: number): void {
+    setInspectionPath((current) => current.slice(0, depth));
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+    setSelectedConnection(null);
+    setPendingPin(null);
+    resetViewport();
+  }
+
   function resetChallenge(): void {
     if (!challenge) return;
     setProject((previous) => {
@@ -1310,6 +1407,35 @@ export function App() {
           </div>
         </section>
 
+        <div className="hierarchy-bar">
+          <div className="breadcrumbs">
+            <button
+              className={inspectionPath.length === 0 ? "active" : ""}
+              onClick={() => leaveToDepth(0)}
+            >
+              {challenge.title}
+            </button>
+            {inspection.breadcrumbs.map((crumb, index) => (
+              <span key={`${crumb.id}-${index}`}>
+                <span className="crumb-separator">›</span>
+                <button
+                  className={
+                    index === inspection.breadcrumbs.length - 1 ? "active" : ""
+                  }
+                  onClick={() => leaveToDepth(index + 1)}
+                >
+                  {crumb.name}
+                </button>
+              </span>
+            ))}
+          </div>
+          <span className="hierarchy-mode">
+            {isInspectingNested
+              ? "Inspect mode · double-click another composite to go deeper"
+              : "Edit mode · double-click a composite chip to inspect inside"}
+          </span>
+        </div>
+
         <section className="io-strip">
           <div>
             <strong>Inputs</strong>
@@ -1404,17 +1530,15 @@ export function App() {
               onPointerDown={beginPan}
             />
 
-            {circuit.connections.map((connection) => {
+            {(displayCircuit?.connections ?? []).map((connection) => {
               const from = getEndpointPoint(
                 connection.from,
-                challenge,
-                circuit,
+                displayCircuit!,
                 registry,
               );
               const to = getEndpointPoint(
                 connection.to,
-                challenge,
-                circuit,
+                displayCircuit!,
                 registry,
               );
               const curve = Math.max(60, Math.abs(to.x - from.x) * 0.4);
@@ -1436,8 +1560,8 @@ export function App() {
               );
             })}
 
-            {challenge.interface.inputs.map((pin) => {
-              const point = interfacePinPoint(challenge, pin.id);
+            {displayInputPins.map((pin) => {
+              const point = interfacePinPoint(displayCircuit!, pin.id);
               const endpoint: CircuitEndpoint = {
                 kind: "interface",
                 pinId: pin.id,
@@ -1463,14 +1587,14 @@ export function App() {
                     }}
                   />
                   <text x={point.x} y={point.y + 28} textAnchor="middle" className="signal-label">
-                    {preview.signals[signalVertex(endpoint)] ?? "X"}
+                    {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
                   </text>
                 </g>
               );
             })}
 
-            {challenge.interface.outputs.map((pin) => {
-              const point = interfacePinPoint(challenge, pin.id);
+            {displayOutputPins.map((pin) => {
+              const point = interfacePinPoint(displayCircuit!, pin.id);
               const endpoint: CircuitEndpoint = {
                 kind: "interface",
                 pinId: pin.id,
@@ -1496,13 +1620,13 @@ export function App() {
                     }}
                   />
                   <text x={point.x} y={point.y + 28} textAnchor="middle" className="signal-label">
-                    {preview.signals[signalVertex(endpoint)] ?? "X"}
+                    {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
                   </text>
                 </g>
               );
             })}
 
-            {circuit.instances.map((instance) => {
+            {(displayCircuit?.instances ?? []).map((instance) => {
               const spec = registry.get(instance.componentId);
               const pins = componentPins(spec);
               const position = instance.position ?? { x: 360, y: 220 };
@@ -1520,6 +1644,10 @@ export function App() {
                   key={instance.id}
                   className="component"
                   onPointerDown={(event) => beginDrag(event, instance.id)}
+                  onDoubleClick={(event) => {
+                    event.stopPropagation();
+                    enterComposite(instance.id);
+                  }}
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedConnection(null);
@@ -1567,7 +1695,7 @@ export function App() {
                       pinId: pin.id,
                     };
                     const point = componentPinPoint(
-                      circuit,
+                      displayCircuit!,
                       registry,
                       instance.id,
                       pin.id,
@@ -1594,7 +1722,7 @@ export function App() {
                           {pin.name}
                         </text>
                         <text x={point.x + 12} y={point.y + 18} className="signal-label">
-                          {preview.signals[signalVertex(endpoint)] ?? "X"}
+                          {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
                         </text>
                       </g>
                     );
@@ -1607,7 +1735,7 @@ export function App() {
                       pinId: pin.id,
                     };
                     const point = componentPinPoint(
-                      circuit,
+                      displayCircuit!,
                       registry,
                       instance.id,
                       pin.id,
@@ -1644,7 +1772,7 @@ export function App() {
                           textAnchor="end"
                           className="signal-label"
                         >
-                          {preview.signals[signalVertex(endpoint)] ?? "X"}
+                          {preview.signals[signalVertex(endpoint, inspection.prefix)] ?? "X"}
                         </text>
                       </g>
                     );
@@ -1781,11 +1909,13 @@ export function App() {
           <dt>Challenge</dt>
           <dd>{challenge.id}</dd>
           <dt>Circuit</dt>
-          <dd>{circuit.id}</dd>
+          <dd>{displayCircuit?.id ?? circuit.id}</dd>
+          <dt>Mode</dt>
+          <dd>{isInspectingNested ? "Inspect nested component" : "Edit root"}</dd>
           <dt>Components</dt>
-          <dd>{circuit.instances.length}</dd>
+          <dd>{displayCircuit?.instances.length ?? circuit.instances.length}</dd>
           <dt>Wires</dt>
-          <dd>{circuit.connections.length}</dd>
+          <dd>{displayCircuit?.connections.length ?? circuit.connections.length}</dd>
           <dt>Published as</dt>
           <dd>
             {project.published[publishedId(challenge.id)]
@@ -1796,13 +1926,18 @@ export function App() {
 
         <h2>Selected signal</h2>
         {selectedConnection ? (() => {
-          const connection = circuit.connections.find(
+          const connection = displayCircuit?.connections.find(
             (candidate) => candidate.id === selectedConnection,
           );
-          if (!connection) return null;
-          const vertex = signalVertex(connection.from);
+          if (!connection || !displayCircuit) return null;
+          const vertex = signalVertex(connection.from, inspection.prefix);
           const value = preview.signals[vertex] ?? "X";
-          const width = endpointWidth(connection.from, challenge, circuit, registry);
+          const width = endpointWidth(
+            connection.from,
+            challenge,
+            displayCircuit,
+            registry,
+          );
           return (
             <div className="selected-signal-card">
               <dl>
@@ -1821,6 +1956,7 @@ export function App() {
                 <button onClick={addProbe}>Add probe</button>
                 <button
                   className="danger"
+                  disabled={isInspectingNested}
                   onClick={() => removeConnection(selectedConnection)}
                 >
                   Delete wire
@@ -1838,7 +1974,7 @@ export function App() {
             <code>{selectedInstance}</code>
             <button
               className="danger"
-              disabled={testRunning}
+              disabled={testRunning || isInspectingNested}
               onClick={removeSelectedInstance}
             >
               Delete
