@@ -1,0 +1,236 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "arithmetic.alu4",
+  "title": "4-bit ALU",
+  "description": "A, B, OP를 받아 AND, OR, XOR, ADD 중 하나를 선택하는 4-bit ALU를 만드세요. OP=00 AND, 01 OR, 10 XOR, 11 ADD이며 ZERO는 선택된 결과가 0000일 때 1이어야 합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "a",
+        "name": "A",
+        "width": 4
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 4
+      },
+      {
+        "id": "op",
+        "name": "OP",
+        "width": 2
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 4
+      },
+      {
+        "id": "zero",
+        "name": "ZERO",
+        "width": 1
+      }
+    ]
+  },
+  "allowedComponents": [
+    "user.and4",
+    "user.or4",
+    "user.xor4",
+    "user.adder4",
+    "user.mux4",
+    "user.zero4",
+    "builtin.split2",
+    "builtin.const1.zero"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "a": 10,
+            "b": 12,
+            "op": 0
+          },
+          "out": {
+            "out": 8,
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "a": 10,
+            "b": 12,
+            "op": 1
+          },
+          "out": {
+            "out": 14,
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "a": 10,
+            "b": 12,
+            "op": 2
+          },
+          "out": {
+            "out": 6,
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "a": 3,
+            "b": 5,
+            "op": 3
+          },
+          "out": {
+            "out": 8,
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "a": 15,
+            "b": 15,
+            "op": 2
+          },
+          "out": {
+            "out": 0,
+            "zero": 1
+          }
+        },
+        {
+          "in": {
+            "a": 0,
+            "b": 0,
+            "op": 3
+          },
+          "out": {
+            "out": 0,
+            "zero": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        {
+          "in": {
+            "a": 7,
+            "b": 1,
+            "op": 3
+          },
+          "out": {
+            "out": 8,
+            "zero": 0
+          }
+        },
+        {
+          "in": {
+            "a": 5,
+            "b": 10,
+            "op": 0
+          },
+          "out": {
+            "out": 0,
+            "zero": 1
+          }
+        },
+        {
+          "in": {
+            "a": 9,
+            "b": 6,
+            "op": 1
+          },
+          "out": {
+            "out": 15,
+            "zero": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 10
+      }
+    }
+  ],
+  "unlocks": [
+    "memory.register-file4"
+  ],
+  "referenceTables": [
+    {
+      "id": "opcodes",
+      "title": "ALU operation 선택표",
+      "description": "OP 2-bit가 어떤 연산 결과를 OUT으로 보낼지 결정합니다.",
+      "columns": [
+        {
+          "id": "op",
+          "label": "OP",
+          "group": "input"
+        },
+        {
+          "id": "operation",
+          "label": "연산",
+          "group": "note"
+        },
+        {
+          "id": "result",
+          "label": "OUT",
+          "group": "output"
+        }
+      ],
+      "rows": [
+        {
+          "op": "00",
+          "operation": "AND",
+          "result": "A AND B"
+        },
+        {
+          "op": "01",
+          "operation": "OR",
+          "result": "A OR B"
+        },
+        {
+          "op": "10",
+          "operation": "XOR",
+          "result": "A XOR B"
+        },
+        {
+          "op": "11",
+          "operation": "ADD",
+          "result": "A + B (4-bit wrap)"
+        }
+      ],
+      "notes": [
+        "ZERO는 최종 선택된 OUT이 0000일 때 1입니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "모든 연산을 먼저 동시에 계산",
+      "body": "AND4, OR4, XOR4, Adder4는 모두 A/B를 동시에 받아 결과를 만들 수 있습니다. 그중 하나만 OP로 선택하면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "MUX4 세 개로 4개 결과 선택",
+      "body": "OP의 B0로 AND/OR와 XOR/ADD를 각각 선택한 뒤, OP의 B1로 두 중간 결과 중 하나를 최종 선택하세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "M0(A=AND,B=OR,SEL=OP.B0), M1(A=XOR,B=ADD,SEL=OP.B0), M2(A=M0,B=M1,SEL=OP.B1)로 구성하세요. Adder4.CIN은 Const 0, M2.OUT은 OUT과 Zero4.IN에 연결합니다."
+    }
+  ]
+}
