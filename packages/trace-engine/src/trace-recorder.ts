@@ -21,12 +21,20 @@ export interface TraceInputChange {
   after: string;
 }
 
+export interface TraceDriverChange {
+  netId: string;
+  driverId: string;
+  before: string;
+  after: string;
+}
+
 export interface TraceFrame {
   index: number;
   label?: string;
   cycleBefore: number;
   cycleAfter: number;
   inputChanges: readonly TraceInputChange[];
+  driverChanges: readonly TraceDriverChange[];
   stateChanges: readonly TraceSequentialChange[];
   signalSamples: Readonly<Record<string, string>>;
   memoryChanges: readonly [];
@@ -108,6 +116,30 @@ export class TraceRecorder {
       inputChanges.push({ pinId, before, after });
     }
 
+    const driverChanges: TraceDriverChange[] = [];
+    const netIds = new Set([
+      ...Object.keys(this.#snapshot.drivers),
+      ...Object.keys(next.drivers),
+    ]);
+
+    for (const netId of [...netIds].sort()) {
+      const beforeDrivers = this.#snapshot.drivers[netId] ?? {};
+      const afterDrivers = next.drivers[netId] ?? {};
+      const driverIds = new Set([
+        ...Object.keys(beforeDrivers),
+        ...Object.keys(afterDrivers),
+      ]);
+
+      for (const driverId of [...driverIds].sort()) {
+        const before = beforeDrivers[driverId];
+        const after = afterDrivers[driverId];
+        if (before === undefined || after === undefined || before === after) {
+          continue;
+        }
+        driverChanges.push({ netId, driverId, before, after });
+      }
+    }
+
     const stateChanges: TraceSequentialChange[] = [];
     const nodeIds = new Set([
       ...Object.keys(this.#snapshot.sequential),
@@ -143,6 +175,7 @@ export class TraceRecorder {
       cycleBefore: this.#snapshot.cycle,
       cycleAfter: next.cycle,
       inputChanges,
+      driverChanges,
       stateChanges,
       signalSamples,
       memoryChanges: [],
@@ -167,6 +200,16 @@ export class TraceRecorder {
 
     for (const change of frame.inputChanges) {
       previous.inputs[change.pinId] = change.before;
+    }
+
+    for (const change of frame.driverChanges) {
+      const netDrivers = previous.drivers[change.netId];
+      if (!netDrivers) {
+        throw new Error(
+          `Cannot rewind missing driver net ${change.netId}`,
+        );
+      }
+      netDrivers[change.driverId] = change.before;
     }
 
     for (const change of frame.stateChanges) {
