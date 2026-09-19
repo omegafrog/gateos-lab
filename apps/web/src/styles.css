@@ -1398,13 +1398,6 @@ button:disabled {
   pointer-events: none;
 }
 
-.compact-pin-name {
-  fill: #697483;
-  font-size: 7px;
-  font-weight: 700;
-  pointer-events: none;
-}
-
 .component .pin {
   transition:
     r 100ms ease,
@@ -1647,4 +1640,113 @@ button:disabled {
   color: #667181;
   font-size: 11px;
   font-weight: 700;
+}
+
+
+/* Dedicated selected-component I/O inspector */
+.component-io-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e3e7ed;
+}
+
+.component-io-group {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dfe4eb;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.component-io-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-bottom: 1px solid #e6eaf0;
+  background: #f1f4f8;
+}
+
+.component-io-group-header strong {
+  font-size: 11px;
+}
+
+.component-io-group-header span {
+  display: inline-flex;
+  min-width: 22px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #687384;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.component-io-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.component-io-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(58px, auto);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 9px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.component-io-row:last-child {
+  border-bottom: 0;
+}
+
+.component-io-name {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.component-io-name strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.component-io-name small {
+  color: #818a98;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+
+.component-io-value {
+  display: flex;
+  min-width: 58px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.component-io-value code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.component-io-value small {
+  color: #7b8492;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+}
+
+.component-io-empty {
+  margin: 0;
+  padding: 8px 9px;
 }
