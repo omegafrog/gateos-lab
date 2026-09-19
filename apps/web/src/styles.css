@@ -929,3 +929,144 @@ button:disabled {
   color: #b56a15;
   background: #fff9ef;
 }
+
+
+.truth-table-panel {
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid #d8dde6;
+  border-radius: 10px;
+  background: white;
+}
+
+.truth-table-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 11px 13px;
+  border-bottom: 1px solid #e2e6ec;
+}
+
+.truth-table-header p {
+  margin: 4px 0 0;
+  color: #747e8c;
+  font-size: 11px;
+}
+
+.truth-table-header > span {
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #eef1f7;
+  color: #687284;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.truth-table-scroll {
+  overflow-x: auto;
+}
+
+.truth-table-panel table {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.truth-table-panel th,
+.truth-table-panel td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #edf0f4;
+  text-align: center;
+}
+
+.truth-table-panel th {
+  background: #f8f9fb;
+  color: #606b7b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.truth-table-panel th small,
+.truth-table-panel td small {
+  display: block;
+  margin-top: 2px;
+  color: #8a93a0;
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.truth-table-panel tbody tr {
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.truth-table-panel tbody tr:hover {
+  background: #f7f8ff;
+}
+
+.truth-table-panel tbody tr.active {
+  background: #eef1ff;
+  box-shadow: inset 3px 0 #5267d8;
+}
+
+.truth-table-panel tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.truth-table-panel td code {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.truth-table-panel .truth-divider {
+  width: 16px;
+  padding: 0;
+  border-right: 1px solid #d7dce4;
+  border-left: 1px solid #d7dce4;
+  background: #f1f3f6;
+}
+
+.truth-input-column {
+  color: #4c5c85 !important;
+}
+
+.truth-output-column {
+  color: #37704e !important;
+}
+
+.truth-status-column {
+  width: 62px;
+}
+
+.truth-live-status {
+  width: 62px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.truth-live-status .match {
+  color: #237a4b;
+}
+
+.truth-live-status .mismatch {
+  color: #b4532e;
+}
+
+.truth-table-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 7px 12px;
+  border-top: 1px solid #e7eaf0;
+  background: #fafbfc;
+  color: #737d8b;
+  font-size: 10px;
+}
+
+.truth-table-legend strong {
+  color: #303947;
+}
