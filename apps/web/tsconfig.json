@@ -3,10 +3,14 @@
   "compilerOptions": {
     "composite": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": ".typecheck",
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
-    { "path": "../../packages/circuit-model" }
+    { "path": "../../packages/circuit-model" },
+    { "path": "../../packages/circuit-compiler" },
+    { "path": "../../packages/sim-core" },
+    { "path": "../../packages/challenge-engine" }
   ]
 }
