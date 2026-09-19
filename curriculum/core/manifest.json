@@ -1,16 +1,51 @@
 {
   "schema": "gateos.curriculum/v1",
   "id": "core.logic-v0",
-  "title": "From NAND to State",
+  "title": "From NAND to Register",
   "challenges": [
-    { "id": "logic.not", "file": "01-not.challenge.json" },
-    { "id": "logic.and", "file": "02-and.challenge.json" },
-    { "id": "logic.or", "file": "03-or.challenge.json" },
-    { "id": "logic.xor", "file": "04-xor.challenge.json" },
-    { "id": "routing.mux2", "file": "05-mux2.challenge.json" },
-    { "id": "arithmetic.half-adder", "file": "06-half-adder.challenge.json" },
-    { "id": "arithmetic.full-adder", "file": "07-full-adder.challenge.json" },
-    { "id": "state.sr-latch", "file": "08-sr-latch.challenge.json" },
-    { "id": "state.d-latch", "file": "09-d-latch.challenge.json" }
+    {
+      "id": "logic.not",
+      "file": "01-not.challenge.json"
+    },
+    {
+      "id": "logic.and",
+      "file": "02-and.challenge.json"
+    },
+    {
+      "id": "logic.or",
+      "file": "03-or.challenge.json"
+    },
+    {
+      "id": "logic.xor",
+      "file": "04-xor.challenge.json"
+    },
+    {
+      "id": "routing.mux2",
+      "file": "05-mux2.challenge.json"
+    },
+    {
+      "id": "arithmetic.half-adder",
+      "file": "06-half-adder.challenge.json"
+    },
+    {
+      "id": "arithmetic.full-adder",
+      "file": "07-full-adder.challenge.json"
+    },
+    {
+      "id": "state.sr-latch",
+      "file": "08-sr-latch.challenge.json"
+    },
+    {
+      "id": "state.d-latch",
+      "file": "09-d-latch.challenge.json"
+    },
+    {
+      "id": "state.dff",
+      "file": "10-dff.challenge.json"
+    },
+    {
+      "id": "state.enable-register",
+      "file": "11-enable-register.challenge.json"
+    }
   ]
 }
