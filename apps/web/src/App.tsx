@@ -1761,6 +1761,7 @@ export function App() {
                               ? "pin pending"
                               : "pin"
                           }
+                          data-pin-id={pin.id}
                           cx={point.x}
                           cy={point.y}
                           r="7"
