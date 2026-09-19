@@ -1070,3 +1070,98 @@ button:disabled {
 .truth-table-legend strong {
   color: #303947;
 }
+
+
+.reference-table-panel {
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid #d8dde6;
+  border-radius: 10px;
+  background: white;
+}
+
+.reference-table-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 11px 13px;
+  border-bottom: 1px solid #e2e6ec;
+}
+
+.reference-table-header p {
+  margin: 4px 0 0;
+  color: #747e8c;
+  font-size: 11px;
+}
+
+.reference-table-header > span {
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #f0edff;
+  color: #6757aa;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.reference-table-scroll {
+  overflow-x: auto;
+}
+
+.reference-table-panel table {
+  width: 100%;
+  min-width: 460px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.reference-table-panel th,
+.reference-table-panel td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #edf0f4;
+  text-align: center;
+}
+
+.reference-table-panel th {
+  background: #f8f9fb;
+  color: #606b7b;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.reference-table-panel td code {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reference-table-panel tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.reference-column-input {
+  color: #4c5c85 !important;
+}
+
+.reference-column-state {
+  color: #7a5d9b !important;
+}
+
+.reference-column-output {
+  color: #37704e !important;
+}
+
+.reference-column-note {
+  color: #786b55 !important;
+}
+
+.reference-table-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 12px;
+  border-top: 1px solid #e7eaf0;
+  background: #fafbfc;
+  color: #737d8b;
+  font-size: 10px;
+}
