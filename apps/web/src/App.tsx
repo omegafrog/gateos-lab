@@ -4469,7 +4469,7 @@ export function App() {
             <p className="muted">
               핀에서 Wire를 시작한 뒤 빈 grid 지점에 놓으면 node가 생깁니다.
               node를 이어 원하는 경로를 만든 뒤 목적지 핀에 놓으면 연결됩니다.
-              각 구간은 수평/수직/대각선 모두 가능합니다. 기존 Wire를 클릭하면 node가 추가되고, node를 직접 드래그해 경로를 수정할 수 있습니다.
+              Wire 말단 핀을 드래그하면 연결 끝을 이동하고, Wire 중간이나 junction을 클릭하면 그 지점에서 새 branch가 생성됩니다.
             </p>
             {pendingPin ? (
               <p>
@@ -4522,7 +4522,7 @@ export function App() {
           </dd>
         </dl>
 
-        <h2>Selected signal</h2>
+        <h2>Wire signal</h2>
         {selectedConnection ? (() => {
           const connection = displayCircuit?.connections.find(
             (candidate) => candidate.id === selectedConnection,
@@ -4562,7 +4562,7 @@ export function App() {
             </div>
           );
         })() : (
-          <p className="muted">Click a wire to inspect it.</p>
+          <p className="muted">Wire 중간 클릭: branch 생성 · 말단 핀 드래그: endpoint 이동</p>
         )}
 
         <h2>Selected component</h2>
