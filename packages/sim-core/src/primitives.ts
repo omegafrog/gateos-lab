@@ -94,6 +94,35 @@ export class PrimitiveRegistry {
 export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
   const registry = new PrimitiveRegistry();
 
+  registry.register("builtin.split2", (inputs) => {
+    const input = inputs.in;
+    if (!input) throw new Error("Split2 requires input 'in'");
+    if (input.width !== 2) {
+      throw new Error(`Split2 expects a 2-bit input, got ${input.width}`);
+    }
+
+    return {
+      b0: BitVector.fromLSB([input.get(0)]),
+      b1: BitVector.fromLSB([input.get(1)]),
+    };
+  });
+
+  registry.register("builtin.join2", (inputs) => {
+    const bits = ["b0", "b1"].map((id) => inputs[id]);
+    if (bits.some((bit) => !bit)) {
+      throw new Error("Join2 requires inputs b0, b1");
+    }
+    for (const bit of bits) {
+      if (!bit || bit.width !== 1) {
+        throw new Error("Join2 expects two 1-bit inputs");
+      }
+    }
+
+    return {
+      out: BitVector.fromLSB(bits.map((bit) => bit!.get(0))),
+    };
+  });
+
   registry.register("builtin.split4", (inputs) => {
     const input = inputs.in;
     if (!input) throw new Error("Split4 requires input 'in'");
