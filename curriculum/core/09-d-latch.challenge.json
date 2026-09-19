@@ -92,5 +92,72 @@
   ],
   "unlocks": [
     "state.dff"
+  ],
+  "referenceTables": [
+    {
+      "id": "characteristic",
+      "title": "D Latch characteristic table",
+      "description": "ENABLE=1 is transparent. ENABLE=0 holds the previous state.",
+      "columns": [
+        {
+          "id": "enable",
+          "label": "ENABLE",
+          "group": "input"
+        },
+        {
+          "id": "d",
+          "label": "D",
+          "group": "input"
+        },
+        {
+          "id": "qt",
+          "label": "Q(t)",
+          "group": "state"
+        },
+        {
+          "id": "qnext",
+          "label": "Q(t+1)",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "Meaning",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "enable": "0",
+          "d": "X",
+          "qt": "0",
+          "qnext": "0",
+          "meaning": "Hold"
+        },
+        {
+          "enable": "0",
+          "d": "X",
+          "qt": "1",
+          "qnext": "1",
+          "meaning": "Hold"
+        },
+        {
+          "enable": "1",
+          "d": "0",
+          "qt": "X",
+          "qnext": "0",
+          "meaning": "Follow D"
+        },
+        {
+          "enable": "1",
+          "d": "1",
+          "qt": "X",
+          "qnext": "1",
+          "meaning": "Follow D"
+        }
+      ],
+      "notes": [
+        "X means the value does not affect the next state."
+      ]
+    }
   ]
 }
