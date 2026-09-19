@@ -1924,6 +1924,7 @@ export function App() {
       return;
     }
     event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
     setPan({
       clientX: event.clientX,
       clientY: event.clientY,
@@ -1944,6 +1945,7 @@ export function App() {
     if (!circuit || !challenge || testRunning || isInspectingNested) return;
     event.stopPropagation();
     event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
 
     const stack = undoRef.current[challenge.id] ?? [];
     stack.push(circuit);
@@ -1989,6 +1991,7 @@ export function App() {
     if (!challenge || !circuit || testRunning || isInspectingNested) return;
     event.stopPropagation();
     event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
 
     const stack = undoRef.current[challenge.id] ?? [];
     stack.push(circuit);
@@ -2008,6 +2011,7 @@ export function App() {
   ): void {
     if (!circuit || !challenge || testRunning || isInspectingNested) return;
     event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
 
     if (!selectedInstances.includes(instanceId)) {
       setSelectedInstances([instanceId]);
