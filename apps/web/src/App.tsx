@@ -2438,10 +2438,10 @@ export function App() {
               </pattern>
             </defs>
             <rect
-              x={-CANVAS_WIDTH}
-              y={-CANVAS_HEIGHT}
-              width={CANVAS_WIDTH * 3}
-              height={CANVAS_HEIGHT * 3}
+              x={viewport.x - viewport.width * 50}
+              y={viewport.y - viewport.height * 50}
+              width={viewport.width * 100}
+              height={viewport.height * 100}
               fill="url(#grid)"
               onPointerDown={beginPan}
             />
