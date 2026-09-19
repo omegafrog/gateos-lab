@@ -123,6 +123,23 @@ export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
     };
   });
 
+  registry.register("builtin.split6", (inputs) => {
+    const input = inputs.in;
+    if (!input) throw new Error("Split6 requires input 'in'");
+    if (input.width !== 6) {
+      throw new Error(`Split6 expects a 6-bit input, got ${input.width}`);
+    }
+
+    return {
+      b0: BitVector.fromLSB([input.get(0)]),
+      b1: BitVector.fromLSB([input.get(1)]),
+      b2: BitVector.fromLSB([input.get(2)]),
+      b3: BitVector.fromLSB([input.get(3)]),
+      b4: BitVector.fromLSB([input.get(4)]),
+      b5: BitVector.fromLSB([input.get(5)]),
+    };
+  });
+
   registry.register("builtin.split4", (inputs) => {
     const input = inputs.in;
     if (!input) throw new Error("Split4 requires input 'in'");
