@@ -515,47 +515,96 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
   expect((path.match(/ L /g) ?? []).length).toBe(2);
 });
 
-test("clicking an existing wire adds a movable snapped anchor", async ({ page }) => {
+test("clicking a wire segment creates a branch from that junction", async ({
+  page,
+}) => {
   await page.getByTestId("palette-builtin.nand").click();
 
   const component = page.locator('[data-testid^="component-"]').first();
+  const source = page.getByTestId("pin-interface-in");
+  const inputA = component.locator('[data-pin-id="a"]');
+  const inputB = component.locator('[data-pin-id="b"]');
+
+  await connect(page, source, inputA);
+
+  const hitTarget = page.locator("path.wire-hit-target").first();
+  await expect(hitTarget).toBeVisible();
+  await hitTarget.click();
+
+  const branchEnd = page.getByTestId("draft-wire-end");
+  await expect(branchEnd).toBeVisible();
+
+  const junction = page.locator("circle.wire-junction").first();
+  await expect(junction).toBeVisible();
+  expect(Number(await junction.getAttribute("cx")) % 12).toBe(0);
+  expect(Number(await junction.getAttribute("cy")) % 12).toBe(0);
+
+  await branchEnd.hover();
+  await page.mouse.down();
+  await inputB.hover();
+  await page.mouse.up();
+
+  await expect(page.getByTestId("draft-wire-end")).toHaveCount(0);
+  await expect(page.locator("path.wire:not(.wire-preview)")).toHaveCount(2);
+
+  const savedBranchCount = await page.evaluate(() => {
+    const raw = localStorage.getItem("gateos-lab:v0.1");
+    if (!raw) return 0;
+    const project = JSON.parse(raw);
+    const connections = project.circuits["logic.not"]?.connections ?? [];
+    return connections.filter(
+      (connection: { branchStart?: { x: number; y: number } }) =>
+        connection.branchStart,
+    ).length;
+  });
+  expect(savedBranchCount).toBe(1);
+});
+
+test("dragging a connected wire endpoint moves that wire to another pin", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const source = page.getByTestId("pin-interface-in");
+  const inputA = component.locator('[data-pin-id="a"]');
+  const inputB = component.locator('[data-pin-id="b"]');
+
+  await connect(page, source, inputA);
+  await expect(page.locator("path.wire:not(.wire-preview)")).toHaveCount(1);
+
+  await inputA.hover();
+  await page.mouse.down();
+  await inputB.hover();
+  await page.mouse.up();
+
+  await expect(page.locator("path.wire:not(.wire-preview)")).toHaveCount(1);
+
+  const path = (await page
+    .locator("path.wire:not(.wire-preview)")
+    .first()
+    .getAttribute("d")) ?? "";
+  const numbers = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  const targetX = Number(await inputB.getAttribute("cx"));
+  const targetY = Number(await inputB.getAttribute("cy"));
+  expect(numbers.at(-2)).toBe(targetX);
+  expect(numbers.at(-1)).toBe(targetY);
+});
+
+test("wire probes are removed from the inspector", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+  const component = page.locator('[data-testid^="component-"]').first();
+
   await connect(
     page,
     page.getByTestId("pin-interface-in"),
     component.locator('[data-pin-id="a"]'),
   );
 
-  const wire = page.locator("path.wire:not(.wire-preview)").first();
-  const hitTarget = page.locator("path.wire-hit-target").first();
-  await expect(wire).toBeVisible();
-  await expect(hitTarget).toBeVisible();
-  await hitTarget.click();
+  await page.locator("path.wire-hit-target").first().click();
 
-  const node = page.locator("circle.wire-node:not(.draft)").first();
-  await expect(node).toBeVisible();
-
-  const beforeX = Number(await node.getAttribute("cx"));
-  const beforeY = Number(await node.getAttribute("cy"));
-  expect(beforeX % 12).toBe(0);
-  expect(beforeY % 12).toBe(0);
-
-  const box = await node.boundingBox();
-  if (!box) throw new Error("missing route node geometry");
-
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(
-    box.x + box.width / 2 + 61,
-    box.y + box.height / 2 + 37,
-    { steps: 8 },
-  );
-  await page.mouse.up();
-
-  const afterX = Number(await node.getAttribute("cx"));
-  const afterY = Number(await node.getAttribute("cy"));
-  expect(afterX % 12).toBe(0);
-  expect(afterY % 12).toBe(0);
-  expect(afterX === beforeX && afterY === beforeY).toBe(false);
+  await expect(page.getByRole("heading", { name: "Probes" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add probe" })).toHaveCount(0);
 });
 
 test("all component ports land on the same hidden 12-unit grid", async ({ page }) => {
