@@ -74,7 +74,6 @@ interface DragState {
 
 interface InterfaceDragState {
   pinId: string;
-  direction: "input" | "output";
   offsetX: number;
   offsetY: number;
 }
@@ -280,8 +279,6 @@ function instancePosition(
 const COMPACT_COMPONENT_WIDTH = 92;
 const COMPACT_PIN_GAP = 20;
 const COMPACT_MIN_HEIGHT = 52;
-const CHIP_PLACEMENT_TOP = 84;
-const CANVAS_EDGE_PADDING = 16;
 const TERMINAL_BODY_WIDTH = 100;
 const TERMINAL_PORT_GAP = 12;
 
@@ -428,51 +425,6 @@ function interfacePinPoint(
   return {
     x: CANVAS_WIDTH - 132,
     y: 112 + Math.max(outputIndex, 0) * 82,
-  };
-}
-
-function clampComponentPosition(
-  point: Point,
-  spec: ComponentSpec,
-): Point {
-  const geometry = componentGeometry(spec);
-  return {
-    x: Math.max(
-      CANVAS_EDGE_PADDING,
-      Math.min(
-        CANVAS_WIDTH - geometry.width - CANVAS_EDGE_PADDING,
-        point.x,
-      ),
-    ),
-    y: Math.max(
-      CHIP_PLACEMENT_TOP,
-      Math.min(
-        CANVAS_HEIGHT - geometry.height - CANVAS_EDGE_PADDING,
-        point.y,
-      ),
-    ),
-  };
-}
-
-function clampInterfacePosition(
-  point: Point,
-  direction: "input" | "output",
-): Point {
-  const minX =
-    direction === "input"
-      ? TERMINAL_BODY_WIDTH + TERMINAL_PORT_GAP + CANVAS_EDGE_PADDING
-      : CANVAS_EDGE_PADDING;
-  const maxX =
-    direction === "input"
-      ? CANVAS_WIDTH - CANVAS_EDGE_PADDING
-      : CANVAS_WIDTH -
-        TERMINAL_BODY_WIDTH -
-        TERMINAL_PORT_GAP -
-        CANVAS_EDGE_PADDING;
-
-  return {
-    x: Math.max(minX, Math.min(maxX, point.x)),
-    y: Math.max(42, Math.min(CANVAS_HEIGHT - 42, point.y)),
   };
 }
 
@@ -1289,14 +1241,10 @@ export function App() {
     if (!circuit || isInspectingNested) return;
     const count = circuit.instances.length;
     const id = `u${Date.now().toString(36)}-${count}`;
-    const spec = registry.get(componentId);
-    const position = clampComponentPosition(
-      {
-        x: 260 + (count % 4) * 150,
-        y: 120 + Math.floor(count / 4) * 120,
-      },
-      spec,
-    );
+    const position = {
+      x: viewport.x + viewport.width * 0.38 + (count % 3) * 36,
+      y: viewport.y + viewport.height * 0.32 + (count % 3) * 28,
+    };
     updateCircuit((current) => ({
       ...current,
       instances: [
@@ -1426,17 +1374,13 @@ export function App() {
       const id = `paste-${stamp}-${index}`;
       idMap.set(instance.id, id);
       const position = instance.position ?? { x: 360, y: 220 };
-      const spec = registry.get(instance.componentId);
       return {
         ...instance,
         id,
-        position: clampComponentPosition(
-          {
-            x: position.x + 36,
-            y: position.y + 36,
-          },
-          spec,
-        ),
+        position: {
+          x: position.x + 36,
+          y: position.y + 36,
+        },
       };
     });
 
@@ -1643,7 +1587,7 @@ export function App() {
   function beginInterfaceDrag(
     event: ReactPointerEvent<SVGElement>,
     pinId: string,
-    direction: "input" | "output",
+    _direction: "input" | "output",
   ): void {
     if (!circuit || !challenge || testRunning || isInspectingNested) return;
     event.stopPropagation();
@@ -1659,7 +1603,6 @@ export function App() {
     const point = clientToCanvasPoint(event.clientX, event.clientY);
     setInterfaceDrag({
       pinId,
-      direction,
       offsetX: point.x - position.x,
       offsetY: point.y - position.y,
     });
@@ -1714,13 +1657,10 @@ export function App() {
     const point = canvasPoint(event);
 
     if (interfaceDrag) {
-      const next = clampInterfacePosition(
-        {
-          x: point.x - interfaceDrag.offsetX,
-          y: point.y - interfaceDrag.offsetY,
-        },
-        interfaceDrag.direction,
-      );
+      const next = {
+        x: point.x - interfaceDrag.offsetX,
+        y: point.y - interfaceDrag.offsetY,
+      };
 
       updateCircuit(
         (current) => {
@@ -1754,16 +1694,12 @@ export function App() {
         ...current,
         instances: current.instances.map((instance) => {
           if (instance.id !== drag.instanceId) return instance;
-          const spec = registry.get(instance.componentId);
           return {
             ...instance,
-            position: clampComponentPosition(
-              {
-                x: point.x - drag.offsetX,
-                y: point.y - drag.offsetY,
-              },
-              spec,
-            ),
+            position: {
+              x: point.x - drag.offsetX,
+              y: point.y - drag.offsetY,
+            },
           };
         }),
       }),
@@ -2509,30 +2445,6 @@ export function App() {
               fill="url(#grid)"
               onPointerDown={beginPan}
             />
-            <g className="chip-placement-limit" pointerEvents="none">
-              <rect
-                x="0"
-                y="0"
-                width={CANVAS_WIDTH}
-                height={CHIP_PLACEMENT_TOP}
-                className="chip-placement-limit-fill"
-              />
-              <line
-                x1="0"
-                y1={CHIP_PLACEMENT_TOP}
-                x2={CANVAS_WIDTH}
-                y2={CHIP_PLACEMENT_TOP}
-                className="chip-placement-limit-line"
-              />
-              <text
-                x="16"
-                y={CHIP_PLACEMENT_TOP - 10}
-                className="chip-placement-limit-label"
-              >
-                칩 배치 제한 영역
-              </text>
-            </g>
-
             {(displayCircuit?.connections ?? []).map((connection) => {
               const from = getEndpointPoint(
                 connection.from,
