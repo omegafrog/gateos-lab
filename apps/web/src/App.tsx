@@ -1988,6 +1988,11 @@ export function App() {
               <div>
                 <strong>{table.title}</strong>
                 {table.description ? <p>{table.description}</p> : null}
+                {table.timing ? (
+                  <p className="reference-timing">
+                    <strong>Timing:</strong> {table.timing}
+                  </p>
+                ) : null}
               </div>
               <span>State / characteristic table</span>
             </div>
