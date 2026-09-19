@@ -841,7 +841,7 @@ export function App() {
   }
 
   function onPinClick(endpoint: CircuitEndpoint): void {
-    if (!circuit || isInspectingNested) return;
+    if (!challenge || !circuit || isInspectingNested) return;
     if (!pendingPin) {
       setPendingPin(endpoint);
       return;
