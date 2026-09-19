@@ -1419,3 +1419,27 @@ button:disabled {
 .chip-symbol-body {
   fill: #f9fafc;
 }
+
+
+.logic-symbol-accent {
+  fill: none;
+  stroke: #6f7a8a;
+  stroke-width: 2;
+}
+
+.mux-symbol-body {
+  fill: #ffffff;
+  stroke: #6f7a8a;
+  stroke-width: 2;
+}
+
+.compact-symbol.selected .logic-symbol-accent,
+.compact-symbol.selected .mux-symbol-body {
+  stroke: #445bd0;
+  stroke-width: 3;
+}
+
+.mux-symbol .compact-symbol-label {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
