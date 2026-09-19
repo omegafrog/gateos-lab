@@ -332,7 +332,7 @@ test("OR XOR and MUX use dedicated compact symbols", async ({ page }) => {
   );
 });
 
-test("chips cannot be dragged above the placement boundary", async ({ page }) => {
+test("chips can be dragged past the old placement boundary", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
   const component = page.locator('[data-testid^="component-"]').first();
@@ -350,12 +350,39 @@ test("chips cannot be dragged above the placement boundary", async ({ page }) =>
   await page.mouse.down();
   await page.mouse.move(
     componentBox.x + componentBox.width / 2,
-    canvasBox.y + 4,
+    canvasBox.y + 8,
     { steps: 8 },
   );
   await page.mouse.up();
 
-  await expect(component).toHaveAttribute("data-position-y", "84");
+  const y = Number(await component.getAttribute("data-position-y"));
+  expect(y).toBeLessThan(84);
+});
+
+test("new chips are created in the currently panned world viewport", async ({
+  page,
+}) => {
+  const canvas = page.locator("svg.circuit-canvas");
+  const canvasBox = await canvas.boundingBox();
+  if (!canvasBox) throw new Error("missing canvas geometry");
+
+  const centerX = canvasBox.x + canvasBox.width / 2;
+  const centerY = canvasBox.y + canvasBox.height / 2;
+
+  await page.mouse.move(centerX, centerY);
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + 30, centerY, { steps: 10 });
+  await page.mouse.up();
+
+  const viewBox = (await canvas.getAttribute("viewBox")) ?? "";
+  const viewportX = Number(viewBox.split(/\s+/)[0]);
+  expect(viewportX).toBeGreaterThan(300);
+
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const x = Number(await component.getAttribute("data-position-x"));
+  expect(x).toBeGreaterThan(viewportX);
 });
 
 test("interface terminals can move and connected wires follow their position", async ({
