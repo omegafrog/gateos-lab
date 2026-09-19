@@ -1,0 +1,249 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "state.register4",
+  "title": "4-bit Enable Register",
+  "description": "이전에 만든 1-bit Enable Register 네 개를 묶어 4-bit Register를 만드세요. LOAD=1인 rising edge에서 D[3:0]를 저장하고, LOAD=0이면 이전 Q[3:0]를 유지해야 합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "d",
+        "name": "D",
+        "width": 4
+      },
+      {
+        "id": "load",
+        "name": "LOAD",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "q",
+        "name": "Q",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split4",
+    "builtin.join4",
+    "user.enable-register"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "d": 10,
+            "load": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 10
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 5,
+            "load": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 10
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 5
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "d": 15,
+            "load": 1,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 15
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 0,
+            "load": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 15
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "load": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 6
+      }
+    }
+  ],
+  "unlocks": [
+    "state.counter4"
+  ],
+  "referenceTables": [
+    {
+      "id": "characteristic",
+      "title": "4-bit Enable Register 상태표",
+      "description": "네 bit가 같은 LOAD와 CLK를 공유합니다. 각 bit는 같은 rising edge에서 동시에 저장됩니다.",
+      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서 LOAD와 4-bit D를 함께 평가합니다.",
+      "columns": [
+        {
+          "id": "load",
+          "label": "LOAD",
+          "group": "input"
+        },
+        {
+          "id": "d",
+          "label": "D[3:0]",
+          "group": "input"
+        },
+        {
+          "id": "qt",
+          "label": "Q(edge 전)",
+          "group": "state"
+        },
+        {
+          "id": "qnext",
+          "label": "Q(edge 후)",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "의미",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "load": "0",
+          "d": "—",
+          "qt": "현재 값",
+          "qnext": "현재 값",
+          "meaning": "Hold (유지)"
+        },
+        {
+          "load": "1",
+          "d": "abcd",
+          "qt": "—",
+          "qnext": "abcd",
+          "meaning": "4-bit D 저장"
+        }
+      ],
+      "notes": [
+        "Split4의 B0가 LSB, B3가 MSB입니다.",
+        "모든 1-bit Register가 같은 LOAD와 CLK를 공유해야 네 bit가 동시에 갱신됩니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "1-bit Register 네 개를 병렬로",
+      "body": "새로운 저장 원리는 없습니다. 4-bit D를 네 개의 1-bit D로 나누고, 네 Register가 같은 LOAD와 CLK를 공유하게 하세요."
+    },
+    {
+      "level": 2,
+      "title": "Split4와 Join4 사용",
+      "body": "D를 Split4로 나눈 뒤 B0~B3를 각각 1-bit Enable Register의 D에 연결하고, 각 Q를 Join4로 다시 묶으세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "Split4.B0→REG0.D ... B3→REG3.D, LOAD와 CLK는 네 Register 모두에 fan-out합니다. REG0~3.Q를 Join4.B0~B3에 같은 순서로 연결하고 Join4.OUT→Q로 연결하세요."
+    }
+  ]
+}
