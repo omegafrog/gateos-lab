@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "npm run dev -w @gateos/web",
     "build": "tsc -b && npm run build -w @gateos/web",
     "build:web": "npm run build -w @gateos/web",
     "typecheck": "tsc -b --pretty false",
