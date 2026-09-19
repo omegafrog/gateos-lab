@@ -104,7 +104,7 @@
     {
       "id": "characteristic",
       "title": "SR Latch characteristic table",
-      "description": "Active-low NAND SR latch. Q(t) is the stored state before the input change.",
+      "description": "Active-low NAND SR latch. Q(t), Q̅(t) are the current outputs; Q(t+1), Q̅(t+1) are the outputs after the input condition settles.",
       "columns": [
         {
           "id": "sbar",
@@ -122,8 +122,18 @@
           "group": "state"
         },
         {
+          "id": "nqt",
+          "label": "Q̅(t)",
+          "group": "state"
+        },
+        {
           "id": "qnext",
           "label": "Q(t+1)",
+          "group": "output"
+        },
+        {
+          "id": "nqnext",
+          "label": "Q̅(t+1)",
           "group": "output"
         },
         {
@@ -137,41 +147,52 @@
           "sbar": "0",
           "rbar": "1",
           "qt": "X",
+          "nqt": "X",
           "qnext": "1",
+          "nqnext": "0",
           "meaning": "Set"
         },
         {
           "sbar": "1",
           "rbar": "0",
           "qt": "X",
+          "nqt": "X",
           "qnext": "0",
+          "nqnext": "1",
           "meaning": "Reset"
         },
         {
           "sbar": "1",
           "rbar": "1",
           "qt": "0",
+          "nqt": "1",
           "qnext": "0",
+          "nqnext": "1",
           "meaning": "Hold"
         },
         {
           "sbar": "1",
           "rbar": "1",
           "qt": "1",
+          "nqt": "0",
           "qnext": "1",
+          "nqnext": "0",
           "meaning": "Hold"
         },
         {
           "sbar": "0",
           "rbar": "0",
           "qt": "X",
-          "qnext": "invalid",
+          "nqt": "X",
+          "qnext": "1",
+          "nqnext": "1",
           "meaning": "Forbidden"
         }
       ],
       "notes": [
         "S̅/R̅ are active-low inputs.",
-        "The 0,0 condition is forbidden for the NAND SR latch."
+        "Q and Q̅ are normally complements.",
+        "For S̅=0 and R̅=0, a NAND SR latch forces Q=1 and Q̅=1, so the complement relationship is broken and the condition is forbidden."
       ]
     }
   ]
