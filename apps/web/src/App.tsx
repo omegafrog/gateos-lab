@@ -2613,6 +2613,15 @@ export function App() {
                     }
                   }}
                 >
+                  <title>{componentDisplayName(spec)}</title>
+                  <rect
+                    x={position.x}
+                    y={position.y}
+                    width={geometry.width}
+                    height={geometry.height}
+                    rx="8"
+                    className="component-hitbox"
+                  />
                   {symbolKind === "nand" ? (
                     <g
                       className={[
