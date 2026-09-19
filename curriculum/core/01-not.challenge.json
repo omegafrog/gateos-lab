@@ -4,21 +4,72 @@
   "title": "NOT",
   "description": "NAND 하나를 이용해 입력을 반전하는 NOT 게이트를 만드세요.",
   "interface": {
-    "inputs": [{ "id": "in", "name": "IN", "width": 1 }],
-    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+    "inputs": [
+      {
+        "id": "in",
+        "name": "IN",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 1
+      }
+    ]
   },
-  "allowedComponents": ["builtin.nand"],
+  "allowedComponents": [
+    "builtin.nand"
+  ],
   "validators": [
     {
       "type": "truthTable",
       "visibility": "visible",
-      "cases": [{ "in": { "in": 0 }, "out": { "out": 1 } }]
+      "cases": [
+        {
+          "in": {
+            "in": 0
+          },
+          "out": {
+            "out": 1
+          }
+        }
+      ]
     },
     {
       "type": "truthTable",
       "visibility": "hidden",
-      "cases": [{ "in": { "in": 1 }, "out": { "out": 0 } }]
+      "cases": [
+        {
+          "in": {
+            "in": 1
+          },
+          "out": {
+            "out": 0
+          }
+        }
+      ]
     }
   ],
-  "unlocks": ["logic.and"]
+  "unlocks": [
+    "logic.and"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "동작을 다시 생각해보기",
+      "body": "NAND는 두 입력이 모두 1일 때만 0을 출력합니다. 한 입력 신호를 두 입력에 동시에 넣으면 어떤 동작이 되는지 생각해보세요."
+    },
+    {
+      "level": 2,
+      "title": "NAND 하나로 반전 만들기",
+      "body": "하나의 NAND에서 A와 B 입력을 서로 같은 신호로 묶으면 출력은 그 신호의 반대가 됩니다."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "IN을 NAND의 두 입력 A, B에 모두 연결하고, NAND의 OUT을 회로의 OUT에 연결하세요."
+    }
+  ]
 }
