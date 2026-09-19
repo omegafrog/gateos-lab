@@ -5,22 +5,9 @@ async function connect(
   from: Locator,
   to: Locator,
 ): Promise<void> {
-  const fromBox = await from.boundingBox();
-  const toBox = await to.boundingBox();
-  if (!fromBox || !toBox) {
-    throw new Error("missing pin geometry for wire drag");
-  }
-
-  await page.mouse.move(
-    fromBox.x + fromBox.width / 2,
-    fromBox.y + fromBox.height / 2,
-  );
+  await from.hover();
   await page.mouse.down();
-  await page.mouse.move(
-    toBox.x + toBox.width / 2,
-    toBox.y + toBox.height / 2,
-    { steps: 8 },
-  );
+  await to.hover();
   await page.mouse.up();
 }
 
