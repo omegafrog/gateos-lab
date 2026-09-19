@@ -5,11 +5,23 @@
   "description": "두 D Latch를 master/slave 구조로 연결해 CLK의 rising edge에서만 D를 저장하는 D Flip-Flop을 만드세요.",
   "interface": {
     "inputs": [
-      { "id": "d", "name": "D", "width": 1 },
-      { "id": "clk", "name": "CLK", "width": 1 }
+      {
+        "id": "d",
+        "name": "D",
+        "width": 1
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
     ],
     "outputs": [
-      { "id": "q", "name": "Q", "width": 1 }
+      {
+        "id": "q",
+        "name": "Q",
+        "width": 1
+      }
     ]
   },
   "allowedComponents": [
@@ -21,30 +33,164 @@
       "type": "sequence",
       "visibility": "visible",
       "steps": [
-        { "set": { "d": 0, "clk": 0 } },
-        { "set": { "clk": 1 } },
-        { "expect": { "q": 0 } },
-        { "set": { "d": 1 } },
-        { "expect": { "q": 0 } },
-        { "set": { "clk": 0 } },
-        { "expect": { "q": 0 } },
-        { "set": { "clk": 1 } },
-        { "expect": { "q": 1 } },
-        { "set": { "d": 0 } },
-        { "expect": { "q": 1 } },
-        { "set": { "clk": 0 } },
-        { "expect": { "q": 1 } },
-        { "set": { "clk": 1 } },
-        { "expect": { "q": 0 } }
+        {
+          "set": {
+            "d": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        },
+        {
+          "set": {
+            "d": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "d": 0
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "expect": {
+            "q": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "expect": {
+            "q": 0
+          }
+        }
       ]
     },
     {
       "type": "structural",
       "rules": {
-        "allowed": ["user.not", "user.d-latch"],
+        "allowed": [
+          "user.not",
+          "user.d-latch"
+        ],
         "maxComponents": 4
       }
     }
   ],
-  "unlocks": ["state.enable-register"]
+  "unlocks": [
+    "state.enable-register"
+  ],
+  "referenceTables": [
+    {
+      "id": "characteristic",
+      "title": "D Flip-Flop characteristic table",
+      "description": "Q changes only on the rising edge of CLK.",
+      "columns": [
+        {
+          "id": "event",
+          "label": "CLK event",
+          "group": "input"
+        },
+        {
+          "id": "d",
+          "label": "D",
+          "group": "input"
+        },
+        {
+          "id": "qt",
+          "label": "Q(t)",
+          "group": "state"
+        },
+        {
+          "id": "qnext",
+          "label": "Q(t+1)",
+          "group": "output"
+        },
+        {
+          "id": "meaning",
+          "label": "Meaning",
+          "group": "note"
+        }
+      ],
+      "rows": [
+        {
+          "event": "↑",
+          "d": "0",
+          "qt": "X",
+          "qnext": "0",
+          "meaning": "Capture D"
+        },
+        {
+          "event": "↑",
+          "d": "1",
+          "qt": "X",
+          "qnext": "1",
+          "meaning": "Capture D"
+        },
+        {
+          "event": "no ↑",
+          "d": "X",
+          "qt": "0",
+          "qnext": "0",
+          "meaning": "Hold"
+        },
+        {
+          "event": "no ↑",
+          "d": "X",
+          "qt": "1",
+          "qnext": "1",
+          "meaning": "Hold"
+        }
+      ],
+      "notes": [
+        "Only the rising edge samples D.",
+        "Changing D between rising edges must not change Q."
+      ]
+    }
+  ]
 }
