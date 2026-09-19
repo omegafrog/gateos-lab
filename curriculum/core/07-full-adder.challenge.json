@@ -1,0 +1,41 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "arithmetic.full-adder",
+  "title": "Full Adder",
+  "description": "두 Half Adder와 OR을 이용해 A, B, CIN을 더하는 Full Adder를 만드세요.",
+  "interface": {
+    "inputs": [
+      { "id": "a", "name": "A", "width": 1 },
+      { "id": "b", "name": "B", "width": 1 },
+      { "id": "cin", "name": "CIN", "width": 1 }
+    ],
+    "outputs": [
+      { "id": "sum", "name": "SUM", "width": 1 },
+      { "id": "cout", "name": "COUT", "width": 1 }
+    ]
+  },
+  "allowedComponents": ["user.half-adder", "user.or"],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        { "in": { "a": 0, "b": 0, "cin": 0 }, "out": { "sum": 0, "cout": 0 } },
+        { "in": { "a": 1, "b": 1, "cin": 1 }, "out": { "sum": 1, "cout": 1 } }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        { "in": { "a": 0, "b": 0, "cin": 1 }, "out": { "sum": 1, "cout": 0 } },
+        { "in": { "a": 0, "b": 1, "cin": 0 }, "out": { "sum": 1, "cout": 0 } },
+        { "in": { "a": 0, "b": 1, "cin": 1 }, "out": { "sum": 0, "cout": 1 } },
+        { "in": { "a": 1, "b": 0, "cin": 0 }, "out": { "sum": 1, "cout": 0 } },
+        { "in": { "a": 1, "b": 0, "cin": 1 }, "out": { "sum": 0, "cout": 1 } },
+        { "in": { "a": 1, "b": 1, "cin": 0 }, "out": { "sum": 0, "cout": 1 } }
+      ]
+    }
+  ],
+  "unlocks": []
+}
