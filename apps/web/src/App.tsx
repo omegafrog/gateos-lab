@@ -839,19 +839,18 @@ export function App() {
 
         setManifest(loadedManifest);
         setChallenges(loadedChallenges);
-        setSelectedId((current) => {
-          if (current) return current;
 
-          const completed = new Set(initialProject.project.completed);
-          let nextIndex = loadedChallenges.findIndex((item, index) => {
-            if (completed.has(item.id)) return false;
-            return index === 0 || completed.has(loadedChallenges[index - 1]?.id ?? "");
-          });
-          if (nextIndex < 0) nextIndex = Math.max(loadedChallenges.length - 1, 0);
-
-          setActiveStageIndex(curriculumStageForIndex(nextIndex));
-          return loadedChallenges[nextIndex]?.id ?? "";
+        const completed = new Set(initialProject.project.completed);
+        let nextIndex = loadedChallenges.findIndex((item, index) => {
+          if (completed.has(item.id)) return false;
+          return index === 0 || completed.has(loadedChallenges[index - 1]?.id ?? "");
         });
+        if (nextIndex < 0) {
+          nextIndex = Math.max(loadedChallenges.length - 1, 0);
+        }
+
+        setActiveStageIndex(curriculumStageForIndex(nextIndex));
+        setSelectedId((current) => current || loadedChallenges[nextIndex]?.id || "");
       } catch (error) {
         setLoadError(error instanceof Error ? error.message : String(error));
       }
