@@ -72,11 +72,7 @@ test("dragging stays under the cursor after zoom", async ({ page }) => {
   const canvasBox = await canvas.boundingBox();
   if (!canvasBox) throw new Error("missing canvas bounding box");
 
-  await page.mouse.move(
-    canvasBox.x + canvasBox.width / 2,
-    canvasBox.y + canvasBox.height / 2,
-  );
-  await page.mouse.wheel(0, -500);
+  await page.getByRole("button", { name: "+", exact: true }).click();
 
   const before = await component.boundingBox();
   if (!before) throw new Error("missing component bounding box");
@@ -96,4 +92,21 @@ test("dragging stays under the cursor after zoom", async ({ page }) => {
 
   expect(after.x - before.x).toBeCloseTo(dx, -1);
   expect(after.y - before.y).toBeCloseTo(dy, -1);
+});
+
+test("mouse wheel does not zoom the circuit canvas", async ({ page }) => {
+  const canvas = page.locator("svg.circuit-canvas");
+  await expect(canvas).toBeVisible();
+
+  const before = await canvas.getAttribute("viewBox");
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("missing canvas bounding box");
+
+  await page.mouse.move(
+    box.x + box.width / 2,
+    box.y + box.height / 2,
+  );
+  await page.mouse.wheel(0, -600);
+
+  await expect(canvas).toHaveAttribute("viewBox", before ?? "");
 });
