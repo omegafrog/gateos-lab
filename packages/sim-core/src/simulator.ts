@@ -14,6 +14,7 @@ export interface SimulatorSnapshot {
   schema: "gateos.sim-state/v1";
   cycle: number;
   inputs: Record<string, string>;
+  drivers: Record<string, Record<string, string>>;
   sequential: Record<
     string,
     {
@@ -272,6 +273,15 @@ export class Simulator {
       inputs[pinId] = value.toBinary();
     }
 
+    const drivers: SimulatorSnapshot["drivers"] = {};
+    for (const [netId, netDrivers] of this.#drivers) {
+      const encoded: Record<string, string> = {};
+      for (const [driverId, value] of netDrivers) {
+        encoded[driverId] = value.toBinary();
+      }
+      drivers[netId] = encoded;
+    }
+
     const sequential: SimulatorSnapshot["sequential"] = {};
 
     for (const node of this.#netlist.nodes) {
@@ -293,6 +303,7 @@ export class Simulator {
       schema: "gateos.sim-state/v1",
       cycle: this.#cycle,
       inputs,
+      drivers,
       sequential,
     };
   }
@@ -305,6 +316,25 @@ export class Simulator {
       throw new Error(`Invalid simulator cycle: ${snapshot.cycle}`);
     }
 
+    for (const [netId, currentDrivers] of this.#drivers) {
+      const encodedDrivers = snapshot.drivers[netId];
+      if (!encodedDrivers) {
+        throw new Error(`Snapshot is missing drivers for ${netId}`);
+      }
+
+      for (const driverId of currentDrivers.keys()) {
+        const encoded = encodedDrivers[driverId];
+        if (encoded === undefined) {
+          throw new Error(
+            `Snapshot is missing driver ${driverId} on ${netId}`,
+          );
+        }
+        const value = BitVector.fromBinary(encoded);
+        this.assertWidth(netId, value);
+        this.setDriver(netId, driverId, value);
+      }
+    }
+
     for (const [pinId, netId] of Object.entries(this.#netlist.rootInputs)) {
       const encoded = snapshot.inputs[pinId];
       if (encoded === undefined) {
@@ -313,7 +343,6 @@ export class Simulator {
       const value = BitVector.fromBinary(encoded);
       this.assertWidth(netId, value);
       this.#rootInputValues.set(pinId, value);
-      this.setDriver(netId, `root-input:${pinId}`, value);
     }
 
     for (const node of this.#netlist.nodes) {
