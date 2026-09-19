@@ -196,5 +196,9 @@
       ],
       "timing": "Asynchronous — no clock. Inputs take effect after the feedback loop settles."
     }
-  ]
+  ],
+  "initialInputs": {
+    "sbar": 1,
+    "rbar": 1
+  }
 }
