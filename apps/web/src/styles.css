@@ -1537,3 +1537,12 @@ button:disabled {
   stroke-dasharray: none;
   opacity: 0.9;
 }
+
+
+.wire-hit-target {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 18;
+  cursor: pointer;
+  pointer-events: stroke;
+}
