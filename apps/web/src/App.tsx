@@ -404,6 +404,12 @@ function compactComponentLabel(spec: ComponentSpec): string {
   if (id === "builtin.const1.one") return "1";
   if (id === "builtin.const4.zero") return "0000";
   if (id === "builtin.const4.one") return "0001";
+  if (id.includes("program-counter4")) return "PC4";
+  if (id.includes("counter4")) return "CTR4";
+  if (id.includes("register4")) return "REG4";
+  if (id.includes("incrementer4")) return "INC4";
+  if (id.includes("adder4")) return "ADD4";
+  if (id.includes("mux4")) return "MUX4";
   if (id.includes("half-adder")) return "HA";
   if (id.includes("full-adder")) return "FA";
   if (id.includes("sr-latch")) return "SR";
