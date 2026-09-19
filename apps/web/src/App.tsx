@@ -1474,11 +1474,16 @@ export function App() {
         );
 
       for (const { validator, validatorIndex } of sequenceValidators) {
-        const netlist = compileCircuit(circuit, registry);
-        const simulator = new Simulator(
-          netlist,
-          createBuiltinPrimitiveRegistry(),
-        );
+        const simulator =
+          simulationRuntime.simulator ??
+          new Simulator(
+            compileCircuit(circuit, registry),
+            createBuiltinPrimitiveRegistry(),
+          );
+
+        simulator.reset();
+        setSimulationRevision((current) => current + 1);
+        await sleep(220);
 
         for (let stepIndex = 0; stepIndex < validator.steps.length; stepIndex += 1) {
           const step = validator.steps[stepIndex];
@@ -1516,12 +1521,14 @@ export function App() {
                 ...current,
                 ...animatedInputs,
               }));
+              setSimulationRevision((current) => current + 1);
               setTestStates((current) => ({
                 ...current,
                 [id]: { status: "pass" },
               }));
             } else if ("edge" in step) {
               simulator.stepEdge(step.edge);
+              setSimulationRevision((current) => current + 1);
               setTestStates((current) => ({
                 ...current,
                 [id]: { status: "pass" },
@@ -1530,6 +1537,7 @@ export function App() {
               for (let count = 0; count < step.clock; count += 1) {
                 simulator.stepClock();
               }
+              setSimulationRevision((current) => current + 1);
               setTestStates((current) => ({
                 ...current,
                 [id]: { status: "pass" },
