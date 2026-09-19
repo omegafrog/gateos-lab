@@ -26,7 +26,30 @@ export interface StructuralValidator {
   };
 }
 
-export type ChallengeValidator = TruthTableValidator | StructuralValidator;
+export type SequenceStep =
+  | {
+      set: Readonly<Record<string, SignalLiteral>>;
+    }
+  | {
+      edge: "rising" | "falling";
+    }
+  | {
+      clock: number;
+    }
+  | {
+      expect: Readonly<Record<string, SignalLiteral>>;
+    };
+
+export interface SequenceValidator {
+  type: "sequence";
+  visibility?: "visible" | "hidden";
+  steps: readonly SequenceStep[];
+}
+
+export type ChallengeValidator =
+  | TruthTableValidator
+  | StructuralValidator
+  | SequenceValidator;
 
 export interface ChallengeDefinition {
   schema: "gateos.challenge/v1";
