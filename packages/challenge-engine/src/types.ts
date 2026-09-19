@@ -61,6 +61,7 @@ export interface ChallengeReferenceTable {
   id: string;
   title: string;
   description?: string;
+  timing?: string;
   columns: readonly ChallengeReferenceTableColumn[];
   rows: readonly Readonly<Record<string, string>>[];
   notes?: readonly string[];
