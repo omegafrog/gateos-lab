@@ -233,3 +233,101 @@ test("placed components render as compact circuit symbols", async ({ page }) => 
   await expect(component.locator('[data-pin-id="b"]')).toBeVisible();
   await expect(component.locator('[data-pin-id="out"]')).toBeVisible();
 });
+
+test("OR XOR and MUX use dedicated compact symbols", async ({ page }) => {
+  await page.evaluate(() => {
+    const makeChip = (
+      id: string,
+      name: string,
+      inputs: string[],
+      outputs: string[],
+    ) => ({
+      schema: "gateos.circuit/v1",
+      id: `artifact.${id}`,
+      name,
+      pins: [
+        ...inputs.map((pin) => ({
+          id: pin,
+          name: pin.toUpperCase(),
+          direction: "input",
+          width: 1,
+        })),
+        ...outputs.map((pin) => ({
+          id: pin,
+          name: pin.toUpperCase(),
+          direction: "output",
+          width: 1,
+        })),
+      ],
+      instances: [],
+      connections: [],
+    });
+
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        completed: [
+          "logic.not",
+          "logic.and",
+          "logic.or",
+          "logic.xor",
+          "routing.mux2",
+        ],
+        probes: {},
+        published: {
+          "user.or": makeChip("or", "OR", ["a", "b"], ["out"]),
+          "user.xor": makeChip("xor", "XOR", ["a", "b"], ["out"]),
+          "user.mux2": makeChip("mux2", "MUX2", ["a", "b", "sel"], ["out"]),
+        },
+        circuits: {
+          "arithmetic.half-adder": {
+            schema: "gateos.circuit/v1",
+            id: "submission.arithmetic.half-adder",
+            name: "Half Adder",
+            pins: [
+              { id: "a", name: "A", direction: "input", width: 1 },
+              { id: "b", name: "B", direction: "input", width: 1 },
+              { id: "sum", name: "SUM", direction: "output", width: 1 },
+              { id: "carry", name: "CARRY", direction: "output", width: 1 },
+            ],
+            instances: [
+              {
+                id: "or-chip",
+                componentId: "user.or",
+                position: { x: 260, y: 120 },
+              },
+              {
+                id: "xor-chip",
+                componentId: "user.xor",
+                position: { x: 410, y: 120 },
+              },
+              {
+                id: "mux-chip",
+                componentId: "user.mux2",
+                position: { x: 560, y: 120 },
+              },
+            ],
+            connections: [],
+          },
+        },
+      }),
+    );
+  });
+
+  await page.reload();
+  await page.getByTestId("challenge-arithmetic.half-adder").click();
+
+  await expect(page.locator('[data-component-id="user.or"]')).toHaveAttribute(
+    "data-symbol-kind",
+    "or",
+  );
+  await expect(page.locator('[data-component-id="user.xor"]')).toHaveAttribute(
+    "data-symbol-kind",
+    "xor",
+  );
+  await expect(page.locator('[data-component-id="user.mux2"]')).toHaveAttribute(
+    "data-symbol-kind",
+    "mux",
+  );
+});
