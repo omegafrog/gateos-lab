@@ -18,10 +18,16 @@ export type CircuitEndpoint =
       pinId: string;
     };
 
+export interface WireRoutePoint {
+  x: number;
+  y: number;
+}
+
 export interface CircuitConnection {
   id: string;
   from: CircuitEndpoint;
   to: CircuitEndpoint;
+  route?: readonly WireRoutePoint[];
 }
 
 export interface ComponentInstance {
