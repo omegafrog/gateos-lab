@@ -1,0 +1,313 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "memory.register-file4",
+  "title": "4×4-bit Register File",
+  "description": "4개의 4-bit Register로 작은 Register File을 만드세요. WADDR/WE는 어느 Register에 쓸지 결정하고, RADDR_A와 RADDR_B는 두 개의 read port를 독립적으로 선택합니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "d",
+        "name": "D",
+        "width": 4
+      },
+      {
+        "id": "waddr",
+        "name": "WADDR",
+        "width": 2
+      },
+      {
+        "id": "we",
+        "name": "WE",
+        "width": 1
+      },
+      {
+        "id": "raddr_a",
+        "name": "RADDR_A",
+        "width": 2
+      },
+      {
+        "id": "raddr_b",
+        "name": "RADDR_B",
+        "width": 2
+      },
+      {
+        "id": "clk",
+        "name": "CLK",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "qa",
+        "name": "QA",
+        "width": 4
+      },
+      {
+        "id": "qb",
+        "name": "QB",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split2",
+    "user.decoder2to4",
+    "user.and",
+    "user.register4",
+    "user.mux4"
+  ],
+  "validators": [
+    {
+      "type": "sequence",
+      "visibility": "visible",
+      "steps": [
+        {
+          "set": {
+            "d": 3,
+            "waddr": 0,
+            "we": 1,
+            "raddr_a": 0,
+            "raddr_b": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 5,
+            "waddr": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 10,
+            "waddr": 2
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 12,
+            "waddr": 3
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "we": 0,
+            "raddr_a": 0,
+            "raddr_b": 3
+          }
+        },
+        {
+          "expect": {
+            "qa": 3,
+            "qb": 12
+          }
+        },
+        {
+          "set": {
+            "raddr_a": 2,
+            "raddr_b": 1
+          }
+        },
+        {
+          "expect": {
+            "qa": 10,
+            "qb": 5
+          }
+        }
+      ]
+    },
+    {
+      "type": "sequence",
+      "visibility": "hidden",
+      "steps": [
+        {
+          "set": {
+            "d": 7,
+            "waddr": 1,
+            "we": 1,
+            "raddr_a": 0,
+            "raddr_b": 0,
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 14,
+            "waddr": 3
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "d": 2,
+            "waddr": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 1
+          }
+        },
+        {
+          "set": {
+            "clk": 0
+          }
+        },
+        {
+          "set": {
+            "we": 0,
+            "raddr_a": 1,
+            "raddr_b": 3
+          }
+        },
+        {
+          "expect": {
+            "qa": 2,
+            "qb": 14
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 17
+      }
+    }
+  ],
+  "unlocks": [
+    "cpu.register-transfer4"
+  ],
+  "referenceTables": [
+    {
+      "id": "ports",
+      "title": "Register File read / write 동작",
+      "description": "Write port 하나와 read port 두 개가 서로 다른 역할을 합니다.",
+      "timing": "Write는 상승 에지(rising edge)에서만 발생하고, read port는 주소 변경에 따라 즉시 바뀝니다.",
+      "columns": [
+        {
+          "id": "we",
+          "label": "WE",
+          "group": "input"
+        },
+        {
+          "id": "waddr",
+          "label": "WADDR",
+          "group": "input"
+        },
+        {
+          "id": "raddr",
+          "label": "RADDR_A / B",
+          "group": "input"
+        },
+        {
+          "id": "write",
+          "label": "Write",
+          "group": "note"
+        },
+        {
+          "id": "read",
+          "label": "Read",
+          "group": "output"
+        }
+      ],
+      "rows": [
+        {
+          "we": "0",
+          "waddr": "—",
+          "raddr": "aa / bb",
+          "write": "저장 없음",
+          "read": "QA=R[aa], QB=R[bb]"
+        },
+        {
+          "we": "1",
+          "waddr": "ww",
+          "raddr": "aa / bb",
+          "write": "R[ww] ← D (↑)",
+          "read": "QA=R[aa], QB=R[bb]"
+        }
+      ],
+      "notes": [
+        "WADDR decoder는 네 Register 중 하나의 LOAD만 활성화합니다.",
+        "RADDR_A와 RADDR_B는 각각 독립적인 MUX tree를 사용하므로 동시에 두 Register를 읽을 수 있습니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "Write 경로 하나, Read 경로 두 개",
+      "body": "저장은 Decoder로 한 Register만 선택하고, 읽기는 두 개의 독립적인 MUX tree로 각각 원하는 Register를 고르면 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "네 Register는 D와 CLK를 공유",
+      "body": "D와 CLK는 네 Register에 공통 연결하고, WE·Y0~Y3를 각각 Register.LOAD로 넣으세요. RADDR_A/B는 각각 Split2로 selector bit를 얻습니다."
+    },
+    {
+      "level": 3,
+      "title": "구체적인 구조",
+      "body": "WADDR→Decoder, WE·Y0~Y3→REG0~3.LOAD. QA용 MUX tree와 QB용 MUX tree를 각각 3개의 MUX4로 만들고 RADDR의 B0/B1을 selector로 사용하세요."
+    }
+  ]
+}
