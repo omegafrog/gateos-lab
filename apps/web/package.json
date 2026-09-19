@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "tsc -b ../../packages/circuit-model ../../packages/circuit-compiler ../../packages/sim-core ../../packages/challenge-engine",
+    "predev": "tsc -b ../../packages/circuit-model ../../packages/circuit-compiler ../../packages/sim-core ../../packages/challenge-engine ../../packages/trace-engine",
     "dev": "vite",
     "build": "vite build"
   },
@@ -13,6 +13,7 @@
     "@gateos/circuit-compiler": "*",
     "@gateos/circuit-model": "*",
     "@gateos/sim-core": "*",
+    "@gateos/trace-engine": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
