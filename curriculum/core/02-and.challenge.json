@@ -5,29 +5,97 @@
   "description": "NAND와 이전 단계에서 만든 NOT을 조합해 AND 게이트를 만드세요.",
   "interface": {
     "inputs": [
-      { "id": "a", "name": "A", "width": 1 },
-      { "id": "b", "name": "B", "width": 1 }
+      {
+        "id": "a",
+        "name": "A",
+        "width": 1
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 1
+      }
     ],
-    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 1
+      }
+    ]
   },
-  "allowedComponents": ["builtin.nand", "user.not"],
+  "allowedComponents": [
+    "builtin.nand",
+    "user.not"
+  ],
   "validators": [
     {
       "type": "truthTable",
       "visibility": "visible",
       "cases": [
-        { "in": { "a": 0, "b": 0 }, "out": { "out": 0 } },
-        { "in": { "a": 1, "b": 1 }, "out": { "out": 1 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 0
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 1
+          },
+          "out": {
+            "out": 1
+          }
+        }
       ]
     },
     {
       "type": "truthTable",
       "visibility": "hidden",
       "cases": [
-        { "in": { "a": 0, "b": 1 }, "out": { "out": 0 } },
-        { "in": { "a": 1, "b": 0 }, "out": { "out": 0 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 1
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 0
+          },
+          "out": {
+            "out": 0
+          }
+        }
       ]
     }
   ],
-  "unlocks": ["logic.or"]
+  "unlocks": [
+    "logic.or"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "NAND의 결과를 한 번 더 뒤집기",
+      "body": "NAND는 AND 결과를 반전한 값입니다. NAND 뒤에서 한 번 더 반전하면 AND가 됩니다."
+    },
+    {
+      "level": 2,
+      "title": "두 단계 구조",
+      "body": "먼저 A와 B를 NAND에 넣고, 그 출력을 이전 단계에서 만든 NOT으로 반전해보세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "A,B → NAND, NAND.OUT → NOT.IN, NOT.OUT → 회로 OUT 순서로 연결하세요."
+    }
+  ]
 }
