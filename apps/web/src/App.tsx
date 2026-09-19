@@ -352,7 +352,9 @@ function instancePosition(
   instanceId: string,
 ): Point {
   const instance = circuit.instances.find((candidate) => candidate.id === instanceId);
-  return instance?.position ?? { x: 360, y: 220 };
+  return instance?.position
+    ? snapPoint(instance.position)
+    : { x: 360, y: 216 };
 }
 
 const PLACEMENT_GRID = 12;
@@ -388,7 +390,7 @@ function componentGeometry(spec: ComponentSpec): {
 
   return {
     width: COMPACT_COMPONENT_WIDTH,
-    height: (rows + 1) * PLACEMENT_GRID * 4,
+    height: (rows + 1) * PLACEMENT_GRID * 2,
     inputPins,
     outputPins,
   };
@@ -450,7 +452,9 @@ function componentPinPoint(
   const pin = pins.find((candidate) => candidate.id === pinId);
   if (!pin) return { x: 0, y: 0 };
 
-  const position = instance.position ?? { x: 360, y: 220 };
+  const position = instance.position
+    ? snapPoint(instance.position)
+    : { x: 360, y: 216 };
   const geometry = componentGeometry(spec);
 
   if (pin.direction === "output") {
@@ -491,7 +495,7 @@ function storedInterfacePosition(
   const x = (position as Record<string, unknown>).x;
   const y = (position as Record<string, unknown>).y;
   return typeof x === "number" && typeof y === "number"
-    ? { x, y }
+    ? snapPoint({ x, y })
     : null;
 }
 
@@ -1831,7 +1835,9 @@ export function App() {
 
     try {
       const parsed = JSON.parse(await file.text()) as unknown;
-      const imported = normalizeProject(parsed, true);
+      const imported = normalizeProjectGrid(
+        normalizeProject(parsed, true),
+      );
       setProject(imported);
       setProjectError("");
       setSelectedInstance(null);
