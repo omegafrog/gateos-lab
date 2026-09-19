@@ -2009,17 +2009,8 @@ export function App() {
       return { connection: destination, end: "to" };
     }
 
-    const sourceConnections = circuit.connections.filter(
-      (connection) => endpointKey(connection.from) === key,
-    );
-    if (
-      sourceConnections.length === 1 &&
-      sourceConnections[0] &&
-      !sourceConnections[0].branchStart
-    ) {
-      return { connection: sourceConnections[0], end: "from" };
-    }
-
+    // Source pins remain available for fan-out. Only destination-side
+    // leaves behave as movable wire endpoints.
     return null;
   }
 
