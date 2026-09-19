@@ -1221,3 +1221,128 @@ button:disabled {
   background: #eef1f4;
   color: #8a929d;
 }
+
+
+/* Canvas interface terminals */
+.interface-terminal-body {
+  fill: #ffffff;
+  stroke: #aeb7c5;
+  stroke-width: 2;
+}
+
+.input-terminal .interface-terminal-body {
+  cursor: pointer;
+}
+
+.input-terminal:hover .interface-terminal-body {
+  stroke: #5267d8;
+}
+
+.interface-terminal.pending-value .interface-terminal-body {
+  fill: #fff8e8;
+  stroke: #d69b35;
+  stroke-width: 3;
+}
+
+.output-terminal.value-one .interface-terminal-body {
+  fill: #eefaf3;
+  stroke: #3b8a5c;
+}
+
+.output-terminal.value-zero .interface-terminal-body {
+  fill: #f5f7fa;
+  stroke: #8a95a5;
+}
+
+.output-terminal.value-x .interface-terminal-body,
+.output-terminal.value-z .interface-terminal-body {
+  fill: #fff8e8;
+  stroke: #d69b35;
+}
+
+.interface-terminal-name {
+  fill: #667181;
+  font-size: 10px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.interface-terminal-value {
+  fill: #17202c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 20px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.interface-terminal-applied {
+  fill: #9a6818;
+  font-size: 8px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.interface-port {
+  filter: drop-shadow(0 0 2px rgb(28 36 48 / 22%));
+}
+
+/* Signal value visualization on wires */
+.wire.value-zero {
+  stroke: #778292;
+}
+
+.wire.value-one {
+  stroke: #2f8a55;
+  stroke-width: 5;
+}
+
+.wire.value-x {
+  stroke: #d08a2e;
+  stroke-dasharray: 8 5;
+}
+
+.wire.value-z {
+  stroke: #8b70b4;
+  stroke-dasharray: 3 6;
+}
+
+.wire.selected {
+  stroke: #d47c28;
+  stroke-width: 7;
+  stroke-dasharray: none;
+}
+
+.canvas-toolbar {
+  flex-wrap: wrap;
+}
+
+.canvas-toolbar-info {
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 2px !important;
+}
+
+.canvas-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px !important;
+}
+
+.applied-input-summary {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #eef1f5;
+  color: #5e6877;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.canvas-toolbar .apply-inputs {
+  border-color: #5267d8;
+  background: #5267d8;
+  color: white;
+}
