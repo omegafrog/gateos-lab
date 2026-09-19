@@ -818,3 +818,114 @@ button:disabled {
   color: #818a97;
   font-weight: 400;
 }
+
+
+.waveform-panel {
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid #d8dde6;
+  border-radius: 10px;
+  background: white;
+}
+
+.waveform-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 11px 13px;
+  border-bottom: 1px solid #e2e6ec;
+}
+
+.waveform-header p {
+  margin: 4px 0 0;
+  font-size: 11px;
+}
+
+.waveform-header > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #747e8c;
+  font-size: 11px;
+}
+
+.waveform-header button {
+  border: 1px solid #c9d0db;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.waveform-empty {
+  margin: 0;
+  padding: 18px 13px;
+  color: #7a8492;
+  font-size: 12px;
+}
+
+.waveform-scroll {
+  overflow-x: auto;
+}
+
+.waveform-grid {
+  display: grid;
+  min-width: max-content;
+  align-items: stretch;
+}
+
+.waveform-corner,
+.waveform-frame-label,
+.waveform-name,
+.waveform-cell {
+  min-height: 42px;
+  border-right: 1px solid #e7eaf0;
+  border-bottom: 1px solid #e7eaf0;
+}
+
+.waveform-corner {
+  display: flex;
+  align-items: center;
+  padding: 7px 9px;
+  color: #7a8492;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.waveform-frame-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: #f8f9fb;
+  font-size: 10px;
+}
+
+.waveform-frame-label small,
+.waveform-name small {
+  color: #818a97;
+}
+
+.waveform-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 9px;
+  background: #fbfcfd;
+  font-size: 11px;
+}
+
+.waveform-cell {
+  display: grid;
+  place-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.waveform-cell.unknown {
+  color: #b56a15;
+  background: #fff9ef;
+}
