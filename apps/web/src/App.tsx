@@ -479,6 +479,59 @@ function routedWirePath(
   return wirePath([from, ...(route ?? []), to]);
 }
 
+function pointToSegmentDistanceSquared(
+  point: Point,
+  start: Point,
+  end: Point,
+): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  if (dx === 0 && dy === 0) {
+    const px = point.x - start.x;
+    const py = point.y - start.y;
+    return px * px + py * py;
+  }
+
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+        (dx * dx + dy * dy),
+    ),
+  );
+  const nearestX = start.x + t * dx;
+  const nearestY = start.y + t * dy;
+  const px = point.x - nearestX;
+  const py = point.y - nearestY;
+  return px * px + py * py;
+}
+
+function routeInsertionIndex(
+  from: Point,
+  route: readonly Point[],
+  to: Point,
+  point: Point,
+): number {
+  const points = [from, ...route, to];
+  let bestIndex = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const distance = pointToSegmentDistanceSquared(
+      point,
+      points[index],
+      points[index + 1],
+    );
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  }
+
+  return bestIndex;
+}
+
 function endpointRole(
   endpoint: CircuitEndpoint,
   circuit: CircuitDefinition,
@@ -640,6 +693,11 @@ export function App() {
     setInputValues(values);
     setDraftInputValues(values);
     setPendingPin(null);
+    setWirePointer(null);
+    setWireRoutePoints([]);
+    setWireDragging(false);
+    setWireHoverTarget(null);
+    setWireNodeDrag(null);
     setSelectedInstance(null);
     setSelectedInstances([]);
     setSelectedConnection(null);
@@ -1454,6 +1512,48 @@ export function App() {
     setProjectError("");
   }
 
+  function addWireRouteNode(
+    connectionId: string,
+    clientX: number,
+    clientY: number,
+  ): void {
+    if (!circuit || isInspectingNested || testRunning) return;
+    const connection = circuit.connections.find(
+      (candidate) => candidate.id === connectionId,
+    );
+    if (!connection) return;
+
+    const point = snapPoint(clientToCanvasPoint(clientX, clientY));
+    const from = getEndpointPoint(connection.from, circuit, registry);
+    const to = getEndpointPoint(connection.to, circuit, registry);
+    const route = [...(connection.route ?? [])];
+
+    if (
+      [from, ...route, to].some(
+        (candidate) =>
+          candidate.x === point.x && candidate.y === point.y,
+      )
+    ) {
+      setSelectedConnection(connectionId);
+      return;
+    }
+
+    const insertAt = routeInsertionIndex(from, route, to, point);
+    route.splice(insertAt, 0, point);
+
+    updateCircuit((current) => ({
+      ...current,
+      connections: current.connections.map((candidate) =>
+        candidate.id === connectionId
+          ? { ...candidate, route }
+          : candidate,
+      ),
+    }));
+    setSelectedConnection(connectionId);
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+  }
+
   function removeConnection(id: string): void {
     if (isInspectingNested) return;
     updateCircuit((current) => ({
@@ -1545,6 +1645,10 @@ export function App() {
           id: `paste-wire-${stamp}-${index}`,
           from: mapEndpoint(connection.from),
           to: mapEndpoint(connection.to),
+          route: connection.route?.map((point) => ({
+            x: point.x + PLACEMENT_GRID * 2,
+            y: point.y + PLACEMENT_GRID * 2,
+          })),
         };
       },
     );
@@ -2701,9 +2805,12 @@ export function App() {
                     )}
                     onClick={(event) => {
                       event.stopPropagation();
-                      setSelectedConnection(connection.id);
-                      setSelectedInstance(null);
-                    }}
+                      addWireRouteNode(
+                        connection.id,
+                        event.clientX,
+                        event.clientY,
+                      );
+                    }
                   />
                   {(connection.route ?? []).map((node, nodeIndex) => (
                     <circle
@@ -3719,7 +3826,7 @@ export function App() {
             <p className="muted">
               핀에서 Wire를 시작한 뒤 빈 grid 지점에 놓으면 node가 생깁니다.
               node를 이어 원하는 경로를 만든 뒤 목적지 핀에 놓으면 연결됩니다.
-              각 구간은 수평/수직/대각선 모두 가능하며, node를 직접 드래그해 경로를 수정할 수 있습니다.
+              각 구간은 수평/수직/대각선 모두 가능합니다. 기존 Wire를 클릭하면 node가 추가되고, node를 직접 드래그해 경로를 수정할 수 있습니다.
             </p>
             {pendingPin ? (
               <p>
