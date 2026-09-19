@@ -1313,16 +1313,10 @@ export function App() {
       const activePendingWire = pendingWireRef.current;
       if (!activePendingWire || !wireDraggingRef.current) return;
 
-      const hit = document.elementFromPoint(event.clientX, event.clientY);
-      const endpointElement =
-        hit instanceof Element
-          ? hit.closest("[data-wire-endpoint]")
-          : null;
-      const endpointValue =
-        endpointElement?.getAttribute("data-wire-endpoint");
-      const targetEndpoint = endpointValue
-        ? parseEndpointKey(endpointValue)
-        : null;
+      const targetEndpoint = findWireEndpointNear(
+        event.clientX,
+        event.clientY,
+      );
 
       if (targetEndpoint) {
         finishWireConnection(
@@ -1599,6 +1593,75 @@ export function App() {
     setWireRoutePoints([]);
     setWireDragging(false);
     setWireHoverTarget(null);
+  }
+
+  function findWireEndpointNear(
+    clientX: number,
+    clientY: number,
+  ): CircuitEndpoint | null {
+    if (!displayCircuit) return null;
+
+    const point = clientToCanvasPoint(clientX, clientY);
+    const candidates: Array<{
+      endpoint: CircuitEndpoint;
+      point: Point;
+    }> = [];
+
+    for (const pin of displayCircuit.pins) {
+      const endpoint: CircuitEndpoint = {
+        kind: "interface",
+        pinId: pin.id,
+      };
+      candidates.push({
+        endpoint,
+        point: interfacePinPoint(displayCircuit, pin.id),
+      });
+    }
+
+    for (const instance of displayCircuit.instances) {
+      let spec: ComponentSpec;
+      try {
+        spec = registry.get(instance.componentId);
+      } catch {
+        continue;
+      }
+
+      for (const pin of componentPins(spec)) {
+        const endpoint: CircuitEndpoint = {
+          kind: "instance",
+          instanceId: instance.id,
+          pinId: pin.id,
+        };
+        candidates.push({
+          endpoint,
+          point: componentPinPoint(
+            displayCircuit,
+            registry,
+            instance.id,
+            pin.id,
+          ),
+        });
+      }
+    }
+
+    let nearest: CircuitEndpoint | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    const maxDistanceSquared = 18 * 18;
+
+    for (const candidate of candidates) {
+      const dx = candidate.point.x - point.x;
+      const dy = candidate.point.y - point.y;
+      const distance = dx * dx + dy * dy;
+      if (
+        distance <= maxDistanceSquared &&
+        distance < nearestDistance
+      ) {
+        nearest = candidate.endpoint;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
   }
 
   function placeDraftWireNode(clientX: number, clientY: number): void {
@@ -3034,19 +3097,10 @@ export function App() {
                 pendingWireRef.current ?? pendingPin;
               if (!activePendingWire) return;
 
-              const hit = document.elementFromPoint(
+              const targetEndpoint = findWireEndpointNear(
                 event.clientX,
                 event.clientY,
               );
-              const endpointElement =
-                hit instanceof Element
-                  ? hit.closest("[data-wire-endpoint]")
-                  : null;
-              const endpointValue =
-                endpointElement?.getAttribute("data-wire-endpoint");
-              const targetEndpoint = endpointValue
-                ? parseEndpointKey(endpointValue)
-                : null;
 
               if (targetEndpoint) {
                 finishWireConnection(
