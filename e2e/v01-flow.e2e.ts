@@ -1,8 +1,23 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 async function connect(from: Locator, to: Locator): Promise<void> {
-  await from.click();
-  await to.click();
+  const fromBox = await from.boundingBox();
+  const toBox = await to.boundingBox();
+  if (!fromBox || !toBox) {
+    throw new Error("missing pin geometry for wire drag");
+  }
+
+  await from.page().mouse.move(
+    fromBox.x + fromBox.width / 2,
+    fromBox.y + fromBox.height / 2,
+  );
+  await from.page().mouse.down();
+  await from.page().mouse.move(
+    toBox.x + toBox.width / 2,
+    toBox.y + toBox.height / 2,
+    { steps: 8 },
+  );
+  await from.page().mouse.up();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -461,4 +476,24 @@ test("interface terminals can move and connected wires follow their position", a
     "data-terminal-y",
     persistedY ?? "",
   );
+});
+
+test("wire drag creates an orthogonal path", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  await connect(
+    page.getByTestId("pin-interface-in"),
+    component.locator('[data-pin-id="a"]'),
+  );
+
+  const wire = page.locator("path.wire:not(.wire-preview)").first();
+  await expect(wire).toBeVisible();
+
+  const path = (await wire.getAttribute("d")) ?? "";
+  expect(path).toContain(" H ");
+  expect(path).toContain(" V ");
+  expect(path).not.toContain(" C ");
+
+  await expect(page.locator("path.wire-preview")).toHaveCount(0);
 });
