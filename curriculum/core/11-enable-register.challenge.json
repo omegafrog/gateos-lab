@@ -103,8 +103,8 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "Enable Register state table",
-      "description": "At each rising edge, LOAD chooses between preserving Q and capturing D.",
+      "title": "Enable Register 상태표",
+      "description": "상승 에지(rising edge)에서 LOAD가 0이면 기존 Q를 유지하고, 1이면 D를 저장합니다.",
       "columns": [
         {
           "id": "load",
@@ -118,17 +118,17 @@
         },
         {
           "id": "qt",
-          "label": "Q(before edge)",
+          "label": "Q(edge 전)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(after edge)",
+          "label": "Q(edge 후)",
           "group": "output"
         },
         {
           "id": "meaning",
-          "label": "Meaning",
+          "label": "의미",
           "group": "note"
         }
       ],
@@ -138,34 +138,34 @@
           "d": "X",
           "qt": "0",
           "qnext": "0",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         },
         {
           "load": "0",
           "d": "X",
           "qt": "1",
           "qnext": "1",
-          "meaning": "Hold"
+          "meaning": "Hold (유지)"
         },
         {
           "load": "1",
           "d": "0",
           "qt": "X",
           "qnext": "0",
-          "meaning": "Load D"
+          "meaning": "D 저장 (Load)"
         },
         {
           "load": "1",
           "d": "1",
           "qt": "X",
           "qnext": "1",
-          "meaning": "Load D"
+          "meaning": "D 저장 (Load)"
         }
       ],
       "notes": [
-        "Rows describe behavior at the active rising clock edge."
+        "표의 각 행은 활성 상승 에지(rising edge)에서의 동작을 나타냅니다."
       ],
-      "timing": "Edge-triggered — LOAD is evaluated on the rising edge (↑)."
+      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서 LOAD와 D를 평가합니다."
     }
   ]
 }
