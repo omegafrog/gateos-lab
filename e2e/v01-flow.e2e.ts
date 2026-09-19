@@ -216,3 +216,20 @@ test("canvas input and output terminals keep wiring ports and show values", asyn
   await expect(inputTerminal).toHaveAttribute("data-applied-value", "1");
   await expect(outputTerminal).toHaveAttribute("data-value", "0");
 });
+
+test("placed components render as compact circuit symbols", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  await expect(component).toBeVisible();
+
+  const box = await component.boundingBox();
+  if (!box) throw new Error("missing compact component bounding box");
+
+  expect(box.width).toBeLessThan(120);
+  expect(box.height).toBeLessThan(90);
+
+  await expect(component.locator('[data-pin-id="a"]')).toBeVisible();
+  await expect(component.locator('[data-pin-id="b"]')).toBeVisible();
+  await expect(component.locator('[data-pin-id="out"]')).toBeVisible();
+});
