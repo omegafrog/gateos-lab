@@ -81,36 +81,39 @@ test("selected component can be deleted without dragging", async ({ page }) => {
   await expect(component).toHaveCount(0);
 });
 
-test("dragging stays under the cursor after zoom", async ({ page }) => {
+test("component dragging snaps to the hidden placement grid", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const canvas = page.locator("svg.circuit-canvas");
   const component = page.locator('[data-testid^="component-"]').first();
-
   await expect(component).toBeVisible();
-  const canvasBox = await canvas.boundingBox();
-  if (!canvasBox) throw new Error("missing canvas bounding box");
 
-  await page.getByRole("button", { name: "+", exact: true }).click();
+  const beforeX = Number(await component.getAttribute("data-position-x"));
+  const beforeY = Number(await component.getAttribute("data-position-y"));
+  expect(beforeX % 24).toBe(0);
+  expect(beforeY % 24).toBe(0);
 
-  const before = await component.boundingBox();
-  if (!before) throw new Error("missing component bounding box");
+  const box = await component.boundingBox();
+  if (!box) throw new Error("missing component bounding box");
 
-  const startX = before.x + before.width * 0.55;
-  const startY = before.y + before.height * 0.35;
-  const dx = 90;
-  const dy = 55;
-
-  await page.mouse.move(startX, startY);
+  await page.mouse.move(
+    box.x + box.width * 0.5,
+    box.y + box.height * 0.5,
+  );
   await page.mouse.down();
-  await page.mouse.move(startX + dx, startY + dy, { steps: 6 });
+  await page.mouse.move(
+    box.x + box.width * 0.5 + 83,
+    box.y + box.height * 0.5 + 47,
+    { steps: 6 },
+  );
   await page.mouse.up();
 
-  const after = await component.boundingBox();
-  if (!after) throw new Error("missing component bounding box after drag");
+  const afterX = Number(await component.getAttribute("data-position-x"));
+  const afterY = Number(await component.getAttribute("data-position-y"));
 
-  expect(after.x - before.x).toBeCloseTo(dx, -1);
-  expect(after.y - before.y).toBeCloseTo(dy, -1);
+  expect(afterX % 24).toBe(0);
+  expect(afterY % 24).toBe(0);
+  expect(afterX).not.toBe(beforeX);
+  expect(afterY).not.toBe(beforeY);
 });
 
 test("mouse wheel does not zoom the circuit canvas", async ({ page }) => {
@@ -401,7 +404,10 @@ test("new chips are created in the currently panned world viewport", async ({
 
   const component = page.locator('[data-testid^="component-"]').first();
   const x = Number(await component.getAttribute("data-position-x"));
+  const y = Number(await component.getAttribute("data-position-y"));
   expect(x).toBeGreaterThan(viewportX);
+  expect(x % 24).toBe(0);
+  expect(y % 24).toBe(0);
 });
 
 test("interface terminals can move and connected wires follow their position", async ({
@@ -443,6 +449,8 @@ test("interface terminals can move and connected wires follow their position", a
   const afterY = await inputTerminal.getAttribute("data-terminal-y");
   expect(afterX).not.toBe(beforeX);
   expect(afterY).not.toBe(beforeY);
+  expect(Number(afterX) % 24).toBe(0);
+  expect(Number(afterY) % 24).toBe(0);
   expect(await firstWire.getAttribute("d")).not.toBe(beforeWire);
 
   const outputTerminal = page.getByTestId("output-out");
@@ -482,11 +490,12 @@ test("interface terminals can move and connected wires follow their position", a
   );
 });
 
-test("wire drag creates an orthogonal path", async ({ page }) => {
+test("wire drag allows a direct diagonal segment", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
   const component = page.locator('[data-testid^="component-"]').first();
-  await connect(page, 
+  await connect(
+    page,
     page.getByTestId("pin-interface-in"),
     component.locator('[data-pin-id="a"]'),
   );
@@ -495,9 +504,15 @@ test("wire drag creates an orthogonal path", async ({ page }) => {
   await expect(wire).toBeVisible();
 
   const path = (await wire.getAttribute("d")) ?? "";
-  expect(path).toContain(" H ");
-  expect(path).toContain(" V ");
+  expect(path).toContain(" L ");
+  expect(path).not.toContain(" H ");
+  expect(path).not.toContain(" V ");
   expect(path).not.toContain(" C ");
+
+  const numbers = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  expect(numbers).toHaveLength(4);
+  expect(numbers[0]).not.toBe(numbers[2]);
+  expect(numbers[1]).not.toBe(numbers[3]);
 
   await expect(page.locator("path.wire-preview")).toHaveCount(0);
 });
