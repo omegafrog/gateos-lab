@@ -711,11 +711,65 @@ function componentDisplayName(spec: ComponentSpec): string {
   return spec.name || spec.id;
 }
 
+interface CurriculumStage {
+  id: string;
+  title: string;
+  description: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+const CURRICULUM_STAGES: readonly CurriculumStage[] = [
+  {
+    id: "logic",
+    title: "Logic Foundations",
+    description: "NAND에서 시작해 기본 gate와 Adder까지 만듭니다.",
+    startIndex: 0,
+    endIndex: 6,
+  },
+  {
+    id: "state",
+    title: "State & Sequential",
+    description: "Latch, Flip-Flop, Register로 상태 저장을 배웁니다.",
+    startIndex: 7,
+    endIndex: 10,
+  },
+  {
+    id: "multibit",
+    title: "Multi-bit Building Blocks",
+    description: "4-bit 연산과 Counter, Program Counter를 구성합니다.",
+    startIndex: 11,
+    endIndex: 16,
+  },
+  {
+    id: "memory",
+    title: "Memory",
+    description: "Address Decoder와 RAM 계층을 직접 만듭니다.",
+    startIndex: 17,
+    endIndex: 20,
+  },
+  {
+    id: "cpu",
+    title: "CPU Datapath",
+    description: "ALU, Register File, write-back datapath를 연결합니다.",
+    startIndex: 21,
+    endIndex: 28,
+  },
+];
+
+function curriculumStageForIndex(index: number): number {
+  const stageIndex = CURRICULUM_STAGES.findIndex(
+    (stage) => index >= stage.startIndex && index <= stage.endIndex,
+  );
+  return stageIndex >= 0 ? stageIndex : 0;
+}
+
 export function App() {
   const initialProject = useMemo(() => loadProject(), []);
   const [manifest, setManifest] = useState<CurriculumManifest | null>(null);
   const [challenges, setChallenges] = useState<ChallengeDefinition[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
+  const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [project, setProject] = useState<ProjectState>(initialProject.project);
   const [projectError, setProjectError] = useState(initialProject.error ?? "");
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
@@ -785,7 +839,19 @@ export function App() {
 
         setManifest(loadedManifest);
         setChallenges(loadedChallenges);
-        setSelectedId((current) => current || loadedChallenges[0]?.id || "");
+        setSelectedId((current) => {
+          if (current) return current;
+
+          const completed = new Set(initialProject.project.completed);
+          let nextIndex = loadedChallenges.findIndex((item, index) => {
+            if (completed.has(item.id)) return false;
+            return index === 0 || completed.has(loadedChallenges[index - 1]?.id ?? "");
+          });
+          if (nextIndex < 0) nextIndex = Math.max(loadedChallenges.length - 1, 0);
+
+          setActiveStageIndex(curriculumStageForIndex(nextIndex));
+          return loadedChallenges[nextIndex]?.id ?? "";
+        });
       } catch (error) {
         setLoadError(error instanceof Error ? error.message : String(error));
       }
@@ -812,6 +878,14 @@ export function App() {
 
   const challenge = challenges.find((candidate) => candidate.id === selectedId);
   const usesStagedInputs = (challenge?.referenceTables?.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (!challenge) return;
+    const index = challenges.findIndex((item) => item.id === challenge.id);
+    if (index >= 0) {
+      setActiveStageIndex(curriculumStageForIndex(index));
+    }
+  }, [challenge?.id, challenges]);
 
   useEffect(() => {
     if (!challenge) return;
@@ -1416,6 +1490,17 @@ export function App() {
   }
 
   const currentIndex = challenges.findIndex((item) => item.id === challenge.id);
+  const activeStage =
+    CURRICULUM_STAGES[activeStageIndex] ?? CURRICULUM_STAGES[0]!;
+  const stageChallenges = challenges
+    .map((item, index) => ({ item, index }))
+    .filter(
+      ({ index }) =>
+        index >= activeStage.startIndex && index <= activeStage.endIndex,
+    );
+  const stageCompletedCount = stageChallenges.filter(({ item }) =>
+    project.completed.includes(item.id),
+  ).length;
   const visualVerificationItems = [
     ...visualTestCases.map((testCase) => testCase.id),
     ...visualSequenceSteps.map((step) => step.id),
@@ -1437,6 +1522,34 @@ export function App() {
     if (index === 0) return true;
     const previous = challenges[index - 1];
     return previous ? project.completed.includes(previous.id) : false;
+  }
+
+  function openStage(stageIndex: number): void {
+    const stage = CURRICULUM_STAGES[stageIndex];
+    if (!stage) return;
+
+    const firstIndex = stage.startIndex;
+    if (!isUnlocked(firstIndex)) return;
+
+    const currentInStage =
+      currentIndex >= stage.startIndex && currentIndex <= stage.endIndex;
+    let targetIndex = currentInStage ? currentIndex : -1;
+
+    if (targetIndex < 0) {
+      for (let index = stage.startIndex; index <= stage.endIndex; index += 1) {
+        const item = challenges[index];
+        if (!item || !isUnlocked(index)) continue;
+        targetIndex = index;
+        if (!project.completed.includes(item.id)) break;
+      }
+    }
+
+    if (targetIndex < 0) targetIndex = firstIndex;
+    const target = challenges[targetIndex];
+    if (!target) return;
+
+    setActiveStageIndex(stageIndex);
+    setSelectedId(target.id);
   }
 
   function captureTrace(label: string): void {
@@ -2662,8 +2775,75 @@ export function App() {
 
       <aside className="sidebar left-panel">
         <h2>Curriculum</h2>
-        <nav className="challenge-list">
-          {challenges.map((item, index) => {
+        <section className="stage-pager" data-testid="curriculum-stage-pager">
+          <div className="stage-pager-top">
+            <button
+              data-testid="stage-prev"
+              aria-label="이전 학습 단계"
+              disabled={activeStageIndex === 0}
+              onClick={() => openStage(activeStageIndex - 1)}
+            >
+              ←
+            </button>
+            <div>
+              <span className="stage-number">
+                Stage {activeStageIndex + 1} / {CURRICULUM_STAGES.length}
+              </span>
+              <strong data-testid="stage-title">{activeStage.title}</strong>
+            </div>
+            <button
+              data-testid="stage-next"
+              aria-label="다음 학습 단계"
+              disabled={
+                activeStageIndex >= CURRICULUM_STAGES.length - 1 ||
+                !isUnlocked(
+                  CURRICULUM_STAGES[activeStageIndex + 1]?.startIndex ??
+                    challenges.length,
+                )
+              }
+              onClick={() => openStage(activeStageIndex + 1)}
+            >
+              →
+            </button>
+          </div>
+          <p>{activeStage.description}</p>
+          <div className="stage-progress">
+            <span>
+              {stageCompletedCount}/{stageChallenges.length} complete
+            </span>
+            <div aria-hidden="true">
+              <i
+                style={{
+                  width: `${
+                    stageChallenges.length > 0
+                      ? (stageCompletedCount / stageChallenges.length) * 100
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+          <div className="stage-dots" aria-label="학습 단계">
+            {CURRICULUM_STAGES.map((stage, index) => {
+              const unlocked = isUnlocked(stage.startIndex);
+              return (
+                <button
+                  key={stage.id}
+                  className={index === activeStageIndex ? "active" : ""}
+                  data-testid={`stage-${stage.id}`}
+                  disabled={!unlocked}
+                  aria-label={`${index + 1}단계 ${stage.title}`}
+                  onClick={() => openStage(index)}
+                >
+                  {index + 1}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <nav className="challenge-list" data-testid="stage-challenge-list">
+          {stageChallenges.map(({ item, index }) => {
             const unlocked = isUnlocked(index);
             const completed = project.completed.includes(item.id);
             return (
