@@ -5,29 +5,97 @@
   "description": "지금까지 만든 NOT과 AND를 이용해 OR 게이트를 만드세요.",
   "interface": {
     "inputs": [
-      { "id": "a", "name": "A", "width": 1 },
-      { "id": "b", "name": "B", "width": 1 }
+      {
+        "id": "a",
+        "name": "A",
+        "width": 1
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 1
+      }
     ],
-    "outputs": [{ "id": "out", "name": "OUT", "width": 1 }]
+    "outputs": [
+      {
+        "id": "out",
+        "name": "OUT",
+        "width": 1
+      }
+    ]
   },
-  "allowedComponents": ["user.not", "user.and"],
+  "allowedComponents": [
+    "user.not",
+    "user.and"
+  ],
   "validators": [
     {
       "type": "truthTable",
       "visibility": "visible",
       "cases": [
-        { "in": { "a": 0, "b": 0 }, "out": { "out": 0 } },
-        { "in": { "a": 1, "b": 0 }, "out": { "out": 1 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 0
+          },
+          "out": {
+            "out": 0
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 0
+          },
+          "out": {
+            "out": 1
+          }
+        }
       ]
     },
     {
       "type": "truthTable",
       "visibility": "hidden",
       "cases": [
-        { "in": { "a": 0, "b": 1 }, "out": { "out": 1 } },
-        { "in": { "a": 1, "b": 1 }, "out": { "out": 1 } }
+        {
+          "in": {
+            "a": 0,
+            "b": 1
+          },
+          "out": {
+            "out": 1
+          }
+        },
+        {
+          "in": {
+            "a": 1,
+            "b": 1
+          },
+          "out": {
+            "out": 1
+          }
+        }
       ]
     }
   ],
-  "unlocks": ["logic.xor"]
+  "unlocks": [
+    "logic.xor"
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "De Morgan 법칙 활용",
+      "body": "OR는 입력을 각각 반전한 뒤 AND하고, 그 결과를 다시 반전하는 방식으로 만들 수 있습니다."
+    },
+    {
+      "level": 2,
+      "title": "필요한 블록",
+      "body": "A와 B를 각각 NOT으로 반전하고, 두 반전값을 AND에 넣은 뒤 AND 결과를 NOT으로 한 번 더 뒤집어보세요."
+    },
+    {
+      "level": 3,
+      "title": "연결 방향",
+      "body": "A→NOT, B→NOT, 두 NOT 출력→AND, AND 출력→NOT, 마지막 NOT 출력→OUT으로 연결하세요."
+    }
+  ]
 }
