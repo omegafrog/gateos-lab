@@ -146,6 +146,30 @@ button:disabled {
   padding: 20px;
 }
 
+.project-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e0aaaa;
+  border-radius: 8px;
+  background: #fff4f4;
+  color: #9c2d2d;
+  font-size: 12px;
+}
+
+.project-error button {
+  border: 1px solid #d7abab;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: white;
+  color: inherit;
+  cursor: pointer;
+}
+
+
 .challenge-header {
   display: flex;
   align-items: flex-start;
@@ -262,6 +286,12 @@ button:disabled {
 .wire:hover {
   stroke-width: 7;
 }
+
+.wire.selected {
+  stroke: #d47c28;
+  stroke-width: 7;
+}
+
 
 .component-body {
   fill: #ffffff;
@@ -479,6 +509,95 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 10px;
+}
+
+.selected-signal-card {
+  margin-bottom: 18px;
+  padding: 9px;
+  border: 1px solid #d8dde6;
+  border-radius: 8px;
+  background: white;
+}
+
+.selected-signal-card dl {
+  margin: 0;
+}
+
+.selected-signal-card dt {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #7b8493;
+}
+
+.selected-signal-card dd {
+  margin: 2px 0;
+  font-size: 12px;
+}
+
+.signal-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.signal-actions button {
+  border: 1px solid #c8ced8;
+  border-radius: 6px;
+  padding: 5px 7px;
+  background: white;
+  cursor: pointer;
+}
+
+.unknown-value {
+  color: #b56a15 !important;
+  font-weight: 800;
+}
+
+.probe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.probe-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 22px;
+  gap: 6px;
+  align-items: center;
+  padding: 7px;
+  border: 1px solid #d8dde6;
+  border-radius: 7px;
+  background: white;
+}
+
+.probe-name,
+.probe-remove {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.probe-name {
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.probe-card code {
+  font-size: 11px;
+}
+
+.probe-card small {
+  color: #7c8490;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.probe-remove {
+  font-size: 18px;
+  color: #a43a3a;
 }
 
 
