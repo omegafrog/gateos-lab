@@ -103,8 +103,8 @@
   "referenceTables": [
     {
       "id": "characteristic",
-      "title": "SR Latch characteristic table",
-      "description": "Active-low NAND SR latch. Q(t), Q̅(t) are the current outputs; Q(t+1), Q̅(t+1) are the outputs after the input condition settles.",
+      "title": "SR Latch state table",
+      "description": "This latch stores state through cross-coupled NAND feedback. There is no clock.",
       "columns": [
         {
           "id": "sbar",
@@ -118,22 +118,22 @@
         },
         {
           "id": "qt",
-          "label": "Q(t)",
+          "label": "Q(before)",
           "group": "state"
         },
         {
           "id": "nqt",
-          "label": "Q̅(t)",
+          "label": "Q̅(before)",
           "group": "state"
         },
         {
           "id": "qnext",
-          "label": "Q(t+1)",
+          "label": "Q(after settle)",
           "group": "output"
         },
         {
           "id": "nqnext",
-          "label": "Q̅(t+1)",
+          "label": "Q̅(after settle)",
           "group": "output"
         },
         {
@@ -191,9 +191,10 @@
       ],
       "notes": [
         "S̅/R̅ are active-low inputs.",
-        "Q and Q̅ are normally complements.",
-        "For S̅=0 and R̅=0, a NAND SR latch forces Q=1 and Q̅=1, so the complement relationship is broken and the condition is forbidden."
-      ]
+        "With S̅=R̅=1, neither side forces a new value, so feedback preserves the previous Q/Q̅ state.",
+        "S̅=0,R̅=0 forces Q=Q̅=1 and is forbidden."
+      ],
+      "timing": "Asynchronous — no clock. Inputs take effect after the feedback loop settles."
     }
   ]
 }
