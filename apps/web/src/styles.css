@@ -1445,24 +1445,7 @@ button:disabled {
 }
 
 
-/* Placement boundary and movable interface terminals */
-.chip-placement-limit-fill {
-  fill: rgb(211 87 87 / 4%);
-}
-
-.chip-placement-limit-line {
-  stroke: #d6a0a0;
-  stroke-width: 1.5;
-  stroke-dasharray: 7 6;
-}
-
-.chip-placement-limit-label {
-  fill: #a96a6a;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
+/* Movable interface terminals */
 .terminal-drag-handle {
   cursor: move;
 }
