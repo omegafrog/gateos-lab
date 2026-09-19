@@ -206,13 +206,87 @@ function normalizeProject(value: unknown, strictSchema = false): ProjectState {
   };
 }
 
+function normalizeCircuitToGrid(
+  circuit: CircuitDefinition,
+): CircuitDefinition {
+  const layout = circuit.layout ?? {};
+  const rawInterfacePositions = layout.interfacePositions;
+  let nextLayout = layout;
+
+  if (
+    rawInterfacePositions &&
+    typeof rawInterfacePositions === "object"
+  ) {
+    const normalizedPositions: Record<string, unknown> = {};
+    for (const [pinId, value] of Object.entries(
+      rawInterfacePositions as Record<string, unknown>,
+    )) {
+      if (value && typeof value === "object") {
+        const x = (value as Record<string, unknown>).x;
+        const y = (value as Record<string, unknown>).y;
+        if (typeof x === "number" && typeof y === "number") {
+          normalizedPositions[pinId] = snapPoint({ x, y });
+          continue;
+        }
+      }
+      normalizedPositions[pinId] = value;
+    }
+
+    nextLayout = {
+      ...layout,
+      interfacePositions: normalizedPositions,
+    };
+  }
+
+  return {
+    ...circuit,
+    instances: circuit.instances.map((instance) =>
+      instance.position
+        ? {
+            ...instance,
+            position: snapPoint(instance.position),
+          }
+        : instance,
+    ),
+    connections: circuit.connections.map((connection) =>
+      connection.route
+        ? {
+            ...connection,
+            route: connection.route.map((point) => snapPoint(point)),
+          }
+        : connection,
+    ),
+    layout: nextLayout,
+  };
+}
+
+function normalizeProjectGrid(project: ProjectState): ProjectState {
+  return {
+    ...project,
+    circuits: Object.fromEntries(
+      Object.entries(project.circuits).map(([id, circuit]) => [
+        id,
+        normalizeCircuitToGrid(circuit),
+      ]),
+    ),
+    published: Object.fromEntries(
+      Object.entries(project.published).map(([id, circuit]) => [
+        id,
+        normalizeCircuitToGrid(circuit),
+      ]),
+    ),
+  };
+}
+
 function loadProject(): ProjectLoadResult {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return { project: emptyProject() };
 
   try {
     return {
-      project: normalizeProject(JSON.parse(raw)),
+      project: normalizeProjectGrid(
+        normalizeProject(JSON.parse(raw)),
+      ),
     };
   } catch (error) {
     return {
@@ -281,10 +355,10 @@ function instancePosition(
   return instance?.position ?? { x: 360, y: 220 };
 }
 
-const PLACEMENT_GRID = 24;
-const COMPACT_COMPONENT_WIDTH = PLACEMENT_GRID * 4;
-const TERMINAL_BODY_WIDTH = PLACEMENT_GRID * 4;
-const TERMINAL_PORT_GAP = PLACEMENT_GRID / 2;
+const PLACEMENT_GRID = 12;
+const COMPACT_COMPONENT_WIDTH = PLACEMENT_GRID * 8;
+const TERMINAL_BODY_WIDTH = PLACEMENT_GRID * 8;
+const TERMINAL_PORT_GAP = PLACEMENT_GRID;
 
 function snapCoordinate(value: number): number {
   return Math.round(value / PLACEMENT_GRID) * PLACEMENT_GRID;
@@ -314,7 +388,7 @@ function componentGeometry(spec: ComponentSpec): {
 
   return {
     width: COMPACT_COMPONENT_WIDTH,
-    height: (rows + 1) * PLACEMENT_GRID,
+    height: (rows + 1) * PLACEMENT_GRID * 4,
     inputPins,
     outputPins,
   };
@@ -385,8 +459,10 @@ function componentPinPoint(
     );
     const step = geometry.height / (geometry.outputPins.length + 1);
     return {
-      x: position.x + geometry.width,
-      y: position.y + step * (Math.max(index, 0) + 1),
+      x: snapCoordinate(position.x + geometry.width),
+      y: snapCoordinate(
+        position.y + step * (Math.max(index, 0) + 1),
+      ),
     };
   }
 
@@ -395,8 +471,10 @@ function componentPinPoint(
   );
   const step = geometry.height / (geometry.inputPins.length + 1);
   return {
-    x: position.x,
-    y: position.y + step * (Math.max(index, 0) + 1),
+    x: snapCoordinate(position.x),
+    y: snapCoordinate(
+      position.y + step * (Math.max(index, 0) + 1),
+    ),
   };
 }
 
@@ -435,14 +513,14 @@ function interfacePinPoint(
   if (inputIndex >= 0) {
     return snapPoint({
       x: 144,
-      y: 120 + inputIndex * PLACEMENT_GRID * 4,
+      y: 120 + inputIndex * PLACEMENT_GRID * 8,
     });
   }
 
   const outputIndex = outputPins.findIndex((pin) => pin.id === pinId);
   return snapPoint({
     x: CANVAS_WIDTH - 132,
-    y: 120 + Math.max(outputIndex, 0) * PLACEMENT_GRID * 4,
+    y: 120 + Math.max(outputIndex, 0) * PLACEMENT_GRID * 8,
   });
 }
 
@@ -1378,8 +1456,8 @@ export function App() {
     const count = circuit.instances.length;
     const id = `u${Date.now().toString(36)}-${count}`;
     const position = snapPoint({
-      x: viewport.x + viewport.width * 0.38 + (count % 3) * PLACEMENT_GRID * 2,
-      y: viewport.y + viewport.height * 0.32 + (count % 3) * PLACEMENT_GRID * 2,
+      x: viewport.x + viewport.width * 0.38 + (count % 3) * PLACEMENT_GRID * 4,
+      y: viewport.y + viewport.height * 0.32 + (count % 3) * PLACEMENT_GRID * 4,
     });
     updateCircuit((current) => ({
       ...current,
@@ -1627,8 +1705,8 @@ export function App() {
         ...instance,
         id,
         position: snapPoint({
-          x: position.x + PLACEMENT_GRID * 2,
-          y: position.y + PLACEMENT_GRID * 2,
+          x: position.x + PLACEMENT_GRID * 4,
+          y: position.y + PLACEMENT_GRID * 4,
         }),
       };
     });
@@ -1644,8 +1722,8 @@ export function App() {
         };
 
         const route = connection.route?.map((point) => ({
-          x: point.x + PLACEMENT_GRID * 2,
-          y: point.y + PLACEMENT_GRID * 2,
+          x: point.x + PLACEMENT_GRID * 4,
+          y: point.y + PLACEMENT_GRID * 4,
         }));
 
         return {
@@ -2636,7 +2714,7 @@ export function App() {
         <section className="canvas-frame">
           <div className="canvas-toolbar">
             <div className="canvas-toolbar-info">
-              <span>빈 공간 드래그: 이동 · 소자 배치: 숨은 grid snap · 줌: + / −</span>
+              <span>빈 공간 드래그: 이동 · 소자/핀/Wire node: 숨은 12-unit grid snap · 줌: + / −</span>
               {preview.error ? (
                 <span className="error-text">{preview.error}</span>
               ) : null}
