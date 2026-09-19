@@ -516,3 +516,101 @@ test("wire drag allows a direct diagonal segment", async ({ page }) => {
 
   await expect(page.locator("path.wire-preview")).toHaveCount(0);
 });
+
+test("wire routing can pause at a grid node and resume to a pin", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const from = page.getByTestId("pin-interface-in");
+  const to = component.locator('[data-pin-id="a"]');
+
+  const fromBox = await from.boundingBox();
+  const toBox = await to.boundingBox();
+  if (!fromBox || !toBox) throw new Error("missing wire endpoint geometry");
+
+  const fromX = fromBox.x + fromBox.width / 2;
+  const fromY = fromBox.y + fromBox.height / 2;
+  const toX = toBox.x + toBox.width / 2;
+  const toY = toBox.y + toBox.height / 2;
+
+  const waypointX = fromX + (toX - fromX) * 0.45;
+  const waypointY = fromY + 72;
+
+  await page.mouse.move(fromX, fromY);
+  await page.mouse.down();
+  await page.mouse.move(waypointX, waypointY, { steps: 8 });
+  await page.mouse.up();
+
+  const draftEnd = page.getByTestId("draft-wire-end");
+  await expect(draftEnd).toBeVisible();
+
+  const draftX = Number(await draftEnd.getAttribute("cx"));
+  const draftY = Number(await draftEnd.getAttribute("cy"));
+  expect(draftX % 24).toBe(0);
+  expect(draftY % 24).toBe(0);
+
+  const endBox = await draftEnd.boundingBox();
+  if (!endBox) throw new Error("missing draft wire node geometry");
+
+  await page.mouse.move(
+    endBox.x + endBox.width / 2,
+    endBox.y + endBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(toX, toY, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(page.getByTestId("draft-wire-end")).toHaveCount(0);
+
+  const routeNode = page.locator("circle.wire-node:not(.draft)").first();
+  await expect(routeNode).toBeVisible();
+  await expect(routeNode).toHaveAttribute("cx", String(draftX));
+  await expect(routeNode).toHaveAttribute("cy", String(draftY));
+
+  const wire = page.locator("path.wire:not(.wire-preview)").first();
+  const path = (await wire.getAttribute("d")) ?? "";
+  expect((path.match(/ L /g) ?? []).length).toBe(2);
+});
+
+test("clicking an existing wire adds a movable snapped anchor", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  await connect(
+    page,
+    page.getByTestId("pin-interface-in"),
+    component.locator('[data-pin-id="a"]'),
+  );
+
+  const wire = page.locator("path.wire:not(.wire-preview)").first();
+  await expect(wire).toBeVisible();
+  await wire.click({ position: { x: 20, y: 1 } });
+
+  const node = page.locator("circle.wire-node:not(.draft)").first();
+  await expect(node).toBeVisible();
+
+  const beforeX = Number(await node.getAttribute("cx"));
+  const beforeY = Number(await node.getAttribute("cy"));
+  expect(beforeX % 24).toBe(0);
+  expect(beforeY % 24).toBe(0);
+
+  const box = await node.boundingBox();
+  if (!box) throw new Error("missing route node geometry");
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    box.x + box.width / 2 + 61,
+    box.y + box.height / 2 + 37,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+
+  const afterX = Number(await node.getAttribute("cx"));
+  const afterY = Number(await node.getAttribute("cy"));
+  expect(afterX % 24).toBe(0);
+  expect(afterY % 24).toBe(0);
+  expect(afterX === beforeX && afterY === beforeY).toBe(false);
+});
