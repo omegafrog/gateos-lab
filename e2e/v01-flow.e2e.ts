@@ -675,6 +675,79 @@ test("wire probes are removed from the inspector", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Add probe" })).toHaveCount(0);
 });
 
+test("4-bit zero constant is known immediately and stays known after selecting the mux", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        circuits: {},
+        published: {
+          "user.mux4": {
+            schema: "gateos.circuit/v1",
+            id: "user.mux4",
+            name: "4-bit Multiplexer",
+            pins: [
+              { id: "a", name: "A", direction: "input", width: 4 },
+              { id: "b", name: "B", direction: "input", width: 4 },
+              { id: "sel", name: "SEL", direction: "input", width: 1 },
+              { id: "out", name: "OUT", direction: "output", width: 4 },
+            ],
+            instances: [],
+            connections: [],
+          },
+        },
+        completed: [
+          "logic.not",
+          "logic.and",
+          "logic.or",
+          "logic.xor",
+          "routing.mux2",
+          "arithmetic.half-adder",
+          "arithmetic.full-adder",
+          "state.sr-latch",
+          "state.d-latch",
+          "state.dff",
+          "state.enable-register",
+          "routing.mux4",
+          "arithmetic.adder4",
+          "arithmetic.incrementer4",
+          "state.register4",
+        ],
+      }),
+    );
+  });
+  await page.reload();
+
+  await expect(
+    page.getByRole("heading", { name: "4-bit Counter" }),
+  ).toBeVisible();
+
+  await page.getByTestId("palette-builtin.const4.zero").click();
+  await page.getByTestId("palette-user.mux4").click();
+
+  const zero = page.locator('[data-component-id="builtin.const4.zero"]').first();
+  const mux = page.locator('[data-component-id="user.mux4"]').first();
+  await connect(
+    page,
+    zero.locator('[data-pin-id="out"]'),
+    mux.locator('[data-pin-id="b"]'),
+  );
+
+  const wire = page.locator("path.wire:not(.wire-preview)").first();
+  await expect(wire).toHaveAttribute("data-signal-value", "0000");
+  await expect(wire).toHaveClass(/value-zero/);
+  await expect(wire).not.toHaveClass(/value-x/);
+
+  await mux.click();
+
+  await expect(wire).toHaveAttribute("data-signal-value", "0000");
+  await expect(wire).toHaveClass(/value-zero/);
+  await expect(page.getByTestId("component-io-pin-b")).toContainText("0000");
+});
+
 test("all component ports land on the same hidden 12-unit grid", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
