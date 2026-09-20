@@ -28,8 +28,11 @@ import {
   type SequenceStep,
 } from "@gateos/challenge-engine";
 import { TraceRecorder } from "@gateos/trace-engine";
+import { JourneyView, StageCompletionReveal } from "./Journey";
 
 const STORAGE_KEY = "gateos-lab:v0.1";
+const VIEW_KEY = "gateos-lab:view";
+const STAGE_REVEAL_KEY = "gateos-lab:stage-reveals";
 const PROJECT_SCHEMA = "gateos.project/v1";
 const CANVAS_WIDTH = 920;
 const CANVAS_HEIGHT = 560;
@@ -783,6 +786,10 @@ export function App() {
   const [manifest, setManifest] = useState<CurriculumManifest | null>(null);
   const [learning, setLearning] = useState<CurriculumLearning | null>(null);
   const [challenges, setChallenges] = useState<ChallengeDefinition[]>([]);
+  const [appMode, setAppMode] = useState<"journey" | "lab">(() =>
+    localStorage.getItem(VIEW_KEY) === "lab" ? "lab" : "journey",
+  );
+  const [stageCelebration, setStageCelebration] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string>("");
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [curriculumOpen, setCurriculumOpen] = useState(false);
@@ -894,6 +901,10 @@ export function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
   }, [project]);
+
+  useEffect(() => {
+    localStorage.setItem(VIEW_KEY, appMode);
+  }, [appMode]);
 
   useEffect(() => {
     pendingWireRef.current = pendingPin;
@@ -1534,6 +1545,22 @@ export function App() {
         <h1>GateOS Lab</h1>
         <p>Loading curriculum…</p>
       </main>
+    );
+  }
+
+  if (appMode === "journey") {
+    return (
+      <JourneyView
+        completed={project.completed}
+        challenges={challenges}
+        onEnterLab={() => setAppMode("lab")}
+        onOpenChallenge={(challengeId) => {
+          setSelectedId(challengeId);
+          const index = challenges.findIndex((item) => item.id === challengeId);
+          if (index >= 0) setActiveStageIndex(curriculumStageForIndex(index));
+          setAppMode("lab");
+        }}
+      />
     );
   }
 
@@ -2904,6 +2931,13 @@ export function App() {
       name: challenge.title,
     };
 
+    const stageIndex = curriculumStageForIndex(currentIndex);
+    const stage = CURRICULUM_STAGES[stageIndex];
+    const completesStage =
+      stage !== undefined &&
+      currentIndex === stage.endIndex &&
+      !project.completed.includes(challenge.id);
+
     setProject((previous) => ({
       ...previous,
       published: {
@@ -2914,6 +2948,23 @@ export function App() {
         ? previous.completed
         : [...previous.completed, challenge.id],
     }));
+
+    if (completesStage && stage) {
+      let seen: string[] = [];
+      try {
+        const raw = localStorage.getItem(STAGE_REVEAL_KEY);
+        seen = raw ? (JSON.parse(raw) as string[]) : [];
+      } catch {
+        seen = [];
+      }
+      if (!seen.includes(stage.id)) {
+        localStorage.setItem(
+          STAGE_REVEAL_KEY,
+          JSON.stringify([...seen, stage.id]),
+        );
+        setStageCelebration(stage.id);
+      }
+    }
   }
 
   function enterComposite(instanceId: string): void {
@@ -2966,6 +3017,13 @@ export function App() {
           <span className="muted"> · {manifest.title}</span>
         </div>
         <div className="topbar-actions">
+          <button
+            className="journey-toggle"
+            data-testid="journey-toggle"
+            onClick={() => setAppMode("journey")}
+          >
+            Journey
+          </button>
           <button
             className="curriculum-toggle"
             data-testid="curriculum-toggle"
@@ -4951,6 +5009,15 @@ export function App() {
             ))}
         </div>
       </aside>
+
+      {stageCelebration ? (
+        <StageCompletionReveal
+          stageId={stageCelebration}
+          completed={project.completed}
+          onClose={() => setStageCelebration(null)}
+          onOpenJourney={() => setAppMode("journey")}
+        />
+      ) : null}
     </div>
   );
 }

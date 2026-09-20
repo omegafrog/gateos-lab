@@ -25,8 +25,39 @@ async function selectChallenge(page: Page, id: string): Promise<void> {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem("gateos-lab:view", "lab");
+  });
+  await page.reload();
+});
+
+test("fresh visitors enter the interactive NAND-to-App journey", async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+
+  await expect(page.getByTestId("journey-page")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /컴퓨터의 모든 층을/ })).toBeVisible();
+  await expect(page.getByTestId("journey-scene-logic")).toBeVisible();
+  await expect(page.getByTestId("journey-scene-cpu")).toBeAttached();
+  await expect(page.getByTestId("journey-scene-os")).toBeAttached();
+
+  await page.getByTestId("journey-enter-lab").click();
+  await expect(page.getByTestId("palette-builtin.nand")).toBeVisible();
+});
+
+test("journey reflows on a phone viewport without page-level horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await expect(page.getByTestId("journey-page")).toBeVisible();
+  await expect(page.getByTestId("journey-assembly")).toBeVisible();
+
+  const fits = await page.evaluate(
+    () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+  );
+  expect(fits).toBe(true);
 });
 
 test("curriculum is split into stage pages instead of one long list", async ({
