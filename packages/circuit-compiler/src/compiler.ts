@@ -161,6 +161,46 @@ export function compileCircuit(
         continue;
       }
 
+      // Once the learner has published the DFF challenge, reuse it as an
+      // edge-triggered state boundary instead of flattening its latch gates
+      // into the parent combinational graph. The original composite circuit is
+      // still retained in the registry for inspection/editing.
+      if (spec.id === "user.dff") {
+        const requiredPins = new Map(spec.circuit.pins.map((pin) => [pin.id, pin]));
+        const d = requiredPins.get("d");
+        const clk = requiredPins.get("clk");
+        const q = requiredPins.get("q");
+        if (
+          !d ||
+          d.direction !== "input" ||
+          d.width !== 1 ||
+          !clk ||
+          clk.direction !== "input" ||
+          clk.width !== 1 ||
+          !q ||
+          q.direction !== "output" ||
+          q.width !== 1
+        ) {
+          throw new Error(
+            "Published user.dff must expose 1-bit D, CLK inputs and 1-bit Q output",
+          );
+        }
+
+        const vertices: Record<string, string> = {};
+        for (const pin of spec.circuit.pins) {
+          vertices[pin.id] = instanceVertex(path, instance.id, pin.id);
+        }
+        primitives.push({
+          id: `${path}/${instance.id}`,
+          primitiveId: "builtin.user-dff",
+          sourcePath: `${path}/${instance.id}`,
+          params: instance.params ?? {},
+          pins: spec.circuit.pins,
+          vertices,
+        });
+        continue;
+      }
+
       const childPath = `${path}/${instance.id}`;
       walk(spec.circuit, childPath);
 
