@@ -225,6 +225,56 @@ export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
     },
   });
 
+  registry.registerSequential<BitVector>("builtin.user-register", {
+    clockPin: "clk",
+    createState: (params) => {
+      const width = params.width;
+      if (!Number.isInteger(width) || Number(width) <= 0) {
+        throw new Error("User Register requires a positive integer width");
+      }
+      return BitVector.unknown(Number(width));
+    },
+    sample: (inputs, state, edge, params) => {
+      if (edge === "falling") return state;
+
+      const width = Number(params.width);
+      const d = inputs.d;
+      const load = inputs.load;
+      if (!d) throw new Error("User Register requires input 'd'");
+      if (!load) throw new Error("User Register requires input 'load'");
+      if (d.width !== width) {
+        throw new Error(
+          `User Register expects ${width}-bit D, got ${d.width}`,
+        );
+      }
+      if (load.width !== 1) {
+        throw new Error(
+          `User Register expects 1-bit LOAD, got ${load.width}`,
+        );
+      }
+
+      const loadBit = load.get(0);
+      if (loadBit === 0) return state;
+      if (loadBit === 1) return d;
+      return BitVector.unknown(width);
+    },
+    outputs: (state) => ({ q: state }),
+    serializeState: (state) => state.toBinary(),
+    deserializeState: (value, params) => {
+      if (typeof value !== "string") {
+        throw new Error("User Register state must be a binary string");
+      }
+      const state = BitVector.fromBinary(value);
+      const width = Number(params.width);
+      if (state.width !== width) {
+        throw new Error(
+          `User Register state must be ${width} bits, got ${state.width}`,
+        );
+      }
+      return state;
+    },
+  });
+
   registry.registerSequential<BitVector>("builtin.user-dff", {
     clockPin: "clk",
     createState: () => BitVector.unknown(1),
