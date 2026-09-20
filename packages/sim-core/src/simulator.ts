@@ -237,6 +237,12 @@ export class Simulator {
   }
 
   reset(): void {
+    // A reset must start from a clean evaluation queue. In particular,
+    // source-only combinational primitives such as constants have no input
+    // changes that would enqueue them again after their drivers are cleared.
+    this.#queue.length = 0;
+    this.#queued.clear();
+
     for (const [netId, drivers] of this.#drivers) {
       for (const driverId of drivers.keys()) {
         if (!driverId.startsWith("node:")) continue;
@@ -271,6 +277,15 @@ export class Simulator {
         }
         this.assertWidth(netId, value);
         this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+      }
+    }
+
+    // Re-evaluate every combinational primitive. Consumers may already have
+    // been enqueued by driver changes above, while zero-input primitives (for
+    // example builtin.const4.zero) need an explicit enqueue.
+    for (const node of this.#netlist.nodes) {
+      if (!this.#primitives.isSequential(node.primitiveId)) {
+        this.enqueue(node.id);
       }
     }
 
