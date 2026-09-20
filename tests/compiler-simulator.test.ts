@@ -351,5 +351,12 @@ describe("bus primitives", () => {
     expect(simulator.readOutput("o1").toBinary()).toBe("1");
     expect(simulator.readOutput("z4").toBinary()).toBe("0000");
     expect(simulator.readOutput("o4").toBinary()).toBe("0001");
+
+    simulator.reset();
+
+    expect(simulator.readOutput("z1").toBinary()).toBe("0");
+    expect(simulator.readOutput("o1").toBinary()).toBe("1");
+    expect(simulator.readOutput("z4").toBinary()).toBe("0000");
+    expect(simulator.readOutput("o4").toBinary()).toBe("0001");
   });
 });
