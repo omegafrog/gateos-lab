@@ -161,6 +161,55 @@ export function compileCircuit(
         continue;
       }
 
+      // Published registers are validated sequential abstractions. Reusing them
+      // in Counter/PC/RAM should preserve their edge-triggered state boundary
+      // instead of exposing their internal feedback network to the parent
+      // zero-delay combinational solver.
+      if (
+        spec.id === "user.enable-register" ||
+        spec.id === "user.register4"
+      ) {
+        const pins = new Map(spec.circuit.pins.map((pin) => [pin.id, pin]));
+        const d = pins.get("d");
+        const load = pins.get("load");
+        const clk = pins.get("clk");
+        const q = pins.get("q");
+        if (
+          !d ||
+          d.direction !== "input" ||
+          !load ||
+          load.direction !== "input" ||
+          load.width !== 1 ||
+          !clk ||
+          clk.direction !== "input" ||
+          clk.width !== 1 ||
+          !q ||
+          q.direction !== "output" ||
+          q.width !== d.width
+        ) {
+          throw new Error(
+            `Published ${spec.id} must expose D[width], 1-bit LOAD, 1-bit CLK and matching Q[width]`,
+          );
+        }
+
+        const vertices: Record<string, string> = {};
+        for (const pin of spec.circuit.pins) {
+          vertices[pin.id] = instanceVertex(path, instance.id, pin.id);
+        }
+        primitives.push({
+          id: `${path}/${instance.id}`,
+          primitiveId: "builtin.user-register",
+          sourcePath: `${path}/${instance.id}`,
+          params: {
+            ...(instance.params ?? {}),
+            width: d.width,
+          },
+          pins: spec.circuit.pins,
+          vertices,
+        });
+        continue;
+      }
+
       // Once the learner has published the DFF challenge, reuse it as an
       // edge-triggered state boundary instead of flattening its latch gates
       // into the parent combinational graph. The original composite circuit is
