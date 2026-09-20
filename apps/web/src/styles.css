@@ -1622,7 +1622,7 @@ button:disabled {
 }
 
 .wire-junction {
-  cursor: crosshair;
+  cursor: pointer;
 }
 
 .wire-node:hover,
@@ -1638,7 +1638,7 @@ button:disabled {
 }
 
 .wire-node.wire-end {
-  cursor: crosshair;
+  cursor: pointer;
   filter: drop-shadow(0 0 2px rgb(210 138 45 / 35%));
 }
 
@@ -1661,7 +1661,7 @@ button:disabled {
   fill: none;
   stroke: transparent;
   stroke-width: 18;
-  cursor: crosshair;
+  cursor: pointer;
   pointer-events: stroke;
 }
 
