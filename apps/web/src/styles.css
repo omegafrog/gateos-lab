@@ -1886,3 +1886,154 @@ button:disabled {
     background: rgb(21 25 34 / 0.38);
   }
 }
+
+
+/* Concept-first curriculum teaching */
+.stage-learning-context {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 14px;
+  padding: 12px;
+  border: 1px solid #d8dde7;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.stage-learning-context > div {
+  display: grid;
+  gap: 4px;
+}
+
+.stage-learning-context strong {
+  color: #2f3a4d;
+  font-size: 12px;
+}
+
+.stage-learning-context p,
+.stage-learning-context ul {
+  margin: 0;
+  color: #5f6b7d;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.stage-learning-context ul {
+  padding-left: 18px;
+}
+
+.stage-learning-context li + li {
+  margin-top: 3px;
+}
+
+.stage-connects {
+  padding-top: 9px;
+  border-top: 1px solid #e5e8ee;
+}
+
+.learning-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #cfd6e4;
+  border-radius: 12px;
+  background: #fbfcff;
+}
+
+.learning-panel-header {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(300px, 1.3fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.learning-panel-header > div {
+  display: grid;
+  gap: 5px;
+}
+
+.learning-panel-header span,
+.learning-mental-model span {
+  color: #68758a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.learning-panel-header strong {
+  color: #26334a;
+  font-size: 18px;
+}
+
+.learning-panel-header p,
+.learning-builds-toward p {
+  margin: 0;
+  color: #536075;
+  line-height: 1.65;
+}
+
+.learning-mental-model {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border-left: 4px solid #6576d8;
+  border-radius: 6px;
+  background: #f0f2ff;
+}
+
+.learning-mental-model strong {
+  color: #313d73;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.learning-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.learning-grid article {
+  padding: 13px 14px;
+  border: 1px solid #dce1ea;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.learning-grid h3 {
+  margin: 0 0 9px;
+  color: #303b50;
+  font-size: 13px;
+}
+
+.learning-grid ol,
+.learning-grid ul {
+  margin: 0;
+  padding-left: 19px;
+  color: #5b6678;
+  font-size: 13px;
+  line-height: 1.58;
+}
+
+.learning-grid li + li {
+  margin-top: 6px;
+}
+
+.learning-builds-toward {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f3f5f8;
+}
+
+.learning-builds-toward strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #384559;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .learning-panel-header,
+  .learning-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -33,6 +33,26 @@ function readChallenge(file: string): ChallengeDefinition {
   ) as ChallengeDefinition;
 }
 
+function readLearning(): {
+  stages: Readonly<Record<string, {
+    why: string;
+    outcomes: readonly string[];
+    connectsTo: string;
+  }>>;
+  challenges: Readonly<Record<string, {
+    motivation: string;
+    mentalModel: string;
+    howItWorks: readonly string[];
+    applications: readonly string[];
+    commonMistakes: readonly string[];
+    buildsToward: string;
+  }>>;
+} {
+  return JSON.parse(
+    readFileSync(new URL("../curriculum/core/learning.json", import.meta.url), "utf8"),
+  );
+}
+
 function extendedRegistry(): {
   components: ComponentRegistry;
   primitives: PrimitiveRegistry;
@@ -343,6 +363,36 @@ describe("extended curriculum", () => {
     const challenge = readChallenge("14-incrementer4.challenge.json");
     const { components, primitives } = extendedRegistry();
     expect(runChallenge(challenge, incrementer4Reference(), components, primitives).passed).toBe(true);
+  });
+
+  it("provides concept-first teaching for every stage and challenge", () => {
+    const manifest = readManifest();
+    const learning = readLearning();
+
+    expect(Object.keys(learning.stages)).toEqual([
+      "logic",
+      "state",
+      "multibit",
+      "memory",
+      "cpu",
+    ]);
+
+    for (const stage of Object.values(learning.stages)) {
+      expect(stage.why.length).toBeGreaterThan(50);
+      expect(stage.outcomes.length).toBeGreaterThanOrEqual(4);
+      expect(stage.connectsTo.length).toBeGreaterThan(30);
+    }
+
+    for (const entry of manifest.challenges) {
+      const lesson = learning.challenges[entry.id];
+      expect(lesson, entry.id).toBeDefined();
+      expect(lesson?.motivation.length, entry.id).toBeGreaterThan(50);
+      expect(lesson?.mentalModel.length, entry.id).toBeGreaterThan(30);
+      expect(lesson?.howItWorks.length, entry.id).toBeGreaterThanOrEqual(3);
+      expect(lesson?.applications.length, entry.id).toBeGreaterThanOrEqual(3);
+      expect(lesson?.commonMistakes.length, entry.id).toBeGreaterThanOrEqual(3);
+      expect(lesson?.buildsToward.length, entry.id).toBeGreaterThan(30);
+    }
   });
 
   it("keeps every new challenge on the three-stage Korean learning format", () => {

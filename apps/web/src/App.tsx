@@ -41,6 +41,27 @@ interface CurriculumManifest {
   challenges: readonly { id: string; file: string }[];
 }
 
+interface ChallengeLearningContent {
+  motivation: string;
+  mentalModel: string;
+  howItWorks: readonly string[];
+  applications: readonly string[];
+  commonMistakes: readonly string[];
+  buildsToward: string;
+}
+
+interface StageLearningContent {
+  why: string;
+  outcomes: readonly string[];
+  connectsTo: string;
+}
+
+interface CurriculumLearning {
+  schema: "gateos.learning/v1";
+  stages: Readonly<Record<string, StageLearningContent>>;
+  challenges: Readonly<Record<string, ChallengeLearningContent>>;
+}
+
 interface ProjectState {
   schema: typeof PROJECT_SCHEMA;
   circuits: Record<string, CircuitDefinition>;
@@ -760,6 +781,7 @@ function curriculumStageForIndex(index: number): number {
 export function App() {
   const initialProject = useMemo(() => loadProject(), []);
   const [manifest, setManifest] = useState<CurriculumManifest | null>(null);
+  const [learning, setLearning] = useState<CurriculumLearning | null>(null);
   const [challenges, setChallenges] = useState<ChallengeDefinition[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [activeStageIndex, setActiveStageIndex] = useState(0);
@@ -827,6 +849,15 @@ export function App() {
         const loadedManifest =
           (await manifestResponse.json()) as CurriculumManifest;
 
+        const learningResponse = await fetch("/core/learning.json");
+        if (!learningResponse.ok) {
+          throw new Error(
+            `Failed to load curriculum learning content: ${learningResponse.status}`,
+          );
+        }
+        const loadedLearning =
+          (await learningResponse.json()) as CurriculumLearning;
+
         const loadedChallenges = await Promise.all(
           loadedManifest.challenges.map(async (entry) => {
             const response = await fetch(`/core/${entry.file}`);
@@ -838,6 +869,7 @@ export function App() {
         );
 
         setManifest(loadedManifest);
+        setLearning(loadedLearning);
         setChallenges(loadedChallenges);
 
         const completed = new Set(initialProject.project.completed);
@@ -1496,7 +1528,7 @@ export function App() {
     );
   }
 
-  if (!manifest || !challenge || !circuit) {
+  if (!manifest || !learning || !challenge || !circuit) {
     return (
       <main className="fatal">
         <h1>GateOS Lab</h1>
@@ -1508,6 +1540,8 @@ export function App() {
   const currentIndex = challenges.findIndex((item) => item.id === challenge.id);
   const activeStage =
     CURRICULUM_STAGES[activeStageIndex] ?? CURRICULUM_STAGES[0]!;
+  const activeStageLearning = learning.stages[activeStage.id];
+  const challengeLearning = learning.challenges[challenge.id];
   const stageChallenges = challenges
     .map((item, index) => ({ item, index }))
     .filter(
@@ -3016,6 +3050,26 @@ export function App() {
             </button>
           </div>
           <p>{activeStage.description}</p>
+          {activeStageLearning ? (
+            <div className="stage-learning-context">
+              <div>
+                <strong>왜 이 챕터를 배우나요?</strong>
+                <p>{activeStageLearning.why}</p>
+              </div>
+              <div>
+                <strong>이 챕터를 끝내면</strong>
+                <ul>
+                  {activeStageLearning.outcomes.map((outcome) => (
+                    <li key={outcome}>{outcome}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="stage-connects">
+                <strong>어디로 이어지나요?</strong>
+                <p>{activeStageLearning.connectsTo}</p>
+              </div>
+            </div>
+          ) : null}
           <div className="stage-progress">
             <span>
               {stageCompletedCount}/{stageChallenges.length} complete
@@ -3133,6 +3187,55 @@ export function App() {
             </button>
           </div>
         </section>
+
+        {challengeLearning ? (
+          <section className="learning-panel" data-testid="learning-panel">
+            <div className="learning-panel-header">
+              <div>
+                <span>CONCEPT LESSON</span>
+                <strong>이 회로를 왜 만드는가?</strong>
+              </div>
+              <p>{challengeLearning.motivation}</p>
+            </div>
+
+            <div className="learning-mental-model">
+              <span>핵심 mental model</span>
+              <strong>{challengeLearning.mentalModel}</strong>
+            </div>
+
+            <div className="learning-grid">
+              <article>
+                <h3>어떻게 동작하나요?</h3>
+                <ol>
+                  {challengeLearning.howItWorks.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ol>
+              </article>
+              <article>
+                <h3>어디에 사용하나요?</h3>
+                <ul>
+                  {challengeLearning.applications.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+              <article>
+                <h3>흔한 실수</h3>
+                <ul>
+                  {challengeLearning.commonMistakes.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            </div>
+
+            <div className="learning-builds-toward">
+              <strong>다음 단계와의 연결</strong>
+              <p>{challengeLearning.buildsToward}</p>
+            </div>
+          </section>
+        ) : null}
 
         {(challenge.hints?.length ?? 0) > 0 ? (
           <section className="hint-panel" data-testid="hints-panel">
