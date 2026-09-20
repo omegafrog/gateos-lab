@@ -15,6 +15,13 @@ export type PrimitiveEvaluator = (
 ) => PrimitiveOutputs;
 
 export interface SequentialPrimitiveDefinition<State = unknown> {
+  /**
+   * When set, this sequential primitive is driven by an explicit 1-bit clock
+   * input. The simulator detects 0→1 / 1→0 transitions during settle().
+   * Definitions without clockPin continue to use Simulator.stepEdge().
+   */
+  clockPin?: string;
+
   createState(
     params: Readonly<Record<string, unknown>>,
     node: CompiledNode,
@@ -213,6 +220,32 @@ export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
       const state = BitVector.fromBinary(value);
       if (state.width !== 1) {
         throw new Error("Clock state must be 1 bit");
+      }
+      return state;
+    },
+  });
+
+  registry.registerSequential<BitVector>("builtin.user-dff", {
+    clockPin: "clk",
+    createState: () => BitVector.unknown(1),
+    sample: (inputs, state, edge) => {
+      if (edge === "falling") return state;
+      const d = inputs.d;
+      if (!d) throw new Error("User D Flip-Flop requires input 'd'");
+      if (d.width !== 1) {
+        throw new Error(`User D Flip-Flop expects 1-bit D, got ${d.width}`);
+      }
+      return d;
+    },
+    outputs: (state) => ({ q: state }),
+    serializeState: (state) => state.toBinary(),
+    deserializeState: (value) => {
+      if (typeof value !== "string") {
+        throw new Error("User D Flip-Flop state must be a binary string");
+      }
+      const state = BitVector.fromBinary(value);
+      if (state.width !== 1) {
+        throw new Error("User D Flip-Flop state must be 1 bit");
       }
       return state;
     },
