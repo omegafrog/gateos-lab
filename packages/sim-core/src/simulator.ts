@@ -42,6 +42,7 @@ export class Simulator {
   readonly #consumers = new Map<string, Set<string>>();
   readonly #nodes = new Map<string, CompiledNode>();
   readonly #sequentialState = new Map<string, unknown>();
+  readonly #clockValues = new Map<string, BitVector>();
   readonly #rootInputValues = new Map<string, BitVector>();
   readonly #queue: string[] = [];
   readonly #queued = new Set<string>();
@@ -75,6 +76,24 @@ export class Simulator {
         const definition = this.#primitives.getSequential(node.primitiveId);
         const state = definition.createState(node.params, node);
         this.#sequentialState.set(node.id, state);
+
+        if (definition.clockPin) {
+          const clockNetId = node.inputs[definition.clockPin];
+          if (!clockNetId) {
+            throw new Error(
+              `Sequential primitive ${node.primitiveId} is missing clock input ${definition.clockPin}`,
+            );
+          }
+          if (this.widthOf(clockNetId) !== 1) {
+            throw new Error(
+              `Sequential primitive ${node.primitiveId} clock input must be 1 bit`,
+            );
+          }
+          for (const netId of Object.values(node.inputs)) {
+            this.#consumers.get(netId)?.add(node.id);
+          }
+          this.#clockValues.set(node.id, this.readNet(clockNetId));
+        }
 
         const outputs = definition.outputs(state, node.params, node);
         for (const [pinId, netId] of Object.entries(node.outputs)) {
@@ -137,40 +156,121 @@ export class Simulator {
   settle(maxEvaluations = 10_000): number {
     let evaluations = 0;
 
-    while (this.#queue.length > 0) {
-      if (evaluations >= maxEvaluations) {
-        throw new OscillationError(evaluations);
-      }
+    while (true) {
+      const pendingClockedStates = new Map<string, unknown>();
 
-      const nodeId = this.#queue.shift();
-      if (!nodeId) break;
-      this.#queued.delete(nodeId);
-
-      const node = this.#nodes.get(nodeId);
-      if (!node) throw new Error(`Unknown node: ${nodeId}`);
-      if (this.#primitives.isSequential(node.primitiveId)) {
-        continue;
-      }
-
-      const inputs = this.readNodeInputs(node);
-      const outputs = this.#primitives.get(node.primitiveId)(
-        inputs,
-        node.params,
-        node,
-      );
-
-      for (const [pinId, value] of Object.entries(outputs)) {
-        const netId = node.outputs[pinId];
-        if (!netId) {
-          throw new Error(
-            `Primitive ${node.primitiveId} produced undeclared output ${pinId}`,
-          );
+      while (this.#queue.length > 0) {
+        if (evaluations >= maxEvaluations) {
+          throw new OscillationError(evaluations);
         }
-        this.assertWidth(netId, value);
-        this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+
+        const nodeId = this.#queue.shift();
+        if (!nodeId) break;
+        this.#queued.delete(nodeId);
+
+        const node = this.#nodes.get(nodeId);
+        if (!node) throw new Error(`Unknown node: ${nodeId}`);
+
+        if (this.#primitives.isSequential(node.primitiveId)) {
+          const definition = this.#primitives.getSequential(node.primitiveId);
+          if (!definition.clockPin) {
+            continue;
+          }
+
+          const inputs = this.readNodeInputs(node);
+          const clock = inputs[definition.clockPin];
+          if (!clock) {
+            throw new Error(
+              `Sequential primitive ${node.primitiveId} is missing clock input ${definition.clockPin}`,
+            );
+          }
+          if (clock.width !== 1) {
+            throw new Error(
+              `Sequential primitive ${node.primitiveId} clock input must be 1 bit`,
+            );
+          }
+
+          const previousClock =
+            this.#clockValues.get(node.id) ?? BitVector.unknown(1);
+          const previous = previousClock.toBinary();
+          const current = clock.toBinary();
+          this.#clockValues.set(node.id, clock);
+
+          const edge: ClockEdge | null =
+            previous === "0" && current === "1"
+              ? "rising"
+              : previous === "1" && current === "0"
+                ? "falling"
+                : null;
+
+          if (edge) {
+            const state = this.#sequentialState.get(node.id);
+            if (state === undefined) {
+              throw new Error(`Missing sequential state for ${node.id}`);
+            }
+            pendingClockedStates.set(
+              node.id,
+              definition.sample(
+                inputs,
+                state,
+                edge,
+                node.params,
+                node,
+              ),
+            );
+          }
+
+          evaluations += 1;
+          continue;
+        }
+
+        const inputs = this.readNodeInputs(node);
+        const outputs = this.#primitives.get(node.primitiveId)(
+          inputs,
+          node.params,
+          node,
+        );
+
+        for (const [pinId, value] of Object.entries(outputs)) {
+          const netId = node.outputs[pinId];
+          if (!netId) {
+            throw new Error(
+              `Primitive ${node.primitiveId} produced undeclared output ${pinId}`,
+            );
+          }
+          this.assertWidth(netId, value);
+          this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+        }
+
+        evaluations += 1;
       }
 
-      evaluations += 1;
+      if (pendingClockedStates.size === 0) break;
+
+      // Commit only after every explicitly clocked primitive that observed the
+      // same settled input wave has sampled its pre-edge state. This preserves
+      // flip-flop chain semantics and prevents race-through.
+      for (const [nodeId, nextState] of pendingClockedStates) {
+        this.#sequentialState.set(nodeId, nextState);
+      }
+
+      for (const [nodeId, nextState] of pendingClockedStates) {
+        const node = this.#nodes.get(nodeId);
+        if (!node) throw new Error(`Unknown node: ${nodeId}`);
+        const definition = this.#primitives.getSequential(node.primitiveId);
+        const outputs = definition.outputs(nextState, node.params, node);
+
+        for (const [pinId, value] of Object.entries(outputs)) {
+          const netId = node.outputs[pinId];
+          if (!netId) {
+            throw new Error(
+              `Sequential primitive ${node.primitiveId} produced undeclared output ${pinId}`,
+            );
+          }
+          this.assertWidth(netId, value);
+          this.setDriver(netId, `node:${node.id}:${pinId}`, value);
+        }
+      }
     }
 
     return evaluations;
@@ -185,6 +285,7 @@ export class Simulator {
       if (!this.#primitives.isSequential(node.primitiveId)) continue;
 
       const definition = this.#primitives.getSequential(node.primitiveId);
+      if (definition.clockPin) continue;
       const state = this.#sequentialState.get(node.id);
       if (state === undefined) {
         throw new Error(`Missing sequential state for ${node.id}`);
@@ -242,6 +343,7 @@ export class Simulator {
     // changes that would enqueue them again after their drivers are cleared.
     this.#queue.length = 0;
     this.#queued.clear();
+    this.#clockValues.clear();
 
     for (const [netId, drivers] of this.#drivers) {
       for (const driverId of drivers.keys()) {
@@ -266,6 +368,16 @@ export class Simulator {
       const definition = this.#primitives.getSequential(node.primitiveId);
       const state = definition.createState(node.params, node);
       this.#sequentialState.set(node.id, state);
+
+      if (definition.clockPin) {
+        const clockNetId = node.inputs[definition.clockPin];
+        if (!clockNetId) {
+          throw new Error(
+            `Sequential primitive ${node.primitiveId} is missing clock input ${definition.clockPin}`,
+          );
+        }
+        this.#clockValues.set(node.id, this.readNet(clockNetId));
+      }
 
       const outputs = definition.outputs(state, node.params, node);
       for (const [pinId, value] of Object.entries(outputs)) {
@@ -403,6 +515,20 @@ export class Simulator {
         this.assertWidth(netId, value);
         this.setDriver(netId, `node:${node.id}:${pinId}`, value);
       }
+    }
+
+    this.#clockValues.clear();
+    for (const node of this.#netlist.nodes) {
+      if (!this.#primitives.isSequential(node.primitiveId)) continue;
+      const definition = this.#primitives.getSequential(node.primitiveId);
+      if (!definition.clockPin) continue;
+      const clockNetId = node.inputs[definition.clockPin];
+      if (!clockNetId) {
+        throw new Error(
+          `Sequential primitive ${node.primitiveId} is missing clock input ${definition.clockPin}`,
+        );
+      }
+      this.#clockValues.set(node.id, this.readNet(clockNetId));
     }
 
     this.#cycle = snapshot.cycle;
