@@ -523,6 +523,12 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
   const from = page.getByTestId("pin-interface-in");
   const to = component.locator('[data-pin-id="a"]');
 
+  // Educational content above the canvas can place it below the initial
+  // viewport. Bring the canvas endpoints on-screen before converting their
+  // browser coordinates into pointer coordinates.
+  await from.scrollIntoViewIfNeeded();
+  await to.scrollIntoViewIfNeeded();
+
   const fromBox = await from.boundingBox();
   const toBox = await to.boundingBox();
   if (!fromBox || !toBox) throw new Error("missing wire endpoint geometry");
