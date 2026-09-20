@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BitVector,
+  ComponentRegistry,
   createBuiltinComponentRegistry,
   type CircuitDefinition,
 } from "@gateos/circuit-model";
@@ -31,6 +32,102 @@ function dffCircuit(): CircuitDefinition {
         from: { kind: "instance", instanceId: "ff", pinId: "q" },
         to: { kind: "interface", pinId: "q" },
       },
+    ],
+  };
+}
+
+function registryWithPublishedUserDff(): ComponentRegistry {
+  const registry = createBuiltinComponentRegistry();
+  registry.register({
+    kind: "composite",
+    id: "user.dff",
+    name: "Published learner DFF",
+    circuit: {
+      schema: "gateos.circuit/v1",
+      id: "artifact.state.dff",
+      name: "D Flip-Flop",
+      pins: [
+        { id: "d", name: "D", direction: "input", width: 1 },
+        { id: "clk", name: "CLK", direction: "input", width: 1 },
+        { id: "q", name: "Q", direction: "output", width: 1 },
+      ],
+      // The compiler intentionally treats a published user.dff as an atomic
+      // state boundary when it is reused by a parent circuit.
+      instances: [],
+      connections: [],
+    },
+  });
+  return registry;
+}
+
+function explicitClockDffCircuit(chained = false): CircuitDefinition {
+  return {
+    schema: "gateos.circuit/v1",
+    id: chained ? "test.user-dff-chain" : "test.user-dff",
+    name: chained ? "User DFF chain" : "User DFF",
+    pins: [
+      { id: "d", name: "D", direction: "input", width: 1 },
+      { id: "clk", name: "CLK", direction: "input", width: 1 },
+      { id: "q1", name: "Q1", direction: "output", width: 1 },
+      ...(chained
+        ? [{ id: "q2", name: "Q2", direction: "output" as const, width: 1 }]
+        : []),
+    ],
+    instances: [
+      { id: "ff1", componentId: "user.dff" },
+      ...(chained ? [{ id: "ff2", componentId: "user.dff" }] : []),
+    ],
+    connections: [
+      {
+        id: "d-ff1",
+        from: { kind: "interface", pinId: "d" },
+        to: { kind: "instance", instanceId: "ff1", pinId: "d" },
+      },
+      {
+        id: "clk-ff1",
+        from: { kind: "interface", pinId: "clk" },
+        to: { kind: "instance", instanceId: "ff1", pinId: "clk" },
+      },
+      {
+        id: "q1-out",
+        from: { kind: "instance", instanceId: "ff1", pinId: "q" },
+        to: { kind: "interface", pinId: "q1" },
+      },
+      ...(chained
+        ? [
+            {
+              id: "q1-ff2",
+              from: {
+                kind: "instance" as const,
+                instanceId: "ff1",
+                pinId: "q",
+              },
+              to: {
+                kind: "instance" as const,
+                instanceId: "ff2",
+                pinId: "d",
+              },
+            },
+            {
+              id: "clk-ff2",
+              from: { kind: "interface" as const, pinId: "clk" },
+              to: {
+                kind: "instance" as const,
+                instanceId: "ff2",
+                pinId: "clk",
+              },
+            },
+            {
+              id: "q2-out",
+              from: {
+                kind: "instance" as const,
+                instanceId: "ff2",
+                pinId: "q",
+              },
+              to: { kind: "interface" as const, pinId: "q2" },
+            },
+          ]
+        : []),
     ],
   };
 }
@@ -163,6 +260,68 @@ describe("sequential simulation", () => {
     restored.stepClock();
     expect(restored.readOutput("q").toBinary()).toBe("0");
     expect(restored.cycle).toBe(2);
+  });
+
+  it("treats a published user.dff as an explicit-clock state boundary", () => {
+    const netlist = compileCircuit(
+      explicitClockDffCircuit(),
+      registryWithPublishedUserDff(),
+    );
+    expect(netlist.nodes).toHaveLength(1);
+    expect(netlist.nodes[0]?.primitiveId).toBe("builtin.user-dff");
+
+    const simulator = new Simulator(
+      netlist,
+      createBuiltinPrimitiveRegistry(),
+    );
+
+    simulator.setInput("d", BitVector.fromBinary("1"));
+    simulator.setInput("clk", BitVector.fromBinary("0"));
+    simulator.settle();
+    expect(simulator.readOutput("q1").toBinary()).toBe("X");
+
+    simulator.setInput("clk", BitVector.fromBinary("1"));
+    simulator.settle();
+    expect(simulator.readOutput("q1").toBinary()).toBe("1");
+
+    simulator.setInput("d", BitVector.fromBinary("0"));
+    simulator.settle();
+    expect(simulator.readOutput("q1").toBinary()).toBe("1");
+
+    simulator.setInput("clk", BitVector.fromBinary("0"));
+    simulator.settle();
+    expect(simulator.readOutput("q1").toBinary()).toBe("1");
+
+    simulator.setInput("clk", BitVector.fromBinary("1"));
+    simulator.settle();
+    expect(simulator.readOutput("q1").toBinary()).toBe("0");
+  });
+
+  it("samples chained published user.dff instances before committing the edge", () => {
+    const simulator = new Simulator(
+      compileCircuit(
+        explicitClockDffCircuit(true),
+        registryWithPublishedUserDff(),
+      ),
+      createBuiltinPrimitiveRegistry(),
+    );
+
+    simulator.setInput("d", BitVector.fromBinary("1"));
+    simulator.setInput("clk", BitVector.fromBinary("0"));
+    simulator.settle();
+
+    simulator.setInput("clk", BitVector.fromBinary("1"));
+    simulator.settle();
+    expect(simulator.readOutput("q1").toBinary()).toBe("1");
+    expect(simulator.readOutput("q2").toBinary()).toBe("X");
+
+    simulator.setInput("clk", BitVector.fromBinary("0"));
+    simulator.settle();
+    simulator.setInput("clk", BitVector.fromBinary("1"));
+    simulator.settle();
+
+    expect(simulator.readOutput("q1").toBinary()).toBe("1");
+    expect(simulator.readOutput("q2").toBinary()).toBe("1");
   });
 
   it("drives the Clock primitive high on rising and low on falling edges", () => {
