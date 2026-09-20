@@ -690,6 +690,16 @@ function signalHex(binary: string): string {
   return `0x${BigInt(`0b${binary}`).toString(16).toUpperCase()}`;
 }
 
+function signalValueClass(
+  value: string,
+): "value-zero" | "value-one" | "value-x" | "value-z" {
+  if (value.includes("X")) return "value-x";
+  if (value.includes("Z")) return "value-z";
+  if (/^0+$/.test(value)) return "value-zero";
+  if (/^[01]+$/.test(value)) return "value-one";
+  return "value-x";
+}
+
 function componentDisplayName(spec: ComponentSpec): string {
   return spec.name || spec.id;
 }
@@ -3559,14 +3569,7 @@ export function App() {
                 preview.signals[
                   signalVertex(connection.from, inspection.prefix)
                 ] ?? "X";
-              const wireValueClass =
-                sourceValue === "1"
-                  ? "value-one"
-                  : sourceValue === "0"
-                    ? "value-zero"
-                    : sourceValue.includes("Z")
-                      ? "value-z"
-                      : "value-x";
+              const wireValueClass = signalValueClass(sourceValue);
 
               return (
                 <g key={connection.id}>
@@ -3576,6 +3579,7 @@ export function App() {
                       wireValueClass,
                       selectedConnection === connection.id ? "selected" : "",
                     ].join(" ")}
+                    data-signal-value={sourceValue}
                     d={routedWirePath(
                       from,
                       connection.route as readonly Point[] | undefined,
@@ -3842,14 +3846,7 @@ export function App() {
                 preview.signals[
                   signalVertex(endpoint, inspection.prefix)
                 ] ?? "X";
-              const valueClass =
-                value === "1"
-                  ? "value-one"
-                  : value === "0"
-                    ? "value-zero"
-                    : value.includes("Z")
-                      ? "value-z"
-                      : "value-x";
+              const valueClass = signalValueClass(value);
 
               return (
                 <g
