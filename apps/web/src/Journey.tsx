@@ -3,7 +3,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import type { ChallengeDefinition } from "@gateos/challenge-engine";
 
@@ -358,15 +357,31 @@ function PartGlyph({
     { x: 326, y: 292 },
   ];
   const target = targets[index] ?? targets[0]!;
-  const style = {
-    "--piece-dx": `${target.x - x}px`,
-    "--piece-dy": `${target.y - y}px`,
-    animationDelay: `${index * 110}ms`,
-  } as CSSProperties;
+  const begin = 0.35 + index * 0.28;
   const className = `journey-piece journey-piece--${status}`;
 
   return (
-    <g className={className} style={style} transform={`translate(${x} ${y})`}>
+    <g className={className} transform={`translate(${x} ${y})`}>
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        from={`${x} ${y}`}
+        to={`${target.x} ${target.y}`}
+        begin={`${begin}s`}
+        dur="2.25s"
+        calcMode="spline"
+        keyTimes="0;1"
+        keySplines="0.2 0.8 0.2 1"
+        fill="freeze"
+      />
+      <animate
+        attributeName="opacity"
+        values="1;1;0.08"
+        keyTimes="0;0.78;1"
+        begin={`${begin}s`}
+        dur="2.25s"
+        fill="freeze"
+      />
       {part.kind === "gate" ? (
         <>
           <path
@@ -568,8 +583,16 @@ function JourneyAssembly({
               key={index}
               d={`M ${origin.x} ${origin.y} C ${origin.x} 220, 326 170, 326 238`}
               className="journey-assembly-wire"
-              style={{ animationDelay: `${420 + index * 90}ms` }}
-            />
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                from="260"
+                to="0"
+                begin={`${0.75 + index * 0.18}s`}
+                dur="1.55s"
+                fill="freeze"
+              />
+            </path>
           ))}
         </g>
 
@@ -623,6 +646,8 @@ export function JourneyView({
   const [activeSceneId, setActiveSceneId] = useState(currentScene.id);
   const [replayToken, setReplayToken] = useState(0);
   const sectionsRef = useRef(new Map<string, HTMLElement>());
+  const activeSceneRef = useRef(currentScene.id);
+  const pendingSceneTimerRef = useRef<number | null>(null);
   const activeScene =
     JOURNEY_SCENES.find((scene) => scene.id === activeSceneId) ?? currentScene;
 
@@ -630,24 +655,42 @@ export function JourneyView({
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
-          .filter((entry) => entry.isIntersecting)
+          .filter(
+            (entry) =>
+              entry.isIntersecting &&
+              entry.intersectionRatio >= 0.36,
+          )
           .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
         const id = visible?.target.getAttribute("data-journey-scene");
-        if (id) {
+        if (!id || id === activeSceneRef.current) return;
+
+        if (pendingSceneTimerRef.current !== null) {
+          window.clearTimeout(pendingSceneTimerRef.current);
+        }
+
+        pendingSceneTimerRef.current = window.setTimeout(() => {
+          activeSceneRef.current = id;
           setActiveSceneId(id);
           setReplayToken((value) => value + 1);
-        }
+          pendingSceneTimerRef.current = null;
+        }, 260);
       },
       {
-        rootMargin: "-24% 0px -42% 0px",
-        threshold: [0.2, 0.45, 0.7],
+        rootMargin: "-27% 0px -27% 0px",
+        threshold: [0.36, 0.48],
       },
     );
 
     for (const element of sectionsRef.current.values()) {
       observer.observe(element);
     }
-    return () => observer.disconnect();
+
+    return () => {
+      observer.disconnect();
+      if (pendingSceneTimerRef.current !== null) {
+        window.clearTimeout(pendingSceneTimerRef.current);
+      }
+    };
   }, []);
 
   const overallPercent =
