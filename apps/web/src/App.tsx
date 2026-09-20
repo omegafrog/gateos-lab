@@ -28,7 +28,7 @@ import {
   type SequenceStep,
 } from "@gateos/challenge-engine";
 import { TraceRecorder } from "@gateos/trace-engine";
-import { JourneyView, StageCompletionReveal } from "./Journey";
+import { JourneyView, StageCompletionReveal } from "./Journey.js";
 
 const STORAGE_KEY = "gateos-lab:v0.1";
 const VIEW_KEY = "gateos-lab:view";
@@ -1554,7 +1554,7 @@ export function App() {
         completed={project.completed}
         challenges={challenges}
         onEnterLab={() => setAppMode("lab")}
-        onOpenChallenge={(challengeId) => {
+        onOpenChallenge={(challengeId: string) => {
           setSelectedId(challengeId);
           const index = challenges.findIndex((item) => item.id === challengeId);
           if (index >= 0) setActiveStageIndex(curriculumStageForIndex(index));
