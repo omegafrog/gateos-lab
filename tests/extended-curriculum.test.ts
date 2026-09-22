@@ -465,6 +465,43 @@ describe("extended curriculum", () => {
     expect(ram16.validators.some((validator) => validator.type === "sequence")).toBe(true);
   });
 
+  it("teaches RAM16 as stateful memory with separate read, write, and address mapping", () => {
+    const ram16 = readChallenge("20-ram16.challenge.json");
+    const operation = ram16.referenceTables?.find(
+      (table) => table.id === "memory-operation",
+    );
+    const address = ram16.referenceTables?.find(
+      (table) => table.id === "address-hierarchy",
+    );
+
+    expect(operation?.kind).toBe("operation");
+    expect(operation?.description).toContain("일반 조합논리 진리표로 표현할 수 없습니다");
+    expect(operation?.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          load: "0",
+          clk: "↑",
+          effect: "변화 없음",
+          q: "RAM[aaaa]",
+        }),
+        expect.objectContaining({
+          load: "1",
+          clk: "↑",
+          effect: "RAM[aaaa] ← dddd",
+          q: "dddd (edge 후)",
+        }),
+      ]),
+    );
+
+    expect(address?.kind).toBe("address");
+    expect(address?.rows).toEqual([
+      expect.objectContaining({ range: "0000 ~ 0011", bankBits: "00", bank: "RAM4 #0" }),
+      expect.objectContaining({ range: "0100 ~ 0111", bankBits: "01", bank: "RAM4 #1" }),
+      expect.objectContaining({ range: "1000 ~ 1011", bankBits: "10", bank: "RAM4 #2" }),
+      expect.objectContaining({ range: "1100 ~ 1111", bankBits: "11", bank: "RAM4 #3" }),
+    ]);
+  });
+
   it("keeps RAM64 hierarchical and introduces CPU datapath capabilities", () => {
     const ram64 = readChallenge("21-ram64.challenge.json");
     const alu = readChallenge("26-alu4.challenge.json");
