@@ -75,14 +75,59 @@ button:disabled {
   color: #aeb6c4;
 }
 
-.curriculum-toggle {
-  white-space: nowrap;
+.curriculum-side-tab {
+  position: fixed;
+  top: 112px;
+  left: 230px;
+  z-index: 42;
+  display: flex;
+  min-height: 112px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 34px;
+  border: 1px solid #cbd2de;
+  border-left: 0;
+  border-radius: 0 9px 9px 0;
+  background: #ffffff;
+  color: #4d596c;
+  box-shadow: 5px 4px 14px rgb(32 41 58 / 12%);
+  cursor: pointer;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
 }
 
-.curriculum-toggle[aria-expanded="true"] {
-  border-color: #7d8df0;
+.curriculum-side-tab span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.curriculum-side-tab strong {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
   background: #eef0ff;
-  color: #27358f;
+  color: #4053bd;
+  font-size: 9px;
+}
+
+.curriculum-side-tab:hover {
+  border-color: #8290df;
+  color: #3345af;
+  transform: translateX(2px);
+}
+
+.curriculum-side-tab.open {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .curriculum-backdrop {
@@ -1522,6 +1567,23 @@ button:disabled {
   pointer-events: none;
 }
 
+.compact-state-value {
+  fill: #273247;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.compact-state-value.value-one {
+  fill: #247047;
+}
+
+.compact-state-value.value-x,
+.compact-state-value.value-z {
+  fill: #b16e1d;
+}
+
 .component .pin {
   transition:
     r 100ms ease,
@@ -2826,5 +2888,27 @@ button:disabled {
 
   .journey-scene-copy {
     transition: none;
+  }
+}
+
+
+/* Verification shows assertions, not sequence setup noise. */
+.sequence-step-row .sequence-expect-label code {
+  color: #5b66a8;
+  letter-spacing: 0.04em;
+}
+
+.run-actions [data-testid="reset-chip-state"] {
+  border-color: #bfc6d2;
+  background: #f7f8fa;
+  color: #4d5869;
+}
+
+@media (max-width: 900px) {
+  .curriculum-side-tab {
+    left: 0;
+    top: 102px;
+    border-left: 1px solid #cbd2de;
+    border-radius: 0 9px 9px 0;
   }
 }
