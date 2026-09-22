@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.dff",
   "title": "D Flip-Flop",
-  "description": "두 D Latch를 master/slave 구조로 연결해 CLK의 rising edge에서만 D를 저장하는 D Flip-Flop을 만드세요.",
+  "description": "두 D Latch를 master/slave 구조로 연결해 rising-edge D Flip-Flop을 구현하세요. clock level 전체가 아니라 0→1 edge 순간의 D만 새 state로 샘플하고 edge 사이에는 Q를 유지하는 동기식 저장의 기준을 만듭니다.",
   "interface": {
     "inputs": [
       {
