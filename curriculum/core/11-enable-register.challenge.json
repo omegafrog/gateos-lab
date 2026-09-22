@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.enable-register",
   "title": "1-bit Enable Register",
-  "description": "D Flip-Flop과 MUX를 이용해 LOAD=1인 rising edge에서만 새 D를 저장하는 1-bit Enable Register를 구현하세요. 이 과제의 LOAD는 ISA의 load 명령이 아니라 register write-enable이며, Q hold와 state update를 control로 선택하는 것이 핵심입니다.",
+  "description": "DFF 앞에 MUX를 두어 LOAD=1일 때만 새 D를 저장하고, LOAD=0일 때는 현재 Q를 유지하는 1-bit Enable Register를 만드세요. clock 자체를 gate하지 않고 next value를 선택하는 구조를 익힙니다.",
   "interface": {
     "inputs": [
       {
@@ -106,7 +106,7 @@
     {
       "id": "characteristic",
       "title": "Enable Register 상태표",
-      "description": "상승 에지(rising edge)에서 LOAD가 0이면 기존 Q를 유지하고, 1이면 D를 저장합니다.",
+      "description": "LOAD는 write enable입니다. LOAD=0이면 rising edge가 와도 Q는 유지되고, LOAD=1인 rising edge에서만 D가 새 state가 됩니다.",
       "columns": [
         {
           "id": "load",
@@ -167,24 +167,24 @@
       "notes": [
         "표의 각 행은 활성 상승 에지(rising edge)에서의 동작을 나타냅니다."
       ],
-      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서 LOAD와 D를 평가합니다."
+      "timing": "D/LOAD는 rising edge 전에 next value를 결정하고, 실제 Q update는 rising edge에서만 일어납니다."
     }
   ],
   "hints": [
     {
       "level": 1,
-      "title": "저장하지 않을 때는 자기 값을 다시 넣기",
-      "body": "LOAD=0일 때 이전 Q를 유지하려면 D Flip-Flop 입력으로 새 D 대신 현재 Q를 다시 보내면 됩니다."
+      "title": "hold도 하나의 next value입니다",
+      "body": "LOAD=0일 때 ‘아무것도 하지 않는다’는 뜻은 DFF 입력을 비우는 것이 아니라 next value로 현재 Q를 다시 선택한다는 뜻입니다."
     },
     {
       "level": 2,
-      "title": "MUX로 새 값과 feedback 선택",
-      "body": "MUX가 LOAD에 따라 Q feedback과 외부 D 중 하나를 고르게 하고, 선택된 값을 D Flip-Flop의 D로 보내세요."
+      "title": "MUX가 Q와 D 중 하나를 고릅니다",
+      "body": "MUX 입력 하나에는 feedback Q, 다른 하나에는 새 D를 연결하고 LOAD를 SEL로 사용하세요."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "MUX.A=현재 Q, MUX.B=외부 D, MUX.SEL=LOAD로 두고 MUX.OUT→DFF.D, CLK→DFF.CLK, DFF.Q→Q와 MUX.A feedback에 연결하세요."
+      "title": "edge와 enable을 분리하세요",
+      "body": "MUX.OUT→DFF.D, DFF.Q→회로 Q와 MUX feedback으로 연결하세요. CLK는 DFF의 timing만 결정하고 LOAD는 data path만 결정합니다."
     }
   ]
 }
