@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.xor",
   "title": "XOR",
-  "description": "NOT, AND, OR을 조합해 두 입력이 다를 때만 1이 되는 XOR를 만드세요.",
+  "description": "두 입력이 서로 다를 때만 1이 되는 XOR를 구현하세요. XOR를 단순한 게이트 하나가 아니라 ‘불일치 검출’이자 binary addition의 SUM 함수로 이해하는 단계입니다.",
   "interface": {
     "inputs": [
       {
