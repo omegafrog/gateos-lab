@@ -894,16 +894,16 @@ const CURRICULUM_STAGES: readonly CurriculumStage[] = [
   {
     id: "memory",
     title: "Memory",
-    description: "Address Decoder와 RAM 계층을 직접 만듭니다.",
+    description: "Address Decoder와 RAM16까지 직접 만들며 계층적 메모리를 이해합니다.",
     startIndex: 17,
-    endIndex: 20,
+    endIndex: 19,
   },
   {
     id: "cpu",
     title: "CPU Datapath",
     description: "ALU, Register File, write-back datapath를 연결합니다.",
-    startIndex: 21,
-    endIndex: 28,
+    startIndex: 20,
+    endIndex: 27,
   },
 ];
 
