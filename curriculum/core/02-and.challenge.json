@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.and",
   "title": "AND",
-  "description": "NAND와 이전 단계에서 만든 NOT을 조합해 AND 게이트를 만드세요.",
+  "description": "NAND와 이전 단계의 NOT을 재사용해 AND를 구현하세요. 두 조건이 모두 참일 때만 1이 되는 함수가 NAND의 반전 관계와 계층적 회로 조합으로 어떻게 만들어지는지 확인합니다.",
   "interface": {
     "inputs": [
       {
