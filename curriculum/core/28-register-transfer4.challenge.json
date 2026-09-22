@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "cpu.register-transfer4",
   "title": "Register-to-Register Transfer",
-  "description": "Register File의 한 source 값을 다른 destination으로 옮기는 register-transfer datapath를 구현하세요. SRC/DST 주소, write-data 선택, write-enable, clock edge를 분리해 ‘Rdst ← Rsrc’ 같은 CPU micro-operation이 실제 배선으로 어떻게 실행되는지 확인합니다.",
+  "description": "Register File을 이용해 R[DST]←R[SRC] 같은 register-to-register transfer와 외부 DATA load를 하나의 write-back path로 구성하세요. 데이터의 출발점, write source 선택, destination commit을 분리해 봅니다.",
   "interface": {
     "inputs": [
       {
@@ -208,8 +208,8 @@
     {
       "id": "transfer-control",
       "title": "Register Transfer 제어",
-      "description": "Register File의 write data를 외부 DATA 또는 SRC_Q 중 하나로 선택합니다.",
-      "timing": "LOAD/MOVE는 rising edge에서 write 여부와 write data를 결정합니다.",
+      "description": "LOAD와 MOVE는 ‘무슨 값을 쓸지’와 ‘쓸 것인지’를 함께 결정합니다. source read는 combinational이고 destination state change는 rising edge에서만 발생합니다.",
+      "timing": "SRC_Q/DST_Q는 현재 state의 read 결과입니다. write-back data가 안정된 뒤 rising edge에서 DST register가 갱신됩니다.",
       "columns": [
         {
           "id": "load",
@@ -265,18 +265,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "Register File의 출력도 다시 입력이 될 수 있습니다",
-      "body": "SRC read port로 읽은 QA를 다시 Register File의 D로 보내면 Register끼리 값을 복사할 수 있습니다."
+      "title": "읽기와 쓰기는 다른 사건입니다",
+      "body": "SRC가 source register 값을 wire에 나타나게 하는 것만으로 DST state가 바뀌지 않습니다. 실제 transfer는 write data와 destination, enable이 준비된 rising edge에서 일어납니다."
     },
     {
       "level": 2,
-      "title": "write data 선택과 WE 생성",
-      "body": "MUX4로 DATA와 SRC_Q 중 하나를 선택하고, MOVE를 selector로 사용하세요. WE는 LOAD OR MOVE입니다."
+      "title": "write source와 write enable을 따로 만드세요",
+      "body": "MUX는 DATA와 source read value 중 어떤 값을 Register File.D에 보낼지 선택하고, LOAD/MOVE control은 실제 write 여부를 결정합니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "RF.RADDR_A=SRC, RF.RADDR_B=DST, RF.WADDR=DST. MUX(A=DATA,B=RF.QA,SEL=MOVE)→RF.D, OR(LOAD,MOVE)→RF.WE, RF.QA→SRC_Q, RF.QB→DST_Q로 연결하세요."
+      "title": "control contract를 따라 연결하세요",
+      "body": "SRC는 read address, DST는 WADDR에 대응합니다. 선택된 write data를 D로 보내고 LOAD 또는 MOVE가 요청된 경우에만 WE가 활성되도록 하세요."
     }
   ]
 }
