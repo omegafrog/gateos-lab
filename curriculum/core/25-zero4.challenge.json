@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.zero4",
   "title": "4-bit Zero Detector",
-  "description": "4-bit IN이 0000일 때만 ZERO=1이 되는 Zero Detector를 구현하세요. 여러 data bit를 하나의 Boolean condition으로 줄이는 reduction logic과 ALU status flag의 역할을 배우는 과제입니다.",
+  "description": "4-bit IN이 정확히 0000일 때만 ZERO=1이 되는 Zero Detector를 만드세요. 여러 data bit를 하나의 control-friendly predicate로 줄이는 reduction logic을 처음 다룹니다.",
   "interface": {
     "inputs": [
       {
@@ -100,7 +100,7 @@
     {
       "id": "zero-flag",
       "title": "Zero flag 동작",
-      "description": "네 bit 중 하나라도 1이면 결과는 zero가 아닙니다.",
+      "description": "Zero Detector는 4-bit 값을 1-bit predicate로 축약합니다. 0000 한 경우에서만 ZERO=1이고, 나머지 모든 값에서는 0입니다.",
       "columns": [
         {
           "id": "in",
@@ -135,18 +135,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "하나라도 1이면 zero가 아닙니다",
-      "body": "네 bit를 모두 OR한 값이 1이면 IN은 0이 아닙니다. 마지막에 그 결과를 반전하면 됩니다."
+      "title": "ZERO보다 먼저 NONZERO를 생각하세요",
+      "body": "네 bit 중 하나라도 1이면 값은 zero가 아닙니다. ‘하나라도 1’은 OR로 표현할 수 있습니다."
     },
     {
       "level": 2,
-      "title": "OR tree 구성",
-      "body": "B0/B1을 OR, B2/B3을 OR한 뒤 두 중간 결과를 다시 OR하세요."
+      "title": "OR-reduction 뒤에 NOT",
+      "body": "B0/B1, B2/B3를 각각 OR하고 두 중간 결과를 다시 OR하면 4-bit 전체의 NONZERO 신호가 됩니다. 마지막에 반전하세요."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "Split4→OR 두 개→OR 한 개→NOT 순서로 연결하고 마지막 NOT.OUT을 ZERO에 연결하세요."
+      "title": "축약 방향을 확인하세요",
+      "body": "Split4→OR tree→NOT→ZERO 순서로 연결하세요. 이 회로의 출력은 4-bit가 아니라 조건 하나를 나타내는 1-bit입니다."
     }
   ]
 }
