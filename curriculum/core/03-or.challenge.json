@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.or",
   "title": "OR",
-  "description": "이전에 만든 NOT과 AND를 이용해 OR를 구현하세요. 00에서만 0이 되는 truth table을 De Morgan 법칙과 실제 gate network 사이에서 번역하는 것이 핵심입니다.",
+  "description": "앞에서 만든 NOT과 AND만으로 OR을 만드세요. De Morgan 법칙 ¬(¬A·¬B)=A+B를 회로로 구현하면서 Boolean algebra가 배선 변환 규칙으로 쓰인다는 점을 확인합니다.",
   "interface": {
     "inputs": [
       {
@@ -84,18 +84,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "De Morgan 법칙 활용",
-      "body": "OR는 입력을 각각 반전한 뒤 AND하고, 그 결과를 다시 반전하는 방식으로 만들 수 있습니다."
+      "title": "OR의 0인 경우부터 보세요",
+      "body": "OR은 A=B=0일 때만 0입니다. 입력을 반전하면 이 유일한 0 조건을 AND가 검출할 수 있습니다."
     },
     {
       "level": 2,
-      "title": "필요한 블록",
-      "body": "A와 B를 각각 NOT으로 반전하고, 두 반전값을 AND에 넣은 뒤 AND 결과를 NOT으로 한 번 더 뒤집어보세요."
+      "title": "De Morgan 구조",
+      "body": "A와 B를 각각 NOT한 뒤 AND하고, 그 결과를 다시 NOT하면 OR이 됩니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "A→NOT, B→NOT, 두 NOT 출력→AND, AND 출력→NOT, 마지막 NOT 출력→OUT으로 연결하세요."
+      "title": "배선 확인",
+      "body": "A→NOT_A, B→NOT_B, 두 NOT 출력→AND, AND.OUT→마지막 NOT, 마지막 NOT.OUT→OUT으로 연결하세요."
     }
   ]
 }
