@@ -36,6 +36,7 @@ const STAGE_REVEAL_KEY = "gateos-lab:stage-reveals";
 const PROJECT_SCHEMA = "gateos.project/v1";
 const CANVAS_WIDTH = 920;
 const CANVAS_HEIGHT = 560;
+const WIRE_DRAG_THRESHOLD_PX = 5;
 
 interface CurriculumManifest {
   schema: "gateos.curriculum/v1";
@@ -102,6 +103,15 @@ interface WireEndpointMoveState {
 interface WireNodeMoveState {
   connectionId: string;
   nodeIndex: number;
+}
+
+interface WireGestureCandidate {
+  mode: "branch" | "move-node";
+  connectionId: string;
+  existingNodeIndex?: number;
+  pointerId: number;
+  clientX: number;
+  clientY: number;
 }
 
 interface PanState {
@@ -845,6 +855,7 @@ export function App() {
   const pendingBranchStartRef = useRef<Point | null>(null);
   const wireEndpointMoveRef = useRef<WireEndpointMoveState | null>(null);
   const wireNodeMoveRef = useRef<WireNodeMoveState | null>(null);
+  const wireGestureCandidateRef = useRef<WireGestureCandidate | null>(null);
 
   useEffect(() => {
     async function loadCurriculum() {
@@ -1785,6 +1796,7 @@ export function App() {
     pendingBranchStartRef.current = null;
     wireEndpointMoveRef.current = null;
     wireNodeMoveRef.current = null;
+    wireGestureCandidateRef.current = null;
     setPendingPin(null);
     setWirePointer(null);
     setWireRoutePoints([]);
@@ -2030,9 +2042,39 @@ export function App() {
     redoRef.current[challenge.id] = [];
   }
 
-  function beginWireBranch(
+  function beginWireDragCandidate(
     event: ReactPointerEvent<SVGPathElement | SVGCircleElement>,
     connectionId: string,
+    mode: WireGestureCandidate["mode"],
+    existingNodeIndex?: number,
+  ): void {
+    if (!circuit || !challenge || isInspectingNested || testRunning) return;
+
+    event.stopPropagation();
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    clearPendingWireGesture();
+    wireGestureCandidateRef.current = {
+      mode,
+      connectionId,
+      existingNodeIndex,
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+
+    setSelectedConnection(connectionId);
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+    setProjectError("");
+  }
+
+  function beginWireBranch(
+    event: ReactPointerEvent<SVGElement>,
+    connectionId: string,
+    originClientX = event.clientX,
+    originClientY = event.clientY,
   ): void {
     if (!circuit || !challenge || isInspectingNested || testRunning) return;
     const connection = circuit.connections.find(
@@ -2042,10 +2084,9 @@ export function App() {
 
     event.stopPropagation();
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
 
     const point = snapPoint(
-      clientToCanvasPoint(event.clientX, event.clientY),
+      clientToCanvasPoint(originClientX, originClientY),
     );
     const from = visualWireStart(connection, circuit);
     const to = getEndpointPoint(connection.to, circuit, registry);
@@ -2093,9 +2134,11 @@ export function App() {
   }
 
   function beginMoveWireNode(
-    event: ReactPointerEvent<SVGPathElement | SVGCircleElement>,
+    event: ReactPointerEvent<SVGElement>,
     connectionId: string,
     existingNodeIndex?: number,
+    originClientX = event.clientX,
+    originClientY = event.clientY,
   ): void {
     if (!circuit || !challenge || isInspectingNested || testRunning) return;
     const connection = circuit.connections.find(
@@ -2105,13 +2148,12 @@ export function App() {
 
     event.stopPropagation();
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
 
     const from = visualWireStart(connection, circuit);
     const to = getEndpointPoint(connection.to, circuit, registry);
     const route = [...(connection.route ?? [])];
     const point = snapPoint(
-      clientToCanvasPoint(event.clientX, event.clientY),
+      clientToCanvasPoint(originClientX, originClientY),
     );
 
     let nodeIndex = existingNodeIndex;
@@ -2602,6 +2644,33 @@ export function App() {
         y: activePan.originY - dy,
       }));
       return;
+    }
+
+    const wireCandidate = wireGestureCandidateRef.current;
+    if (wireCandidate) {
+      const dx = event.clientX - wireCandidate.clientX;
+      const dy = event.clientY - wireCandidate.clientY;
+      if (Math.hypot(dx, dy) < WIRE_DRAG_THRESHOLD_PX) {
+        return;
+      }
+
+      wireGestureCandidateRef.current = null;
+      if (wireCandidate.mode === "branch") {
+        beginWireBranch(
+          event,
+          wireCandidate.connectionId,
+          wireCandidate.clientX,
+          wireCandidate.clientY,
+        );
+      } else {
+        beginMoveWireNode(
+          event,
+          wireCandidate.connectionId,
+          wireCandidate.existingNodeIndex,
+          wireCandidate.clientX,
+          wireCandidate.clientY,
+        );
+      }
     }
 
     const point = canvasPoint(event);
@@ -3672,6 +3741,8 @@ export function App() {
               event.stopPropagation();
             }}
             onPointerUp={(event) => {
+              const wireCandidate = wireGestureCandidateRef.current;
+              wireGestureCandidateRef.current = null;
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
@@ -3680,9 +3751,15 @@ export function App() {
               setInterfaceDrag(null);
               setPan(null);
 
+              if (wireCandidate) {
+                event.stopPropagation();
+                return;
+              }
+
               placeDraftWireNode(event.clientX, event.clientY);
             }}
             onPointerLeave={() => {
+              wireGestureCandidateRef.current = null;
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
@@ -3758,11 +3835,11 @@ export function App() {
                     )}
                     onPointerDown={(event) => {
                       if (event.button !== 0) return;
-                      if (event.altKey) {
-                        beginMoveWireNode(event, connection.id);
-                      } else {
-                        beginWireBranch(event, connection.id);
-                      }
+                      beginWireDragCandidate(
+                        event,
+                        connection.id,
+                        event.altKey ? "move-node" : "branch",
+                      );
                     }}
                   />
                   {(connection.route ?? []).map((node, nodeIndex) => (
@@ -3775,15 +3852,12 @@ export function App() {
                       r="5"
                       onPointerDown={(event) => {
                         if (event.button !== 0) return;
-                        if (event.altKey) {
-                          beginMoveWireNode(
-                            event,
-                            connection.id,
-                            nodeIndex,
-                          );
-                        } else {
-                          beginWireBranch(event, connection.id);
-                        }
+                        beginWireDragCandidate(
+                          event,
+                          connection.id,
+                          event.altKey ? "move-node" : "branch",
+                          event.altKey ? nodeIndex : undefined,
+                        );
                       }}
                     />
                   ))}
