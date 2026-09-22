@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.sr-latch",
   "title": "SR Latch",
-  "description": "두 NAND의 출력을 서로 되먹임해 1 bit의 상태를 기억하는 active-low SR Latch를 만드세요. S̅=0은 Set, R̅=0은 Reset, 둘 다 1이면 이전 상태를 유지합니다.",
+  "description": "두 NAND의 cross-coupled feedback으로 1 bit 상태를 기억하는 active-low SR Latch를 구현하세요. 조합논리에는 없던 ‘이전 상태’가 feedback의 두 안정 상태에서 어떻게 생기는지 관찰합니다.",
   "interface": {
     "inputs": [
       {
