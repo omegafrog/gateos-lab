@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.zero4",
   "title": "4-bit Zero Detector",
-  "description": "4-bit IN이 0000일 때만 ZERO=1이 되는 Zero Detector를 만드세요. CPU의 Zero flag에 사용됩니다.",
+  "description": "4-bit IN이 0000일 때만 ZERO=1이 되는 Zero Detector를 구현하세요. 여러 data bit를 하나의 Boolean condition으로 줄이는 reduction logic과 ALU status flag의 역할을 배우는 과제입니다.",
   "interface": {
     "inputs": [
       {
