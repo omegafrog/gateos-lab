@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.d-latch",
   "title": "D Latch",
-  "description": "이전에 만든 SR Latch를 이용해 D와 ENABLE을 받는 level-sensitive D Latch를 만드세요. ENABLE=1일 때 Q가 D를 따라가고, ENABLE=0일 때 마지막 값을 유지해야 합니다.",
+  "description": "D와 ENABLE을 갖는 level-sensitive D Latch를 구현하세요. ENABLE=1 동안 입력을 따라가고 ENABLE=0에서 마지막 값을 유지하며, data와 저장 허용 control을 분리하는 저장 인터페이스를 배웁니다.",
   "interface": {
     "inputs": [
       {
