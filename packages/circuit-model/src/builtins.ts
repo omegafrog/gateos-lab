@@ -91,6 +91,42 @@ export const JOIN4_COMPONENT: PrimitiveComponentSpec = {
   ],
 };
 
+export const BITWISE_AND4_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.and4",
+  name: "AND4",
+  primitiveId: "builtin.and4",
+  pins: [
+    { id: "a", name: "A", direction: "input", width: 4 },
+    { id: "b", name: "B", direction: "input", width: 4 },
+    { id: "out", name: "OUT", direction: "output", width: 4 },
+  ],
+};
+
+export const BITWISE_OR4_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.or4",
+  name: "OR4",
+  primitiveId: "builtin.or4",
+  pins: [
+    { id: "a", name: "A", direction: "input", width: 4 },
+    { id: "b", name: "B", direction: "input", width: 4 },
+    { id: "out", name: "OUT", direction: "output", width: 4 },
+  ],
+};
+
+export const BITWISE_XOR4_COMPONENT: PrimitiveComponentSpec = {
+  kind: "primitive",
+  id: "builtin.xor4",
+  name: "XOR4",
+  primitiveId: "builtin.xor4",
+  pins: [
+    { id: "a", name: "A", direction: "input", width: 4 },
+    { id: "b", name: "B", direction: "input", width: 4 },
+    { id: "out", name: "OUT", direction: "output", width: 4 },
+  ],
+};
+
 export const CONST1_ZERO_COMPONENT: PrimitiveComponentSpec = {
   kind: "primitive",
   id: "builtin.const1.zero",
@@ -144,6 +180,9 @@ export function createBuiltinComponentRegistry(): ComponentRegistry {
     SPLIT6_COMPONENT,
     SPLIT4_COMPONENT,
     JOIN4_COMPONENT,
+    BITWISE_AND4_COMPONENT,
+    BITWISE_OR4_COMPONENT,
+    BITWISE_XOR4_COMPONENT,
     CONST1_ZERO_COMPONENT,
     CONST1_ONE_COMPONENT,
     CONST4_ZERO_COMPONENT,
