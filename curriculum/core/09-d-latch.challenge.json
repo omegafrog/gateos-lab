@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.d-latch",
   "title": "D Latch",
-  "description": "D와 ENABLE을 갖는 level-sensitive D Latch를 구현하세요. ENABLE=1 동안 입력을 따라가고 ENABLE=0에서 마지막 값을 유지하며, data와 저장 허용 control을 분리하는 저장 인터페이스를 배웁니다.",
+  "description": "SR Latch를 감싸 D 하나와 ENABLE 하나로 제어되는 D Latch를 만드세요. ENABLE=1일 때는 Q가 D를 따라가고, ENABLE=0일 때는 마지막 값을 유지하는 level-sensitive storage입니다.",
   "interface": {
     "inputs": [
       {
@@ -97,7 +97,7 @@
     {
       "id": "characteristic",
       "title": "D Latch 상태표",
-      "description": "ENABLE이 열려 있을 때 D를 따라가고, 닫히면 feedback으로 마지막 Q를 유지합니다.",
+      "description": "D Latch는 level-sensitive입니다. ENABLE=1인 동안에는 Q(next)=D이고, ENABLE=0에서는 이전 Q를 유지합니다.",
       "columns": [
         {
           "id": "enable",
@@ -160,24 +160,24 @@
         "ENABLE=0이면 feedback 경로가 이전 Q를 유지합니다.",
         "X는 해당 값이 결과 상태에 영향을 주지 않는다는 뜻입니다."
       ],
-      "timing": "레벨 민감(level-sensitive) — Clock edge가 아니라 ENABLE의 레벨로 동작합니다."
+      "timing": "ENABLE=1인 전체 구간이 transparent window입니다. edge 한 번만 샘플하는 DFF와 구분하세요."
     }
   ],
   "hints": [
     {
       "level": 1,
-      "title": "D를 SR Latch 입력으로 바꾸기",
-      "body": "D Latch는 D 하나를 그대로 저장하는 것이 아니라, ENABLE과 D를 이용해 SR Latch의 active-low S̅/R̅ 신호를 만들어 사용합니다."
+      "title": "D와 ¬D가 set/reset 요청을 만듭니다",
+      "body": "D=1이면 set 쪽, D=0이면 reset 쪽 요청이 필요합니다. 단, ENABLE=0일 때는 어느 쪽도 새 state를 강제하면 안 됩니다."
     },
     {
       "level": 2,
-      "title": "ENABLE이 1일 때만 Set/Reset 허용",
-      "body": "ENABLE=1일 때 D=1이면 Set, D=0이면 Reset이 되게 해야 합니다. D와 NOT D를 각각 ENABLE과 NAND해보세요."
+      "title": "ENABLE로 두 요청을 gate하세요",
+      "body": "D와 ¬D를 ENABLE과 결합해 SR latch의 active-low 입력을 만들면, ENABLE=1일 때만 D가 state를 결정합니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "S̅=NAND(D, ENABLE), R̅=NAND(NOT D, ENABLE)을 만들고 이 둘을 SR Latch의 S̅/R̅에 연결하세요. SR Latch의 Q가 최종 Q입니다."
+      "title": "투명 구간을 확인하세요",
+      "body": "ENABLE=1인 동안 D를 바꾸면 Q도 따라 바뀌어야 하고, ENABLE=0으로 내린 뒤 D를 바꿔도 Q는 유지되어야 합니다."
     }
   ]
 }
