@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.half-adder",
   "title": "Half Adder",
-  "description": "두 1-bit 수를 더해 SUM과 CARRY를 출력하는 Half Adder를 구현하세요. 1+1=10이라는 사실에서 현재 자리 결과와 다음 자리 carry가 왜 별도 신호여야 하는지 이해합니다.",
+  "description": "두 1-bit 수 A와 B를 더해 SUM과 CARRY를 출력하는 Half Adder를 만드세요. 1+1=10이므로 한 자리 덧셈도 두 종류의 출력 정보가 필요합니다.",
   "interface": {
     "inputs": [
       {
@@ -93,18 +93,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "SUM과 CARRY를 따로 보기",
-      "body": "두 bit를 더했을 때 SUM은 입력이 서로 다를 때 1이고, CARRY는 두 입력이 모두 1일 때 1입니다."
+      "title": "네 경우를 2-bit 결과로 써보세요",
+      "body": "0+0=00, 0+1=01, 1+0=01, 1+1=10입니다. 낮은 bit와 높은 bit의 pattern을 따로 보세요."
     },
     {
       "level": 2,
-      "title": "이미 만든 게이트 재사용",
-      "body": "SUM에는 XOR, CARRY에는 AND의 동작이 그대로 필요합니다."
+      "title": "이미 만든 gate와 같은 pattern",
+      "body": "SUM의 pattern은 XOR, CARRY의 pattern은 AND와 같습니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "A와 B를 XOR과 AND 양쪽에 동시에 연결하고, XOR.OUT→SUM, AND.OUT→CARRY로 연결하세요."
+      "title": "배선 확인",
+      "body": "A/B를 XOR과 AND에 동시에 fan-out하고 XOR.OUT→SUM, AND.OUT→CARRY로 연결하세요."
     }
   ]
 }
