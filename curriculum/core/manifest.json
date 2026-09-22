@@ -84,10 +84,6 @@
       "file": "20-ram16.challenge.json"
     },
     {
-      "id": "memory.ram64",
-      "file": "21-ram64.challenge.json"
-    },
-    {
       "id": "logic.and4",
       "file": "22-and4.challenge.json"
     },
