@@ -152,14 +152,13 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
     title: "Register들이 메모리가 됩니다",
     statement: "주소가 저장 위치를 선택하면 여러 Register가 하나의 RAM처럼 동작합니다.",
     explanation:
-      "Decoder가 write 대상을 고르고 MUX가 read 대상을 고릅니다. RAM4를 다시 재료로 써 RAM16, RAM64까지 계층적으로 확장합니다.",
+      "Decoder가 write 대상을 고르고 MUX가 read 대상을 고릅니다. RAM4를 bank로 묶어 RAM16을 만들면, 더 큰 RAM도 같은 계층 원리의 반복이라는 점까지 이해할 수 있습니다.",
     payoff: "이제 CPU가 읽고 쓸 수 있는 주소 공간이 생겼습니다.",
     artifact: "Memory Subsystem",
     challengeIds: [
       "routing.decoder2to4",
       "memory.ram4",
       "memory.ram16",
-      "memory.ram64",
     ],
     parts: [
       {
@@ -179,12 +178,6 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
         label: "RAM16",
         kind: "memory",
         challengeId: "memory.ram16",
-      },
-      {
-        id: "ram64",
-        label: "RAM64",
-        kind: "memory",
-        challengeId: "memory.ram64",
       },
     ],
   },
