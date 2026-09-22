@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "memory.ram4",
   "title": "RAM4 — 4 words × 4 bits",
-  "description": "4개의 Register4를 하나의 4-word RAM처럼 보이게 구성하세요. 같은 ADDR가 write path에서는 Decoder로 저장 대상을 고르고 read path에서는 MUX로 읽을 word를 고르며, read는 조합식·write는 rising-edge state update라는 차이를 이해하는 것이 핵심입니다.",
+  "description": "네 개의 4-bit Register를 주소로 선택할 수 있는 RAM4로 조직하세요. 같은 ADDR가 write에서는 Decoder를 통해 destination을 고르고, read에서는 MUX를 통해 source를 고른다는 구조가 핵심입니다.",
   "interface": {
     "inputs": [
       {
@@ -247,8 +247,8 @@
     {
       "id": "memory-operation",
       "title": "RAM4 읽기 / 쓰기 동작",
-      "description": "ADDR는 항상 읽을 word를 선택합니다. Write는 LOAD=1인 상승 에지에서 선택된 word 하나에만 발생합니다.",
-      "timing": "Read는 조합논리처럼 즉시 반영되고, Write는 상승 에지(rising edge)에서만 저장됩니다.",
+      "description": "LOAD는 read enable이 아니라 write enable입니다. Q는 항상 현재 ADDR가 가리키는 word를 보여주고, memory state는 LOAD=1인 rising edge에서만 바뀝니다.",
+      "timing": "Read는 combinational/asynchronous, write는 rising-edge synchronous로 모델링됩니다. ADDR만 바꿔서는 저장 내용이 변하지 않습니다.",
       "columns": [
         {
           "id": "load",
@@ -309,18 +309,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "Write 선택과 Read 선택은 별도입니다",
-      "body": "Decoder는 어느 Register에 쓸지를 정하고, MUX tree는 어느 Register를 읽을지를 정합니다."
+      "title": "Read와 Write는 같은 주소를 다른 방식으로 씁니다",
+      "body": "write는 ‘누가 state를 바꿀지’를 고르는 문제라 Decoder가 필요하고, read는 ‘누구의 Q를 볼지’를 고르는 문제라 MUX가 필요합니다."
     },
     {
       "level": 2,
-      "title": "네 Register에 D와 CLK는 공통",
-      "body": "D와 CLK는 Register4 네 개에 모두 연결하되, LOAD만 Decoder 출력과 외부 LOAD를 AND해서 각각 따로 만드세요. 읽기는 MUX4 세 개를 2단 tree로 구성합니다."
+      "title": "D/CLK는 공통, LOAD만 선택적으로",
+      "body": "네 Register4 모두에 D와 CLK를 공유해도 됩니다. 하지만 각 LOAD는 global LOAD와 Decoder의 해당 one-hot 출력이 모두 1일 때만 활성화되어야 합니다."
     },
     {
       "level": 3,
-      "title": "구체적인 구조",
-      "body": "ADDR→Decoder2to4, LOAD·Y0~Y3→REG0~3.LOAD, D/CLK→모든 REG. Q0/Q1을 ADDR.B0로 MUX, Q2/Q3도 ADDR.B0로 MUX한 뒤 두 결과를 ADDR.B1로 마지막 MUX에서 선택해 Q로 연결하세요."
+      "title": "두 경로를 따로 추적하세요",
+      "body": "ADDR→Decoder→각 Register.LOAD가 write path이고, 네 Register.Q→MUX tree→Q가 read path입니다. 두 path가 같은 ADDR 의미를 공유하는지 확인하세요."
     }
   ]
 }
