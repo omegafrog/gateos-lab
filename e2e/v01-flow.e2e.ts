@@ -487,7 +487,9 @@ test("interface terminals can move and connected wires follow their position", a
   );
 });
 
-test("wire drag allows a direct diagonal segment", async ({ page }) => {
+test("wire routing keeps long runs orthogonal and limits diagonals to one hidden cell", async ({
+  page,
+}) => {
   await page.getByTestId("palette-builtin.nand").click();
 
   const component = page.locator('[data-testid^="component-"]').first();
@@ -501,17 +503,63 @@ test("wire drag allows a direct diagonal segment", async ({ page }) => {
   await expect(wire).toBeVisible();
 
   const path = (await wire.getAttribute("d")) ?? "";
-  expect(path).toContain(" L ");
-  expect(path).not.toContain(" H ");
-  expect(path).not.toContain(" V ");
-  expect(path).not.toContain(" C ");
+  const points = Array.from(
+    path.matchAll(/[ML]\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g),
+    (match) => ({ x: Number(match[1]), y: Number(match[2]) }),
+  );
 
-  const numbers = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  expect(numbers).toHaveLength(4);
-  expect(numbers[0]).not.toBe(numbers[2]);
-  expect(numbers[1]).not.toBe(numbers[3]);
+  expect(points.length).toBeGreaterThan(2);
+  for (let index = 1; index < points.length; index += 1) {
+    const start = points[index - 1]!;
+    const end = points[index]!;
+    const dx = Math.abs(end.x - start.x);
+    const dy = Math.abs(end.y - start.y);
+    const orthogonal = dx === 0 || dy === 0;
+    const oneCellDiagonal = dx === 12 && dy === 12;
+    expect(
+      orthogonal || oneCellDiagonal,
+      `segment ${JSON.stringify(start)} -> ${JSON.stringify(end)} must stay on-grid`,
+    ).toBe(true);
+  }
 
   await expect(page.locator("path.wire-preview")).toHaveCount(0);
+});
+
+test("an explicit wire segment may cross exactly one hidden cell diagonally", async ({
+  page,
+}) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const source = page.getByTestId("pin-interface-in");
+  await connect(page, source, component.locator('[data-pin-id="a"]'));
+
+  const sourceX = Number(await source.getAttribute("cx"));
+  const sourceY = Number(await source.getAttribute("cy"));
+
+  await page.evaluate(
+    ({ sourceX, sourceY }) => {
+      const raw = localStorage.getItem("gateos-lab:v0.1");
+      if (!raw) throw new Error("missing saved project");
+      const project = JSON.parse(raw);
+      const connection = project.circuits["logic.not"]?.connections?.[0];
+      if (!connection) throw new Error("missing saved connection");
+      connection.route = [{ x: sourceX + 12, y: sourceY + 12 }];
+      localStorage.setItem("gateos-lab:v0.1", JSON.stringify(project));
+    },
+    { sourceX, sourceY },
+  );
+  await page.reload();
+
+  const wire = page.locator("path.wire:not(.wire-preview)").first();
+  const path = (await wire.getAttribute("d")) ?? "";
+  const points = Array.from(
+    path.matchAll(/[ML]\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g),
+    (match) => ({ x: Number(match[1]), y: Number(match[2]) }),
+  );
+
+  expect(points[0]).toEqual({ x: sourceX, y: sourceY });
+  expect(points[1]).toEqual({ x: sourceX + 12, y: sourceY + 12 });
 });
 
 test("wire routing can pause at a grid node and resume to a pin", async ({
@@ -569,7 +617,19 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
 
   const wire = page.locator("path.wire:not(.wire-preview)").first();
   const path = (await wire.getAttribute("d")) ?? "";
-  expect((path.match(/ L /g) ?? []).length).toBe(2);
+  expect(path).toContain(`${draftX} ${draftY}`);
+
+  const points = Array.from(
+    path.matchAll(/[ML]\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g),
+    (match) => ({ x: Number(match[1]), y: Number(match[2]) }),
+  );
+  for (let index = 1; index < points.length; index += 1) {
+    const start = points[index - 1]!;
+    const end = points[index]!;
+    const dx = Math.abs(end.x - start.x);
+    const dy = Math.abs(end.y - start.y);
+    expect(dx === 0 || dy === 0 || (dx === 12 && dy === 12)).toBe(true);
+  }
 });
 
 test("clicking a wire does not create a branch or joint", async ({ page }) => {
