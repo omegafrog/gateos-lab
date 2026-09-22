@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.not",
   "title": "NOT",
-  "description": "NAND 하나를 이용해 입력을 반전하는 NOT 게이트를 만드세요.",
+  "description": "NAND 하나만으로 NOT을 구현하세요. 목표는 단순 반전 회로를 만드는 데 그치지 않고, truth table의 원하는 동작을 NAND 배선으로 바꾸는 첫 Boolean synthesis를 경험하는 것입니다.",
   "interface": {
     "inputs": [
       {
