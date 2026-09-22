@@ -378,24 +378,42 @@ describe("extended curriculum", () => {
     ]);
 
     for (const stage of Object.values(learning.stages)) {
-      expect(stage.why.length).toBeGreaterThan(50);
+      expect(stage.why.length).toBeGreaterThan(100);
       expect(stage.outcomes.length).toBeGreaterThanOrEqual(4);
-      expect(stage.connectsTo.length).toBeGreaterThan(30);
+      expect(stage.outcomes.every((outcome) => outcome.length > 20)).toBe(true);
+      expect(stage.connectsTo.length).toBeGreaterThan(60);
     }
 
     for (const entry of manifest.challenges) {
       const lesson = learning.challenges[entry.id];
       expect(lesson, entry.id).toBeDefined();
-      expect(lesson?.motivation.length, entry.id).toBeGreaterThan(50);
-      expect(lesson?.mentalModel.length, entry.id).toBeGreaterThan(30);
+      expect(lesson?.motivation.length, entry.id).toBeGreaterThan(80);
+      expect(lesson?.mentalModel.length, entry.id).toBeGreaterThan(50);
       expect(lesson?.howItWorks.length, entry.id).toBeGreaterThanOrEqual(3);
+      expect(
+        lesson?.howItWorks.every((paragraph) => paragraph.length > 35),
+        entry.id,
+      ).toBe(true);
       expect(lesson?.applications.length, entry.id).toBeGreaterThanOrEqual(3);
       expect(lesson?.commonMistakes.length, entry.id).toBeGreaterThanOrEqual(3);
-      expect(lesson?.buildsToward.length, entry.id).toBeGreaterThan(30);
+      expect(lesson?.buildsToward.length, entry.id).toBeGreaterThan(50);
+
+      const challenge = readChallenge(entry.file);
+      expect(challenge.description.length, entry.id).toBeGreaterThan(60);
+      expect(challenge.hints, entry.id).toHaveLength(3);
+      expect(challenge.hints?.map((hint) => hint.level), entry.id).toEqual([
+        1, 2, 3,
+      ]);
+      expect(
+        challenge.hints?.every(
+          (hint) => hint.title.length > 8 && hint.body.length > 45,
+        ),
+        entry.id,
+      ).toBe(true);
     }
   });
 
-  it("keeps every new challenge on the three-stage Korean learning format", () => {
+  it("keeps advanced challenges on the progressive three-hint format", () => {
     const files = [
       "12-mux4.challenge.json",
       "13-adder4.challenge.json",
