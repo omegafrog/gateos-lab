@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.half-adder",
   "title": "Half Adder",
-  "description": "두 1-bit 입력을 더해 SUM과 CARRY를 출력하는 Half Adder를 만드세요.",
+  "description": "두 1-bit 수를 더해 SUM과 CARRY를 출력하는 Half Adder를 구현하세요. 1+1=10이라는 사실에서 현재 자리 결과와 다음 자리 carry가 왜 별도 신호여야 하는지 이해합니다.",
   "interface": {
     "inputs": [
       {
