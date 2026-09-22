@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.not",
   "title": "NOT",
-  "description": "NAND 하나만으로 NOT을 구현하세요. 목표는 단순 반전 회로를 만드는 데 그치지 않고, truth table의 원하는 동작을 NAND 배선으로 바꾸는 첫 Boolean synthesis를 경험하는 것입니다.",
+  "description": "NAND 하나만 사용해 NOT을 만드세요. 핵심은 회로 모양을 외우는 것이 아니라, NOT의 truth table을 NAND의 동작으로 어떻게 만족시킬지 설명할 수 있는 것입니다.",
   "interface": {
     "inputs": [
       {
@@ -58,18 +58,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "동작을 다시 생각해보기",
-      "body": "NAND는 두 입력이 모두 1일 때만 0을 출력합니다. 한 입력 신호를 두 입력에 동시에 넣으면 어떤 동작이 되는지 생각해보세요."
+      "title": "먼저 함수의 contract를 보세요",
+      "body": "NOT은 IN=0이면 OUT=1, IN=1이면 OUT=0입니다. NAND에서 이 두 경우만 남도록 입력을 어떻게 제한할지 생각해보세요."
     },
     {
       "level": 2,
-      "title": "NAND 하나로 반전 만들기",
-      "body": "하나의 NAND에서 A와 B 입력을 서로 같은 신호로 묶으면 출력은 그 신호의 반대가 됩니다."
+      "title": "NAND의 두 입력을 같은 신호로",
+      "body": "두 입력을 모두 IN에 연결하면 NAND가 보는 경우는 00과 11뿐입니다. X NAND X = ¬X가 됩니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "IN을 NAND의 두 입력 A, B에 모두 연결하고, NAND의 OUT을 회로의 OUT에 연결하세요."
+      "title": "배선 확인",
+      "body": "IN을 NAND의 A와 B에 모두 fan-out하고 NAND.OUT을 회로 OUT에 연결하세요. fan-out은 하나의 source가 여러 input을 구동하는 정상적인 연결입니다."
     }
   ]
 }
