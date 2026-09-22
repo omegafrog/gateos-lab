@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.alu4",
   "title": "4-bit ALU",
-  "description": "A, B, OP를 받아 AND, OR, XOR, ADD 중 하나를 선택하는 4-bit ALU를 만드세요. 앞에서 만든 Logic Unit4가 세 논리 결과를 동시에 제공하고, Adder4가 산술 결과를 제공합니다. OP=00 AND, 01 OR, 10 XOR, 11 ADD이며 ZERO는 최종 선택된 결과가 0000일 때 1이어야 합니다.",
+  "description": "A, B, OP를 받아 AND, OR, XOR, ADD 중 하나를 선택하는 4-bit ALU를 만드세요. 4-bit AND/OR/XOR는 이미 제공되는 word-level 기본 부품이고, Adder4는 앞에서 만든 산술 부품입니다. OP=00 AND, 01 OR, 10 XOR, 11 ADD이며 ZERO는 최종 선택된 결과가 0000일 때 1이어야 합니다.",
   "interface": {
     "inputs": [
       {
@@ -35,7 +35,9 @@
     ]
   },
   "allowedComponents": [
-    "user.logic-unit4",
+    "builtin.and4",
+    "builtin.or4",
+    "builtin.xor4",
     "user.adder4",
     "user.mux4",
     "user.zero4",
@@ -158,7 +160,7 @@
       "type": "structural",
       "visibility": "visible",
       "rules": {
-        "maxComponents": 8
+        "maxComponents": 10
       }
     }
   ],
@@ -217,18 +219,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "Logic Unit과 Adder가 후보 결과를 만듭니다",
-      "body": "Logic Unit4 하나에서 AND/OR/XOR 세 결과가 동시에 나오고 Adder4가 ADD를 만듭니다. ALU의 일은 이 네 후보 중 OP가 가리키는 하나를 고르는 것입니다."
+      "title": "네 연산 결과를 먼저 동시에 만드세요",
+      "body": "AND4, OR4, XOR4는 제공 부품으로 사용하고 Adder4는 앞에서 만든 칩을 사용하세요. ALU에서 새로 배우는 핵심은 네 연산 결과 중 하나를 control signal인 OP로 선택하는 것입니다."
     },
     {
       "level": 2,
-      "title": "OP 두 bit로 4개 결과 선택",
-      "body": "OP.B0로 AND/OR와 XOR/ADD를 각각 1차 선택하고, OP.B1로 두 중간 결과 중 하나를 최종 선택하세요."
+      "title": "OP 두 bit로 4개 후보 선택",
+      "body": "OP.B0로 AND/OR와 XOR/ADD를 각각 1차 선택한 뒤, OP.B1로 두 중간 결과 중 하나를 최종 선택하세요."
     },
     {
       "level": 3,
       "title": "연결 방향",
-      "body": "LogicUnit.AND/OR를 M0의 A/B, LogicUnit.XOR와 Adder4.SUM을 M1의 A/B에 넣고 두 MUX의 SEL은 OP.B0로 연결하세요. M0/M1 출력은 M2의 A/B, M2.SEL은 OP.B1로 연결합니다. Adder4.CIN은 Const 0, M2.OUT은 OUT과 Zero4.IN으로 보냅니다."
+      "body": "AND4.OUT/OR4.OUT을 M0의 A/B, XOR4.OUT/Adder4.SUM을 M1의 A/B에 연결하고 두 MUX의 SEL은 OP.B0로 연결하세요. M0/M1 출력은 M2의 A/B, M2.SEL은 OP.B1로 연결합니다. Adder4.CIN은 Const 0, M2.OUT은 OUT과 Zero4.IN으로 보냅니다."
     }
   ]
 }
