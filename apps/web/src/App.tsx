@@ -49,6 +49,10 @@ interface CurriculumManifest {
 interface ChallengeLearningContent {
   motivation: string;
   mentalModel: string;
+  formalModel: readonly string[];
+  designInvariants: readonly string[];
+  timingModel: string;
+  engineeringNotes: readonly string[];
   howItWorks: readonly string[];
   applications: readonly string[];
   commonMistakes: readonly string[];
@@ -3793,8 +3797,33 @@ export function App() {
             </div>
 
             <div className="learning-mental-model">
-              <span>핵심 mental model</span>
+              <span>CORE ABSTRACTION</span>
               <strong>{challengeLearning.mentalModel}</strong>
+            </div>
+
+            <div className="learning-technical-grid">
+              <article>
+                <h3>Formal specification</h3>
+                <ul className="learning-formal-list">
+                  {challengeLearning.formalModel.map((item) => (
+                    <li key={item}>
+                      <code>{item}</code>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+              <article>
+                <h3>Design invariants</h3>
+                <ul>
+                  {challengeLearning.designInvariants.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+              <article>
+                <h3>Timing model</h3>
+                <p>{challengeLearning.timingModel}</p>
+              </article>
             </div>
 
             <div className="learning-grid">
@@ -3807,7 +3836,15 @@ export function App() {
                 </ol>
               </article>
               <article>
-                <h3>어디에 사용하나요?</h3>
+                <h3>Engineering notes</h3>
+                <ul>
+                  {challengeLearning.engineeringNotes.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+              <article>
+                <h3>Applications</h3>
                 <ul>
                   {challengeLearning.applications.map((item) => (
                     <li key={item}>{item}</li>
@@ -3815,7 +3852,7 @@ export function App() {
                 </ul>
               </article>
               <article>
-                <h3>흔한 실수</h3>
+                <h3>Failure modes</h3>
                 <ul>
                   {challengeLearning.commonMistakes.map((item) => (
                     <li key={item}>{item}</li>
