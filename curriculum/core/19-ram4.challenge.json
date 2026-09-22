@@ -302,7 +302,8 @@
       "notes": [
         "Decoder의 one-hot 출력으로 네 Register 중 하나의 LOAD만 활성화합니다.",
         "읽기 경로는 네 Register의 Q 중 ADDR가 고른 하나를 MUX tree로 선택합니다."
-      ]
+      ],
+      "kind": "operation"
     }
   ],
   "hints": [
