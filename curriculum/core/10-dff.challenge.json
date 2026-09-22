@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.dff",
   "title": "D Flip-Flop",
-  "description": "두 D Latch를 master/slave 구조로 연결해 rising-edge D Flip-Flop을 구현하세요. clock level 전체가 아니라 0→1 edge 순간의 D만 새 state로 샘플하고 edge 사이에는 Q를 유지하는 동기식 저장의 기준을 만듭니다.",
+  "description": "두 D Latch를 반대 clock phase로 동작시키는 master-slave 구조로 rising-edge-triggered D Flip-Flop을 만드세요. D는 rising edge에서 샘플되고 Q는 다음 edge까지 유지됩니다.",
   "interface": {
     "inputs": [
       {
@@ -129,7 +129,7 @@
     {
       "id": "characteristic",
       "title": "D Flip-Flop 상태표",
-      "description": "D Flip-Flop은 CLK가 0→1로 바뀌는 상승 에지(rising edge)에서만 D를 샘플링합니다.",
+      "description": "DFF는 level이 아니라 rising edge에서만 state를 갱신합니다. edge 사이의 D 변화는 Q에 즉시 전달되지 않습니다.",
       "columns": [
         {
           "id": "event",
@@ -191,24 +191,24 @@
         "D는 상승 에지(rising edge)에서만 샘플링됩니다.",
         "상승 에지 사이에서 D가 바뀌어도 Q는 바뀌지 않아야 합니다."
       ],
-      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서만 상태가 바뀝니다."
+      "timing": "GateOS는 setup/hold 시간을 수치로 모델링하지 않지만, rising edge에서 D를 샘플한다는 synchronous contract를 따릅니다."
     }
   ],
   "hints": [
     {
       "level": 1,
-      "title": "두 Latch가 번갈아 열려야 합니다",
-      "body": "rising edge D Flip-Flop은 master/slave D Latch 두 개가 서로 반대 Clock 레벨에서 열리도록 만든 구조입니다."
+      "title": "두 latch가 동시에 열리면 안 됩니다",
+      "body": "D에서 Q까지 투명한 경로가 계속 열려 있으면 edge-triggered storage가 되지 않습니다. master와 slave가 반대 위상으로 열려야 합니다."
     },
     {
       "level": 2,
       "title": "Master는 CLK=0, Slave는 CLK=1",
-      "body": "CLK를 한 번 반전해 master의 ENABLE에 넣고, 원래 CLK는 slave의 ENABLE에 넣으세요. 그러면 상승 에지에서 값이 master에서 slave로 넘어갑니다."
+      "body": "CLK를 한쪽 latch에는 반전해 넣어 master가 low phase에 D를 받아두고, rising edge 뒤 slave가 그 값을 Q로 넘기게 하세요."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "D→Master.D, NOT CLK→Master.ENABLE, Master.Q→Slave.D, CLK→Slave.ENABLE, Slave.Q→Q로 연결하세요."
+      "title": "동작을 시간 순서로 확인하세요",
+      "body": "CLK=0 동안 master가 D를 추적하고 slave는 닫혀 있어야 합니다. 0→1 전환 뒤 master가 닫히고 slave가 열리며 edge 직전 D가 Q에 반영됩니다."
     }
   ]
 }
