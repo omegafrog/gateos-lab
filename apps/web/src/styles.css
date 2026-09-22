@@ -3053,3 +3053,16 @@ button:disabled {
 .canvas-context-menu button.danger:hover {
   background: #fff1f1 !important;
 }
+
+
+.selection-marquee {
+  fill: rgb(82 103 216 / 10%);
+  stroke: #5267d8;
+  stroke-width: 1.5;
+  stroke-dasharray: 7 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.circuit-canvas:has(.selection-marquee) {
+  cursor: crosshair;
+}
