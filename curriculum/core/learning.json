@@ -2,581 +2,567 @@
   "schema": "gateos.learning/v1",
   "stages": {
     "logic": {
-      "why": "디지털 회로를 배운다는 것은 게이트 기호를 외우는 일이 아니라, 원하는 동작을 truth table·Boolean 식·배선 구조 사이에서 번역하는 법을 배우는 일입니다. 이 단계에서는 NAND 하나에서 시작해 기본 논리와 선택 회로, 1-bit 덧셈까지 만들면서 ‘명세를 회로로 바꾸는 과정’을 익힙니다.",
+      "why": "이 단계의 목표는 게이트 이름을 외우는 것이 아니라, 명세를 회로로 바꾸는 사고법을 익히는 것입니다. truth table은 ‘무엇을 해야 하는지’를 말하고, Boolean 식은 그 조건을 압축해 표현하며, gate network는 그것을 실제 데이터 경로로 구현합니다. NAND 하나에서 시작해 MUX와 Adder까지 올라가면서 같은 기능을 여러 추상화 수준에서 보는 연습을 합니다.",
       "outcomes": [
-        "truth table, Boolean 식, gate diagram이 같은 조합논리를 서로 다른 방식으로 표현한다는 점 이해하기",
-        "NAND의 기능적 완전성과 De Morgan 법칙을 이용해 논리를 합성하기",
-        "MUX를 계산기가 아니라 control signal이 data path를 고르는 선택기로 이해하기",
-        "binary addition에서 SUM과 CARRY가 서로 다른 정보를 나타내는 이유 이해하기"
+        "truth table → Boolean 식 → gate network로 같은 조합논리를 번역하기",
+        "NAND의 기능적 완전성과 De Morgan 법칙을 회로 합성 도구로 사용하기",
+        "MUX에서 data 입력과 select control의 역할을 분리해 보기",
+        "binary addition을 SUM과 CARRY라는 두 Boolean 출력으로 분해하기"
       ],
-      "connectsTo": "이 단계의 산출물은 뒤에서 그대로 재사용됩니다. Full Adder는 multi-bit Adder가 되고, MUX는 register의 next-state와 CPU datapath를 고르며, AND/OR는 decoder와 write-enable 논리의 재료가 됩니다."
+      "connectsTo": "이 단계에서 만든 MUX, AND/OR/XOR, Full Adder는 이후 거의 모든 회로의 재료가 됩니다. 특히 MUX는 ‘어떤 값을 다음 상태로 보낼지’를 고르고, Full Adder는 word 단위 산술의 bit-slice가 됩니다."
     },
     "state": {
-      "why": "조합논리는 현재 입력만 계산할 뿐 과거를 기억하지 못합니다. 프로그램을 실행하려면 ‘이전 cycle의 결과’를 다음 cycle에도 보존해야 하므로 state가 필요합니다. 이 단계에서는 feedback으로 생기는 저장에서 시작해 latch, flip-flop, 조건부 register로 올라가며 시간과 상태를 회로에 넣는 방법을 배웁니다.",
+      "why": "조합논리는 현재 입력에만 반응하므로 계산은 할 수 있어도 ‘이전 결과’를 보존하지 못합니다. 컴퓨터가 프로그램을 실행하려면 시간이 지나도 남는 state와, 그 state가 언제 바뀌는지 정하는 clock 규칙이 필요합니다. feedback latch에서 시작해 edge-triggered register까지 올라가며 저장과 시간의 의미를 분리해 배웁니다.",
       "outcomes": [
-        "combinational logic과 state element의 역할을 명확히 구분하기",
-        "feedback이 어떻게 이전 값을 유지하는 안정 상태를 만드는지 이해하기",
-        "level-sensitive latch와 edge-triggered flip-flop의 시간 동작을 구분하기",
-        "현재 상태(Q), 저장 후보(D), update enable을 분리해 생각하기"
+        "combinational logic과 stored state를 구분하기",
+        "feedback이 두 안정 상태를 만들어 값을 유지하는 원리 이해하기",
+        "level-sensitive latch와 edge-triggered flip-flop의 시간 동작 구분하기",
+        "D, Q, enable/load, clock을 각각 next value, current state, update control, commit timing으로 해석하기"
       ],
-      "connectsTo": "이후의 Counter, Program Counter, RAM, Register File은 모두 ‘조합논리가 next state를 계산하고 register가 clock edge에서 state를 갱신한다’는 동일한 동기식 구조를 확장한 것입니다."
+      "connectsTo": "이후 Counter, PC, RAM, Register File은 모두 같은 동기식 패턴을 확장합니다. 조합논리가 next state를 계산하고, clock edge가 그 값을 state element에 확정합니다."
     },
     "multibit": {
-      "why": "CPU는 한 bit가 아니라 word 단위로 데이터를 다룹니다. 중요한 것은 단순히 1-bit 회로를 여러 번 복사하는 것이 아니라, 어떤 연산은 bit들이 독립적이고 어떤 연산은 carry처럼 bit 사이 의존성이 있다는 점을 구분하는 것입니다. 이 단계에서는 bus, carry chain, word register, next-state logic을 한 묶음으로 연결합니다.",
+      "why": "CPU는 한 bit가 아니라 word 단위 데이터를 다룹니다. 중요한 질문은 ‘1-bit 회로를 몇 번 복사할까?’가 아니라, bit들이 서로 독립적인지 혹은 carry처럼 서로 의존하는지입니다. bus, carry chain, multi-bit register, next-state logic을 통해 word-level 설계의 규칙을 익힙니다.",
       "outcomes": [
-        "bus를 여러 개의 1-bit 신호 묶음으로 읽고 bit significance(LSB/MSB)를 보존하기",
-        "독립적인 bit-slice와 carry처럼 bit 사이에 의존성이 있는 연산을 구분하기",
-        "여러 bit를 하나의 word state로 같은 clock edge에 갱신하기",
-        "present state와 next-state logic을 분리해 Counter와 Program Counter 설계하기"
+        "bus를 bit significance를 가진 신호 묶음으로 읽기",
+        "독립적인 bit-slice와 carry dependency가 있는 연산 구분하기",
+        "여러 bit의 state를 하나의 word로 같은 edge에서 갱신하기",
+        "present state와 next-state logic을 분리해 Counter와 PC 설계하기"
       ],
-      "connectsTo": "여기서 만든 MUX4, Adder4, Register4, Program Counter는 메모리와 CPU에서 word 단위로 데이터를 고르고 계산하고 저장하는 기본 블록이 됩니다."
+      "connectsTo": "Adder4, Register4, Program Counter는 이후 memory와 CPU datapath의 기본 word-level building block이 됩니다."
     },
     "memory": {
-      "why": "Register 하나는 값 하나만 기억합니다. Memory의 핵심은 저장 cell 자체가 아니라 ‘주소로 여러 저장 위치 중 하나를 지정하는 방법’입니다. 이 단계에서는 decoder가 write 대상을 고르고 mux가 read 대상을 고르는 구조를 통해 주소 공간이 어떻게 만들어지는지 확인합니다.",
+      "why": "Register 하나는 값 하나를 저장합니다. Memory에서 새로 배우는 핵심은 저장 cell이 아니라 ‘주소로 여러 저장 위치 중 정확히 하나를 선택하는 구조’입니다. 같은 address가 write 쪽에서는 decoder를 통해 one-hot enable이 되고, read 쪽에서는 mux select가 됩니다.",
       "outcomes": [
-        "binary address와 one-hot select의 관계를 이해하기",
-        "read selection과 write selection이 같은 주소를 서로 다른 방식으로 사용한다는 점 이해하기",
-        "이 커리큘럼의 RAM에서 asynchronous read와 synchronous write의 타이밍을 구분하기",
-        "주소의 상위/하위 bit를 나눠 작은 RAM을 bank로 계층화하기"
+        "binary address를 one-hot write select로 변환하기",
+        "read path와 write path가 같은 주소를 서로 다른 방식으로 사용하는 이유 이해하기",
+        "이 플랫폼의 asynchronous read와 rising-edge synchronous write 구분하기",
+        "상위/하위 address bit로 작은 RAM을 bank로 계층화하기"
       ],
-      "connectsTo": "RAM16까지 만들면 계층적 memory의 핵심 패턴은 이미 완성됩니다. 더 큰 RAM은 같은 bank 선택을 반복하므로 여기서 멈추고, CPU 내부의 다중 포트 저장소인 Register File과 datapath로 넘어갑니다."
+      "connectsTo": "RAM16에서 계층적 memory의 핵심 패턴은 충분히 드러납니다. 이후 더 큰 RAM을 반복 제작하기보다 CPU 내부의 multi-port storage와 datapath로 넘어갑니다."
     },
     "cpu": {
-      "why": "계산기(ALU), 저장소(Register File), 선택기(MUX)가 따로 존재하는 것만으로는 CPU가 아닙니다. CPU의 핵심은 state element 사이에 combinational datapath를 두고 control signal이 ‘무엇을 읽고, 어떤 연산을 하고, 어디에 쓸지’를 결정하는 것입니다. 이 단계에서는 그 read → execute → write-back 고리를 직접 연결합니다.",
+      "why": "CPU는 ALU, Register File, MUX를 모아 놓은 상자가 아니라, state 사이를 흐르는 data path와 그 경로를 선택하는 control의 결합입니다. 이 단계에서는 ‘읽기 → 계산/선택 → 쓰기’라는 한 cycle의 인과관계를 직접 연결합니다.",
       "outcomes": [
-        "여러 bit 결과를 ZERO 같은 1-bit status signal로 축약하기",
-        "여러 연산 결과 중 하나를 opcode/control signal로 선택하는 ALU 구조 이해하기",
-        "Register File의 두 read port와 한 write port가 CPU operand 흐름을 만드는 방식 이해하기",
-        "state → combinational logic → state라는 동기식 datapath의 한 cycle을 설명하기"
+        "여러 data bit를 ZERO 같은 1-bit status로 축약하기",
+        "여러 연산 결과 중 하나를 OP control로 선택하는 ALU 구성 이해하기",
+        "Register File의 두 read port와 한 write port가 operand 흐름을 만드는 방식 이해하기",
+        "state → combinational datapath → state라는 동기식 CPU cycle 설명하기"
       ],
-      "connectsTo": "이 datapath에 instruction bits를 해석해 control signal을 만드는 decoder/control unit을 붙이면, 사용자가 직접 버튼을 누르지 않아도 명령어가 datapath를 자동으로 구동하는 CPU로 확장할 수 있습니다."
+      "connectsTo": "여기에 instruction bits를 해석해 OP, source/destination address, write enable, PC select를 자동 생성하는 control unit을 붙이면 실제 명령어를 실행하는 CPU로 이어집니다."
     }
   },
   "challenges": {
     "logic.not": {
-      "motivation": "첫 과제의 목적은 NOT 자체가 아닙니다. NAND 하나만 주어졌을 때 원하는 truth table을 어떻게 회로로 구현하는지 경험하는 것이 핵심입니다. NAND는 기능적으로 완전한 연산이라 다른 Boolean 함수를 구성할 수 있고, NOT은 그 출발점입니다.",
-      "mentalModel": "NAND의 두 입력에 같은 신호 X를 넣으면 ¬(X·X)=¬X가 됩니다. 즉 두 입력을 ‘묶는다’는 배선 선택이 새로운 논리 함수로 바뀝니다.",
+      "motivation": "첫 과제의 핵심은 NOT을 아는지가 아니라, ‘하나의 primitive만으로 다른 함수를 만들어낼 수 있다’는 합성 경험입니다. NAND의 두 입력을 같은 신호로 묶는 단순한 배선 선택이 새로운 Boolean 함수를 만듭니다.",
+      "mentalModel": "NAND는 ‘둘 다 1이면 0’입니다. 두 입력을 모두 X에 연결하면 가능한 입력 조합은 00과 11뿐이므로 결과는 X의 정확한 반대가 됩니다.",
       "howItWorks": [
-        "NOT의 명세는 단순합니다: 0→1, 1→0. 조합논리이므로 출력은 과거 상태가 아니라 현재 입력에만 의존합니다.",
-        "NAND는 두 입력이 모두 1일 때만 0입니다. 두 입력을 같은 X에 연결하면 가능한 경우가 00과 11뿐이므로 NAND의 출력이 정확히 X의 반대가 됩니다.",
-        "이 과제에서 중요한 습관은 ‘게이트 모양을 외우기’보다 truth table → Boolean 식 → 배선으로 번역하는 것입니다.",
-        "실제 하드웨어에는 propagation delay가 있지만 이 플랫폼에서는 논리 기능 자체에 초점을 맞춰 settle된 결과를 관찰합니다."
+        "NOT의 contract는 0→1, 1→0입니다. 출력은 이전 상태가 아니라 현재 IN에만 의존합니다.",
+        "X NAND X = ¬(X·X) = ¬X이므로 NAND 하나만으로 inverter를 만들 수 있습니다.",
+        "여기서 배울 습관은 회로 모양을 외우는 것이 아니라 truth table을 만족시키는 구조를 찾는 것입니다."
       ],
       "applications": [
-        "active-low control signal의 의미를 뒤집어 해석하기",
-        "NAND 기반으로 AND/OR 같은 다른 Boolean 함수 합성하기",
-        "clock 또는 enable의 보수 신호 만들기"
+        "active-low 신호의 의미 반전",
+        "De Morgan 기반 논리 합성",
+        "enable/select의 보수 신호 생성"
       ],
       "commonMistakes": [
-        "NAND의 두 입력을 서로 다른 신호에 연결한 채 NOT이라고 생각하는 것",
-        "NOT이 이전 값을 기억하거나 clock이 필요한 state element라고 생각하는 것",
-        "회로 모양만 따라 만들고 왜 X NAND X가 ¬X인지 truth table로 확인하지 않는 것"
+        "NAND 두 입력을 서로 다른 신호에 연결해 놓고 inverter라고 생각하는 것",
+        "NOT을 stateful element처럼 해석하는 것",
+        "왜 두 입력을 묶는지 truth table로 확인하지 않는 것"
       ],
-      "buildsToward": "다음 AND부터는 이미 만든 NOT을 하나의 추상화된 부품으로 재사용합니다. 낮은 단계 구현을 다시 펼치지 않고 블록을 조합하는 계층적 설계가 시작됩니다."
+      "buildsToward": "다음 AND에서는 방금 만든 NOT을 내부 NAND 구현을 다시 보지 않고 하나의 부품으로 재사용합니다. 이것이 hierarchical design의 시작입니다."
     },
     "logic.and": {
-      "motivation": "하드웨어 제어는 ‘조건 A와 조건 B가 모두 참일 때만 동작’하는 경우가 많습니다. AND는 write enable, address match, carry 생성처럼 여러 조건의 동시 만족을 표현하는 기본 함수입니다. 여기서는 NAND가 AND의 반전이라는 관계를 회로 합성으로 연결합니다.",
-      "mentalModel": "AND는 ‘모든 조건 통과’입니다. NAND가 ¬(A·B)를 만들고 있으므로 그 결과의 반전을 제거하면 A·B가 됩니다.",
+      "motivation": "하드웨어 제어에서는 ‘조건 A와 조건 B가 동시에 참일 때만 동작’하는 상황이 반복됩니다. AND는 carry 생성, write enable, address match처럼 여러 조건의 동시 만족을 표현하는 기본 연산입니다.",
+      "mentalModel": "NAND는 AND 결과를 뒤집은 함수입니다. 따라서 NAND의 결과를 한 번 더 반전하면 원래 AND를 복원할 수 있습니다.",
       "howItWorks": [
-        "AND의 truth table에서 1이 되는 경우는 A=B=1 한 줄뿐입니다. 이 명세가 회로가 반드시 만족해야 할 기준입니다.",
-        "NAND는 AND 결과를 한 번 반전한 함수이므로 NAND 출력에 NOT을 적용하면 원래 AND가 복원됩니다.",
-        "이 과정은 Boolean 식의 이중 부정과 회로 블록의 계층 조합이 같은 의미라는 것을 보여줍니다.",
-        "AND는 data 자체를 계산할 때도 쓰이지만 이후에는 LOAD·address-select처럼 control 조건을 결합하는 데 더 자주 등장합니다."
+        "AND는 A=B=1일 때만 1입니다. 이 한 줄이 전체 truth table의 핵심 조건입니다.",
+        "NAND가 ¬(A·B)를 만들고 NOT이 그 결과를 다시 뒤집어 A·B를 만듭니다.",
+        "이 구조는 Boolean 식의 이중 부정과 두 단계 gate network가 같은 의미라는 것을 보여줍니다."
       ],
       "applications": [
-        "RAM에서 global LOAD와 특정 address select를 결합해 한 word만 쓰기",
-        "decoder의 특정 주소 조합 검출",
-        "Half/Full Adder의 carry 조건 생성"
+        "RAM의 global LOAD와 address select 결합",
+        "decoder의 minterm 구성",
+        "Adder의 carry 조건 생성"
       ],
       "commonMistakes": [
-        "NAND의 반전 출력을 그대로 AND 출력으로 사용해 결과가 뒤집히는 것",
-        "AND를 ‘하나라도 1’인 OR와 혼동하는 것",
-        "한 신호를 여러 입력에 fan-out하는 것과 여러 출력이 한 선을 동시에 drive하는 것을 같은 것으로 생각하는 것"
+        "NAND 출력을 그대로 AND라고 사용하는 것",
+        "AND를 OR의 ‘비슷한 버전’으로 외워 조건 의미를 놓치는 것",
+        "fan-out과 multiple drivers를 같은 것으로 생각하는 것"
       ],
-      "buildsToward": "AND는 이후 carry, decoder, RAM write-enable에서 ‘여러 조건을 동시에 만족해야 한다’는 의미로 반복해서 등장합니다."
+      "buildsToward": "OR에서는 같은 기능을 직접 새 gate로 가정하지 않고, NOT과 AND를 De Morgan 법칙으로 다시 조합합니다."
     },
     "logic.or": {
-      "motivation": "AND가 여러 조건을 동시에 요구한다면 OR은 여러 원인 중 하나만 발생해도 동작해야 하는 경우를 표현합니다. 이 과제는 새 truth table을 이미 만든 NOT/AND로 합성하면서 De Morgan 법칙이 실제 배선 변환과 같은 이야기임을 확인합니다.",
-      "mentalModel": "A OR B는 ‘둘 중 하나라도 참’입니다. De Morgan 관점에서는 ¬(¬A·¬B)와 같아서, 입력의 의미를 뒤집고 AND한 뒤 결과를 다시 뒤집어 같은 함수를 만들 수 있습니다.",
+      "motivation": "OR은 여러 가능한 원인 중 하나라도 발생하면 동작해야 하는 조건을 표현합니다. 이 과제에서는 De Morgan 법칙을 실제 회로 변환에 적용해, Boolean algebra가 배선 설계 도구라는 점을 확인합니다.",
+      "mentalModel": "A OR B는 ¬(¬A·¬B)와 같습니다. 입력의 의미를 뒤집고 AND한 뒤 결과를 다시 뒤집으면 ‘둘 중 하나라도 1’인 함수를 얻습니다.",
       "howItWorks": [
-        "OR는 00에서만 0이고 01,10,11에서는 1입니다. 특히 11에서도 1이라는 점이 XOR와의 중요한 차이입니다.",
-        "De Morgan 법칙은 단순 암기식이 아니라 AND/OR와 inversion을 서로 변환하는 설계 도구입니다.",
-        "같은 Boolean 함수를 서로 다른 gate network로 구현할 수 있다는 사실은 회로 합성과 최적화의 출발점입니다.",
-        "이후 control logic에서는 서로 다른 원인에서 온 enable 신호를 하나의 write 요청으로 합치는 데 OR가 자주 쓰입니다."
+        "OR는 00에서만 0이고 나머지 입력에서는 1입니다.",
+        "De Morgan 법칙은 AND/OR와 inversion의 위치를 바꾸는 회로 합성 규칙으로 사용할 수 있습니다.",
+        "같은 Boolean function을 여러 gate network로 구현할 수 있다는 사실은 이후 최적화와 계층 설계의 바탕이 됩니다."
       ],
       "applications": [
-        "여러 write/update 원인을 하나의 enable 신호로 합치기",
-        "Full Adder의 여러 carry 발생 경로 결합",
-        "ALU의 bitwise OR 연산"
+        "여러 update 조건을 하나의 enable로 합치기",
+        "Full Adder의 carry 후보 결합",
+        "control 조건의 합성"
       ],
       "commonMistakes": [
-        "11 입력에서 OR와 XOR의 차이를 놓치는 것",
-        "De Morgan 적용 시 입력과 출력 반전 위치를 섞는 것",
-        "Boolean OR를 산술 덧셈과 같은 연산으로 해석하는 것"
+        "11에서 OR와 XOR의 차이를 놓치는 것",
+        "De Morgan 적용 시 입력/출력 inversion 위치를 섞는 것",
+        "Boolean OR를 산술 덧셈으로 해석하는 것"
       ],
-      "buildsToward": "다음 XOR에서는 여러 AND 조건을 OR로 합쳐 ‘입력이 서로 다른 경우’라는 더 복잡한 함수를 구성합니다."
+      "buildsToward": "XOR에서는 여러 AND 조건을 OR로 합쳐 ‘두 입력이 서로 다른가?’라는 더 복합적인 Boolean function을 만듭니다."
     },
     "logic.xor": {
-      "motivation": "XOR는 단순한 네 번째 게이트가 아니라 ‘두 bit가 다른가?’를 나타내는 함수이자 binary addition의 SUM bit입니다. 비교와 산술이 같은 Boolean 패턴을 공유한다는 점을 처음 보여주는 회로입니다.",
-      "mentalModel": "XOR는 odd parity의 가장 작은 형태입니다. 두 입력 중 정확히 하나가 1일 때만 1이며, A≠B를 1-bit 신호로 표현한다고 생각하면 됩니다.",
+      "motivation": "XOR는 ‘두 bit가 다른가?’를 나타내는 비교 함수이면서 동시에 binary addition의 SUM bit입니다. 하나의 Boolean pattern이 비교와 산술이라는 두 문맥에서 재사용되는 좋은 예입니다.",
+      "mentalModel": "두 입력 중 정확히 하나만 1일 때 출력이 1입니다. 즉 1-bit 수준에서는 A≠B를 나타내는 신호라고 생각하면 됩니다.",
       "howItWorks": [
-        "XOR의 출력은 00과 11에서 0, 01과 10에서 1입니다. 그래서 두 입력의 불일치를 직접 나타냅니다.",
-        "두 1-bit 수를 carry 없이 현재 자리만 보면 SUM 패턴이 XOR와 정확히 같습니다.",
-        "Boolean 식으로는 서로 다른 두 경우(A·¬B, ¬A·B)를 각각 검출한 뒤 OR로 합친 함수로 볼 수 있습니다.",
-        "XOR 자체는 carry를 만들지 않으므로 완전한 덧셈기가 아니라 SUM 계산의 한 부분입니다."
+        "XOR는 01과 10에서만 1이고 00, 11에서는 0입니다.",
+        "서로 다른 두 경우 A·¬B와 ¬A·B를 각각 검출한 뒤 OR하면 XOR가 됩니다.",
+        "두 bit를 carry 없이 현재 자리만 더했을 때 SUM의 truth table이 XOR와 정확히 같습니다."
       ],
       "applications": [
-        "Half/Full Adder의 SUM 계산",
-        "bit toggle과 mask 기반 반전",
-        "두 값의 bitwise 차이 검출과 parity 계산"
+        "Adder의 SUM 계산",
+        "bit toggle과 mask",
+        "bitwise 차이 검출과 parity"
       ],
       "commonMistakes": [
-        "11에서도 1이 되는 OR와 XOR를 혼동하는 것",
-        "XOR 하나가 SUM과 CARRY를 모두 처리한다고 생각하는 것",
-        "‘다르면 1’이라는 의미를 4-bit 전체 비교 결과 한 bit와 혼동하는 것"
+        "11에서도 1인 OR와 XOR를 혼동하는 것",
+        "XOR 하나가 carry까지 만든다고 생각하는 것",
+        "1-bit inequality와 multi-bit equality test를 같은 것으로 보는 것"
       ],
-      "buildsToward": "바로 다음 Half Adder에서 XOR는 SUM, AND는 CARRY가 되어 Boolean logic이 실제 binary arithmetic으로 바뀝니다."
+      "buildsToward": "Half Adder에서 XOR는 SUM, AND는 CARRY가 되어 Boolean logic이 binary arithmetic으로 연결됩니다."
     },
     "routing.mux2": {
-      "motivation": "CPU에서 중요한 질문은 ‘어떤 계산을 할까?’만이 아니라 ‘여러 값 중 어느 값을 다음 단계로 보낼까?’입니다. Multiplexer는 control signal이 data path를 선택하는 가장 기본적인 회로이며 이후 register, counter, ALU, write-back 경로의 핵심이 됩니다.",
-      "mentalModel": "A와 B는 data이고 SEL은 control입니다. SEL이 값을 계산하는 것이 아니라, 두 data 경로 중 어느 쪽이 OUT과 연결될지를 결정한다고 생각하세요.",
+      "motivation": "컴퓨터 회로에서는 계산만큼 ‘어떤 값이 다음 단계로 가야 하는가’를 고르는 일이 중요합니다. MUX는 data와 control을 분리하는 가장 기본적인 selector이며 CPU datapath의 거의 모든 선택 지점에 등장합니다.",
+      "mentalModel": "A와 B는 후보 data이고 SEL은 길을 여는 control입니다. SEL이 데이터를 계산하는 것이 아니라 OUT과 연결될 경로를 고릅니다.",
       "howItWorks": [
-        "2:1 MUX는 SEL=0일 때 A, SEL=1일 때 B를 출력합니다. A/B의 값이 무엇인지와 선택 규칙은 독립적입니다.",
-        "Boolean 식 y=¬s·a+s·b로 보면 SEL과 ¬SEL이 두 경로를 서로 배타적으로 열고 마지막 OR가 선택된 값을 합칩니다.",
-        "MUX는 state를 저장하지 않습니다. 입력이나 SEL이 바뀌면 조합논리 지연 후 OUT도 바뀝니다.",
-        "CPU datapath에서는 이런 selector가 여러 곳에 배치되어 같은 하드웨어를 여러 instruction이 공유할 수 있게 합니다."
+        "SEL=0이면 OUT=A, SEL=1이면 OUT=B입니다.",
+        "식 ¬SEL·A + SEL·B를 보면 두 data path 중 하나만 열리고 마지막 OR에서 합쳐지는 구조가 드러납니다.",
+        "MUX는 값을 저장하지 않습니다. 입력이나 SEL이 바뀌면 조합논리 지연 후 OUT도 따라 바뀝니다."
       ],
       "applications": [
-        "Register에서 기존 Q와 새 D 중 next value 선택",
-        "Program Counter에서 increment/load/reset 후보 선택",
-        "ALU와 CPU write-back에서 여러 결과 중 하나 선택"
+        "Register의 old/new value 선택",
+        "PC의 sequential/jump/reset 후보 선택",
+        "ALU와 write-back source 선택"
       ],
       "commonMistakes": [
-        "A/B를 뒤집어 SEL=0/1 의미가 의도와 반대로 되는 것",
-        "SEL을 data 입력과 같은 종류의 신호라고 생각하는 것",
-        "MUX 자체가 선택한 값을 기억한다고 생각하는 것"
+        "A/B를 뒤집어 SEL 의미가 반대로 되는 것",
+        "SEL을 data input처럼 해석하는 것",
+        "MUX가 선택한 값을 기억한다고 생각하는 것"
       ],
-      "buildsToward": "이후 거의 모든 stateful 회로는 ‘MUX가 next value를 고르고 Register가 edge에서 저장한다’는 형태로 나타납니다."
+      "buildsToward": "뒤의 stateful 회로 대부분은 ‘MUX가 next value를 고르고 register가 clock edge에서 저장한다’는 형태로 나타납니다."
     },
     "arithmetic.half-adder": {
-      "motivation": "두 bit를 더하는 순간부터 Boolean logic이 산술이 됩니다. 핵심은 1+1의 결과가 한 bit에 들어가지 않아 현재 자리의 SUM과 다음 자리로 넘길 CARRY를 분리해야 한다는 점입니다.",
-      "mentalModel": "Half Adder는 한 자리 덧셈 표입니다. SUM은 결과의 낮은 bit, CARRY는 결과의 높은 bit라고 생각하면 0+0부터 1+1까지 모두 설명됩니다.",
+      "motivation": "두 bit를 더하면 처음으로 한 bit 출력만으로는 결과를 표현할 수 없는 경우가 생깁니다. 1+1=10이기 때문에 현재 자리의 SUM과 다음 자리로 넘길 CARRY를 분리해야 합니다.",
+      "mentalModel": "A+B의 0~2 값을 2-bit 결과 {CARRY,SUM}으로 표현하는 한 자리 덧셈기입니다.",
       "howItWorks": [
-        "0+0=00, 0+1=01, 1+0=01, 1+1=10이므로 SUM은 XOR, CARRY는 AND의 truth table과 같습니다.",
-        "SUM은 ‘현재 자리에서 남는 값’, CARRY는 ‘다음 더 높은 자리로 전달할 값’입니다. 둘은 오류/성공 같은 상태가 아니라 결과의 서로 다른 자리입니다.",
-        "Half Adder는 이전 자리에서 들어오는 carry-in을 받을 입력이 없기 때문에 multi-bit adder의 모든 자리에 그대로 사용할 수 없습니다.",
-        "이 과제의 핵심은 gate 조립보다 arithmetic truth table을 두 개의 Boolean 출력 함수로 분해하는 것입니다."
+        "00→00, 01→01, 10→01, 11→10이므로 SUM은 XOR, CARRY는 AND와 같습니다.",
+        "SUM은 현재 자리 결과이고 CARRY는 다음 높은 자리의 입력으로 전달될 정보입니다.",
+        "이 회로에는 이전 자리에서 들어오는 CIN이 없기 때문에 multi-bit 덧셈의 모든 자리에 그대로 쓸 수는 없습니다."
       ],
       "applications": [
-        "binary addition의 기본 한 자리 동작",
-        "Full Adder의 내부 구성",
-        "carry-in이 없는 최하위 자리 덧셈"
+        "binary addition의 최소 단위",
+        "Full Adder의 내부 블록",
+        "carry-in이 없는 최하위 자리 계산"
       ],
       "commonMistakes": [
-        "1+1을 SUM=1로 두고 CARRY를 별도 overflow 표시처럼 생각하는 것",
-        "CARRY가 다음 자리의 입력이 된다는 의미를 놓치는 것",
+        "CARRY를 단순 overflow 경고로 보는 것",
+        "1+1에서 SUM을 1로 두는 것",
         "Half Adder에도 CIN이 있다고 가정하는 것"
       ],
-      "buildsToward": "Full Adder는 여기에 CIN을 추가해 어떤 자리에서도 재사용할 수 있는 composable 1-bit adder를 만듭니다."
+      "buildsToward": "Full Adder는 여기에 carry-in을 추가해 어떤 bit 위치에서도 재사용 가능한 1-bit adder를 만듭니다."
     },
     "arithmetic.full-adder": {
-      "motivation": "여러 bit 정수를 더하려면 각 자리가 독립적으로 계산될 수 없습니다. 낮은 자리에서 생긴 carry가 높은 자리 계산에 들어가야 하기 때문입니다. Full Adder는 이 의존성을 한 자리 블록 안에 캡슐화합니다.",
-      "mentalModel": "A, B, CIN 세 bit의 합(0~3)을 2-bit 결과 {COUT,SUM}으로 표현하는 한 자리 계산기입니다.",
+      "motivation": "multi-bit 덧셈에서는 각 bit가 독립적이지 않습니다. 낮은 자리에서 생긴 carry가 높은 자리의 계산에 영향을 주기 때문에, 그 의존성을 한 bit-slice 안에 명시적으로 포함해야 합니다.",
+      "mentalModel": "A+B+CIN의 합 0~3을 {COUT,SUM} 두 bit로 표현하는 한 자리 계산기입니다.",
       "howItWorks": [
-        "Full Adder는 A+B+CIN을 계산합니다. 합이 홀수면 SUM=1이고, 합이 2 이상이면 COUT=1입니다.",
-        "두 Half Adder로 생각하면 먼저 A+B를 계산하고 그 SUM에 CIN을 더한 뒤, 두 단계에서 생긴 carry 가능성을 OR로 합칠 수 있습니다.",
-        "COUT은 바로 다음 높은 자리 Full Adder의 CIN이 되어 bit 사이의 산술 의존성을 전달합니다.",
-        "이 구조 덕분에 같은 1-bit 블록을 반복해 임의 폭의 ripple-carry adder를 만들 수 있습니다."
+        "SUM은 세 입력의 parity이고, COUT은 세 입력 중 적어도 둘이 1일 때 1입니다.",
+        "Half Adder 두 개로 A+B를 먼저 계산하고, 그 SUM에 CIN을 더한 뒤 두 carry 후보를 OR할 수 있습니다.",
+        "COUT은 바로 다음 높은 자리의 CIN이 되어 carry dependency를 전달합니다."
       ],
       "applications": [
-        "multi-bit ripple-carry adder",
-        "주소 및 Program Counter 증가 회로",
-        "CPU ALU의 ADD 연산"
+        "ripple-carry adder",
+        "주소/PC 증가",
+        "ALU의 ADD 연산"
       ],
       "commonMistakes": [
-        "carry chain을 MSB에서 LSB 방향으로 연결하는 것",
-        "COUT을 같은 자리 SUM의 일부로 Join하는 것",
-        "세 입력 중 둘 이상이 1이면 carry가 생긴다는 관계를 놓치는 것"
+        "carry 방향을 MSB→LSB로 연결하는 것",
+        "COUT을 같은 자리 SUM 일부로 처리하는 것",
+        "CIN을 무시해 2번째 bit 이상이 틀리는 것"
       ],
-      "buildsToward": "Adder4에서 네 Full Adder를 LSB→MSB로 연결하면서 ‘반복되는 bit-slice + carry dependency’라는 multi-bit 산술 패턴을 완성합니다."
+      "buildsToward": "Adder4에서는 네 Full Adder를 LSB부터 연결해 ‘repeated bit-slice + carry chain’ 구조를 완성합니다."
     },
     "state.sr-latch": {
-      "motivation": "지금까지 만든 회로는 입력이 바뀌면 출력도 바뀌고 과거를 잊었습니다. SR Latch는 출력 일부를 다시 입력으로 되돌리는 feedback을 통해 ‘현재 입력만으로 결정되지 않는 출력’을 만들며, 이것이 state의 출발점입니다.",
-      "mentalModel": "두 NAND가 서로의 출력을 조건으로 사용해 두 개의 안정 상태 중 하나를 유지합니다. 외부 입력은 상태를 set/reset할 때만 균형을 깨고, hold 상태에서는 feedback 자체가 이전 Q를 유지합니다.",
+      "motivation": "여기서 처음으로 출력이 현재 입력만으로 결정되지 않는 회로를 만듭니다. feedback을 의도적으로 사용하면 두 안정 상태 중 하나가 유지되고, 이것이 ‘기억’의 가장 작은 형태가 됩니다.",
+      "mentalModel": "두 NAND가 서로의 출력을 입력으로 받아 현재 상태를 스스로 지탱합니다. 외부 입력은 상태를 바꿀 때만 균형을 깨고, hold 상태에서는 feedback이 이전 Q를 유지합니다.",
       "howItWorks": [
-        "NAND형 SR Latch의 입력은 active-low입니다. S̅=0은 Q를 1로 만들고, R̅=0은 Q를 0으로 만듭니다.",
-        "S̅=R̅=1이면 외부 입력이 어느 상태도 강제하지 않으므로 cross-coupled feedback이 이전 상태를 계속 유지합니다.",
-        "S̅=R̅=0은 Q와 Q̅를 동시에 같은 값으로 몰아 보완 관계를 깨므로 정상 동작에서 피해야 하는 입력입니다.",
-        "일반 조합논리에서 feedback loop는 문제가 되지만, latch에서는 두 안정 상태를 의도적으로 만들어 기억 기능으로 사용합니다."
+        "NAND형 SR latch는 active-low입니다. S̅=0은 set, R̅=0은 reset 요청입니다.",
+        "S̅=R̅=1이면 외부가 새 상태를 강제하지 않아 feedback이 이전 값을 유지합니다.",
+        "S̅=R̅=0은 Q와 Q̅의 보완 관계를 깨므로 정상 동작에서 피해야 하는 forbidden input입니다.",
+        "일반 combinational loop와 달리 이 feedback은 두 안정 상태를 만들기 위해 의도된 것입니다."
       ],
       "applications": [
-        "latch와 flip-flop의 저장 원리",
-        "비동기 set/reset 상태 요소",
-        "feedback으로 state를 만드는 가장 작은 예"
+        "latch/flip-flop의 저장 원리",
+        "set/reset state element",
+        "feedback 기반 state의 최소 예"
       ],
       "commonMistakes": [
-        "active-low 입력에서 1이 set/reset 요청이라고 반대로 해석하는 것",
-        "S̅=R̅=1을 초기화 상태라고 생각하는 것",
-        "금지 입력을 하나의 정상적인 세 번째 상태처럼 사용하는 것"
+        "active-low 입력에서 1을 요청으로 해석하는 것",
+        "hold 상태를 초기화 상태로 생각하는 것",
+        "forbidden input을 정상적인 세 번째 상태로 사용하는 것"
       ],
-      "buildsToward": "D Latch는 외부에 S/R 두 제어를 그대로 노출하지 않고 D와 ENABLE에서 안전한 set/reset 조합을 생성해 더 다루기 쉬운 저장 인터페이스를 만듭니다."
+      "buildsToward": "D Latch는 SR latch의 위험한 입력 조합을 외부에서 직접 만들지 못하게 하고, 하나의 D와 enable로 저장 동작을 제어합니다."
     },
     "state.d-latch": {
-      "motivation": "SR Latch는 상태를 저장하지만 사용자가 set/reset 조합을 직접 관리해야 합니다. D Latch는 ‘저장할 데이터 D’와 ‘지금 입력을 받아들일지 ENABLE’을 분리해 저장소를 data path와 control 관점으로 다룰 수 있게 합니다.",
-      "mentalModel": "ENABLE=1 동안 문이 열려 Q가 D를 따라가고, ENABLE=0이 되면 문이 닫혀 마지막 값을 유지하는 level-sensitive 저장소입니다.",
+      "motivation": "SR latch는 state를 저장하지만 사용자가 S와 R을 올바르게 조합해야 합니다. D latch는 입력을 하나의 data D와 enable로 정리해 ‘열려 있을 때는 따라가고, 닫히면 마지막 값을 유지’하는 더 사용하기 쉬운 저장소를 만듭니다.",
+      "mentalModel": "ENABLE=1이면 latch가 transparent해서 Q가 D를 따라가고, ENABLE=0이면 내부 feedback이 마지막 Q를 유지합니다.",
       "howItWorks": [
-        "ENABLE=1인 동안 D가 변하면 Q도 따라 변합니다. 그래서 latch는 clock edge 한 순간이 아니라 활성 레벨 전체에 민감합니다.",
-        "ENABLE=0이면 내부 SR Latch가 hold 조건에 들어가므로 이후 D가 바뀌어도 Q는 마지막 값을 유지합니다.",
-        "D와 ¬D를 이용해 set/reset 요청을 서로 배타적으로 생성하면 SR Latch의 금지 입력을 정상적인 D/ENABLE 사용에서 피할 수 있습니다.",
-        "이 level-sensitive 성질은 D Flip-Flop의 edge-triggered 동작과 반드시 구분해야 합니다."
+        "D와 ¬D를 enable과 결합해 SR latch의 set/reset 입력을 만들면 set과 reset이 동시에 요청되는 경우를 피할 수 있습니다.",
+        "ENABLE=1인 동안 D가 변하면 Q도 따라 바뀌므로 level-sensitive element입니다.",
+        "ENABLE=0이 되는 순간의 마지막 D가 내부 state로 남고 이후 입력 변화는 Q에 전달되지 않습니다."
       ],
       "applications": [
-        "master/slave flip-flop의 내부 단계",
-        "level-sensitive state storage",
-        "clocking과 transparency 개념 학습"
+        "level-sensitive storage",
+        "flip-flop 내부 master/slave stage",
+        "일시적으로 data path를 열고 닫는 저장 경계"
       ],
       "commonMistakes": [
-        "ENABLE=1이 되는 순간 한 번만 샘플한다고 생각하는 것",
-        "ENABLE이 열린 동안 D가 바뀌어도 Q가 유지되어야 한다고 생각하는 것",
-        "D와 ¬D 경로를 뒤집어 저장 값이 반전되거나 잘못된 SR 입력을 만드는 것"
+        "D latch를 edge-triggered register처럼 생각하는 것",
+        "ENABLE=1일 때 한 번만 샘플한다고 생각하는 것",
+        "D와 ¬D 경로를 잘못 만들어 SR forbidden state를 유발하는 것"
       ],
-      "buildsToward": "두 latch를 서로 반대 위상에서 열리게 하면 입력이 한 단계씩 전달되어 외부에서는 특정 clock edge에서만 state가 바뀌는 D Flip-Flop을 만들 수 있습니다."
+      "buildsToward": "D Flip-Flop은 두 latch가 반대 위상으로 열리게 해 입력이 Q로 통과하는 시간을 하나의 clock edge로 제한합니다."
     },
     "state.dff": {
-      "motivation": "여러 state element가 하나의 CPU로 함께 동작하려면 ‘언제 값을 바꿀지’에 공통 기준이 필요합니다. D Flip-Flop은 clock edge에서만 입력을 샘플해 cycle 사이에 안정된 state를 제공하는 동기식 설계의 기본 요소입니다.",
-      "mentalModel": "rising edge는 사진을 찍는 순간입니다. edge 직전의 D가 새 Q가 되고, 다음 rising edge 전까지 Q는 고정된 현재 상태로 남습니다.",
+      "motivation": "동기식 시스템은 모든 state가 정해진 순간에만 바뀌어야 reasoning이 쉬워집니다. D Flip-Flop은 clock의 rising edge에서 D를 샘플하고 다음 edge까지 Q를 유지해, 계산 구간과 state update 순간을 분리합니다.",
+      "mentalModel": "cycle 동안 combinational logic이 D를 준비하고, rising edge가 그 값을 ‘확정’해 Q로 넘기는 경계입니다.",
       "howItWorks": [
-        "rising-edge DFF는 CLK가 0→1로 전환되는 순간 D를 샘플해 Q에 저장합니다. clock이 0이나 1로 머무르는 동안에는 D 변화가 Q를 바로 바꾸지 않습니다.",
-        "master/slave latch 구조에서는 두 latch가 반대 clock 레벨에서 열려 있어 입력 변화가 한 번에 Q까지 투과하지 못합니다.",
-        "이상적인 논리 모델에서는 edge 순간의 값만 생각하지만 실제 하드웨어에는 setup time, hold time, clk-to-Q delay가 존재합니다. 이 플랫폼은 그 아날로그 타이밍을 단순화합니다.",
-        "동기식 시스템에서 register 사이 조합논리는 한 edge 이후 다음 edge 전에 안정된 next value를 만들어야 합니다."
+        "master와 slave latch가 반대 clock phase에 열리면 D에서 Q까지 항상 열린 투명 경로가 생기지 않습니다.",
+        "rising edge 전후의 D가 안정적이라는 전제 아래 Q는 edge에서 샘플된 값을 유지합니다.",
+        "플랫폼에서는 setup/hold violation 같은 아날로그 현상을 모델링하지 않지만, edge-triggered sampling이라는 계약은 유지합니다."
       ],
       "applications": [
-        "CPU register와 Register File의 기본 state element",
-        "Counter와 Program Counter의 상태 저장",
-        "finite-state machine과 pipeline register"
+        "register의 1-bit storage cell",
+        "pipeline/state boundary",
+        "FSM state register"
       ],
       "commonMistakes": [
-        "D Latch처럼 CLK가 1인 동안 Q가 계속 D를 따라야 한다고 생각하는 것",
-        "master와 slave를 같은 phase에서 열어 입력이 그대로 통과하게 만드는 것",
-        "현재 Q와 다음 edge에 저장될 D를 같은 값/같은 시점으로 생각하는 것"
+        "CLK가 1인 동안 Q가 D를 계속 따라간다고 생각하는 것",
+        "edge 전에 D가 준비되어 있어야 한다는 개념을 놓치는 것",
+        "clock을 data처럼 조합논리로 마구 gate해도 된다고 생각하는 것"
       ],
-      "buildsToward": "Enable Register에서는 DFF 앞에 MUX를 두어 ‘이번 edge에 새 값을 저장할지, 기존 state를 유지할지’를 control signal로 결정합니다."
+      "buildsToward": "Enable Register는 DFF 앞에 MUX를 두어 ‘새 값을 저장할지, 기존 값을 유지할지’를 control signal로 선택합니다."
     },
     "state.enable-register": {
-      "motivation": "DFF가 매 rising edge마다 무조건 입력을 저장한다면 CPU의 상태는 매 cycle 전부 바뀌어 버립니다. 실제 register에는 ‘이번 cycle에 이 값을 갱신할 것인가?’라는 write-enable 개념이 필요합니다. 이 과제의 LOAD는 그 write enable 역할입니다.",
-      "mentalModel": "Q는 현재 상태, D는 새 값 후보, LOAD는 둘 중 무엇을 다음 DFF 입력으로 보낼지 고르는 control입니다. LOAD=0이면 Q를 자기 자신에게 되먹여 hold하고, LOAD=1이면 외부 D를 선택합니다.",
+      "motivation": "DFF는 edge마다 무조건 D를 저장합니다. 실제 CPU state는 매 cycle마다 모두 바뀌지 않으므로, update가 필요한 순간에만 새 값을 받는 load-enabled register가 필요합니다.",
+      "mentalModel": "LOAD=1이면 next value=D, LOAD=0이면 next value=Q입니다. MUX가 next value를 고르고 DFF가 rising edge에서 저장합니다.",
       "howItWorks": [
-        "LOAD=0이면 MUX가 현재 Q를 DFF 입력으로 선택하므로 rising edge가 와도 같은 값을 다시 저장해 상태가 유지됩니다.",
-        "LOAD=1이면 MUX가 외부 D를 선택하고 다음 rising edge에서 그 값이 새 Q가 됩니다.",
-        "중요한 것은 LOAD 자체가 값을 저장하지 않는다는 점입니다. LOAD는 next-state 경로를 선택하고 실제 state update는 clock edge가 수행합니다.",
-        "여기서 LOAD라는 이름은 ISA의 memory LOAD instruction이 아니라 register의 load/write-enable 의미입니다."
+        "Q를 MUX의 한 입력으로 되돌리면 LOAD=0일 때 현재 상태를 다시 저장해 hold가 됩니다.",
+        "LOAD=1이면 MUX가 외부 D를 선택하고 다음 rising edge에서 Q가 새 값으로 바뀝니다.",
+        "enable은 clock을 끄는 것이 아니라 data path에서 next value를 선택하는 control로 다루는 편이 안전하고 reasoning하기 쉽습니다."
       ],
       "applications": [
-        "CPU general-purpose register의 write enable",
-        "Counter의 hold/update 제어",
-        "RAM word와 Register File destination의 조건부 write"
+        "CPU register write enable",
+        "counter/PC의 조건부 update",
+        "RAM word의 write enable"
       ],
       "commonMistakes": [
-        "LOAD=1이 되는 즉시 Q가 바뀐다고 생각하는 것",
-        "LOAD=0일 때 DFF 입력을 정의하지 않아 hold 경로가 사라지는 것",
-        "현재 Q feedback과 외부 D의 MUX 입력 순서를 뒤집어 enable 의미가 반대가 되는 것"
+        "LOAD=0일 때 DFF 입력을 떠 있게 두는 것",
+        "LOAD를 clock에 AND해 gated clock으로 만드는 것",
+        "MUX output이 바뀐 순간 state도 이미 바뀌었다고 생각하는 것"
       ],
-      "buildsToward": "Register4에서는 같은 LOAD와 CLK를 여러 bit에 공유해 한 word를 원자적으로 갱신하고, 이후 모든 저장 블록의 write-enable 패턴으로 확장됩니다."
+      "buildsToward": "다음 multi-bit 회로에서는 같은 LOAD와 CLK를 여러 bit에 공유해 하나의 word를 atomic하게 갱신합니다."
     },
     "routing.mux4": {
-      "motivation": "4-bit MUX의 gate 구조 자체는 1-bit MUX를 네 번 반복한 것입니다. 이 과제에서 새로 익힐 것은 논리 함수가 아니라 bus-wide control입니다: 하나의 SEL이 word 전체의 네 bit 경로를 일관되게 바꿔야 합니다.",
-      "mentalModel": "A[3:0]와 B[3:0]는 각각 하나의 word이고 SEL은 word 전체에 공통인 선택 신호입니다. 네 lane이 같은 순간에 같은 source word를 선택합니다.",
+      "motivation": "word-level MUX 자체는 새로운 논리 함수가 아니라 1-bit MUX를 bus 폭만큼 병렬로 확장한 것입니다. 여기서는 bus를 ‘숫자 하나’가 아니라 같은 의미를 공유하는 여러 bit wire의 묶음으로 다루는 감각을 익힙니다.",
+      "mentalModel": "SEL 하나가 네 개의 bit-slice를 동시에 제어해 A[3:0] 전체 또는 B[3:0] 전체를 선택합니다.",
       "howItWorks": [
-        "4-bit bus는 B3..B0 네 개의 1-bit 신호 묶음이며 B0가 LSB입니다. Split/Join은 계산이 아니라 배선 표현을 바꾸는 도구입니다.",
-        "각 bit lane은 1-bit MUX와 완전히 같은 동작을 하지만 네 MUX가 같은 SEL을 공유하므로 OUT 전체가 A 또는 B 한 word가 됩니다.",
-        "여기서는 bit 순서를 보존하는 것이 중요합니다. A0/B0 결과는 OUT0로, A3/B3 결과는 OUT3로 돌아와야 수의 의미가 유지됩니다.",
-        "이후 datapath에서는 같은 개념을 더 큰 bus width에 적용하므로 ‘control width와 data width는 다를 수 있다’는 관점을 기억하세요."
+        "A와 B를 bit로 나누면 각 위치 i에서 동일한 1-bit MUX가 A[i] 또는 B[i]를 선택합니다.",
+        "모든 bit-slice가 같은 SEL을 공유해야 word 전체가 하나의 값으로 일관되게 선택됩니다.",
+        "Join할 때 B0가 LSB, B3가 MSB라는 bit significance를 보존해야 숫자 의미가 유지됩니다."
       ],
       "applications": [
-        "Counter/PC의 4-bit next-state 선택",
-        "RAM read path의 word 선택",
-        "ALU와 CPU write-back source 선택"
+        "word register next-value 선택",
+        "ALU result 선택",
+        "write-back source 선택"
       ],
       "commonMistakes": [
-        "B0를 MSB로 생각해 bit order를 뒤집는 것",
-        "각 bit MUX에 서로 다른 SEL을 연결해 한 word가 서로 다른 source에서 섞이는 것",
-        "Split/Join이 bit 값을 계산하거나 순서를 자동으로 바꾼다고 생각하는 것"
+        "bit 순서를 뒤집어 값의 의미를 바꾸는 것",
+        "각 bit에 서로 다른 SEL을 연결하는 것",
+        "bus를 하나의 1-bit wire처럼 연결하려는 것"
       ],
-      "buildsToward": "Adder4와 Register4부터는 동일한 4-bit bus가 계산과 state를 함께 전달하며, MUX4는 Counter·RAM·CPU의 주요 data-routing 블록으로 재사용됩니다."
+      "buildsToward": "Adder4에서는 bus 분해/결합은 같지만, 이번에는 carry가 bit 사이를 이동해 bit-slice들이 서로 의존한다는 차이를 보게 됩니다."
     },
     "arithmetic.adder4": {
-      "motivation": "4-bit AND 같은 bitwise 연산은 각 bit가 독립적이지만 addition은 그렇지 않습니다. 낮은 자리에서 생긴 carry가 높은 자리의 결과를 바꾸므로, multi-bit arithmetic의 핵심은 bit-slice 반복이 아니라 carry dependency를 올바른 방향으로 연결하는 것입니다.",
-      "mentalModel": "네 Full Adder가 LSB에서 MSB 방향으로 줄을 서 있고, 각 자리의 COUT이 바로 다음 자리의 CIN으로 이동하는 ripple-carry chain입니다.",
+      "motivation": "4-bit 덧셈은 단순히 Full Adder 네 개를 병렬로 놓는 문제가 아닙니다. 낮은 자리의 carry가 높은 자리로 전달되는 방향성과 의존성이 전체 결과를 결정합니다.",
+      "mentalModel": "각 bit는 하나의 Full Adder stage이고, COUT이 다음 stage의 CIN으로 흐르는 chain입니다. data는 bit별로 들어오지만 carry는 LSB→MSB로 직렬 전파됩니다.",
       "howItWorks": [
-        "B0 자리 Full Adder는 A0+B0+CIN을 계산하고 COUT을 B1 자리로 넘깁니다. 이 과정을 B3까지 반복합니다.",
-        "SUM의 각 bit는 해당 자리의 결과이고 마지막 COUT은 4-bit 표현 범위를 넘어선 unsigned carry입니다.",
-        "carry가 순차적으로 전파되므로 실제 하드웨어에서는 입력 변화가 MSB 결과까지 도달하는 데 ripple delay가 생깁니다. 이 플랫폼은 최종 settle 결과를 중심으로 보여줍니다.",
-        "signed overflow와 unsigned COUT은 같은 개념이 아닙니다. 이 과제의 COUT은 단순히 가장 높은 자리 밖으로 나간 carry입니다."
+        "bit 0이 외부 CIN과 A0/B0를 더하고, 그 COUT을 bit 1의 CIN으로 보냅니다.",
+        "이 chain이 bit 3까지 이어져 최종 COUT이 4-bit 범위를 넘는 carry를 나타냅니다.",
+        "SUM은 각 stage의 local result를 다시 같은 bit position으로 Join한 4-bit word입니다."
       ],
       "applications": [
-        "정수 및 주소 덧셈",
-        "Incrementer와 Program Counter 증가",
-        "ALU의 ADD candidate 결과"
+        "ALU ADD",
+        "주소 계산",
+        "PC increment와 counter arithmetic"
       ],
       "commonMistakes": [
-        "carry chain을 MSB→LSB 방향으로 연결하는 것",
-        "마지막 COUT을 SUM의 다섯 번째 bit처럼 Join4에 넣는 것",
-        "COUT이 signed overflow를 항상 정확히 나타낸다고 생각하는 것"
+        "carry chain 방향을 뒤집는 것",
+        "CIN을 모든 Full Adder에 동시에 fan-out하는 것",
+        "bit position을 잘못 Join해 숫자 자리값을 바꾸는 것"
       ],
-      "buildsToward": "Incrementer는 이 Adder에 상수 1을 연결해 특수 목적 블록으로 재사용하고, ALU에서는 같은 Adder가 일반 ADD 연산을 담당합니다."
+      "buildsToward": "Incrementer에서는 이 Adder를 새로 재구현하지 않고 상수 1을 더하는 더 높은 수준의 기능으로 재사용합니다."
     },
     "arithmetic.incrementer4": {
-      "motivation": "Incrementer는 새로운 산술 원리를 배우는 과제가 아니라 ‘이미 만든 일반 블록을 더 구체적인 기능으로 감싸는 추상화’를 연습하는 과제입니다. Counter와 PC처럼 +1이 매우 자주 필요한 곳에서는 이름 있는 블록으로 분리하면 회로의 의도가 더 선명해집니다.",
-      "mentalModel": "Incrementer4는 정확히 IN + 0001입니다. 내부 원리는 Adder4와 같지만 외부에서는 ‘다음 순차 값’을 만드는 하나의 기능으로 취급합니다.",
+      "motivation": "좋은 하드웨어 설계는 이미 만든 블록을 다시 풀어헤치지 않습니다. Incrementer는 ‘+1’이라는 기능을 Adder4와 상수로 표현해 abstraction reuse를 연습하는 단계입니다.",
+      "mentalModel": "IN + 0001 + 0을 계산하는 Adder4입니다. 특별한 증가 회로를 따로 만들 필요가 없습니다.",
       "howItWorks": [
-        "Adder4의 한 입력에 IN, 다른 입력에 0001을 넣고 CIN=0으로 두면 항상 IN+1이 됩니다.",
-        "4-bit unsigned 값은 0~15만 표현하므로 1111+1의 낮은 4-bit 결과는 0000으로 wrap되고 CARRY가 1이 됩니다.",
-        "이 과제의 학습 포인트는 더 복잡한 gate network가 아니라 composition과 abstraction입니다. 내부 구현을 다시 생각하지 않고 Adder4의 계약을 믿고 재사용합니다.",
-        "Counter에서는 현재 state Q를 Incrementer에 넣어 next-state 후보 Q+1을 만들게 됩니다."
+        "B 입력에 0001을, CIN에 0을 넣으면 OUT=IN+1이 됩니다.",
+        "1111+1은 0000으로 wrap되고 CARRY=1이 되어 fixed-width arithmetic의 overflow를 보여줍니다.",
+        "이후 counter에서는 현재 Q를 Incrementer에 넣어 next-state 후보 Q+1을 만듭니다."
       ],
       "applications": [
-        "event Counter의 next value",
-        "Program Counter의 순차 실행 주소",
-        "메모리/배열의 순차 주소 생성"
+        "counter",
+        "program counter",
+        "순차 주소 생성"
       ],
       "commonMistakes": [
-        "0001 대신 1-bit 상수를 4-bit 입력에 직접 연결하는 것",
-        "B=0001인 상태에서 CIN까지 1로 넣어 실제로 +2가 되는 것",
-        "wrap-around를 시뮬레이터 오류나 잘못된 arithmetic으로 생각하는 것"
+        "0001 대신 1111을 더하는 것",
+        "CIN까지 1로 두어 +2가 되는 것",
+        "wrap-around와 carry-out을 오류로 보는 것"
       ],
-      "buildsToward": "다음 Counter에서 ‘현재 Q → +1 계산 → 선택 → 다음 edge에 저장’이라는 전형적인 synchronous state machine 구조가 완성됩니다."
+      "buildsToward": "Register4와 결합하면 ‘현재 state Q → Q+1 후보 → edge에서 저장’이라는 counter 구조를 만들 수 있습니다."
     },
     "state.register4": {
-      "motivation": "Register4도 1-bit 저장 셀을 네 번 반복하는 구조이지만, 새로 중요한 개념은 word 단위 state입니다. CPU는 네 bit를 서로 독립된 기억이 아니라 하나의 숫자/주소로 취급하므로 모든 bit가 같은 update control과 clock 경계를 공유해야 합니다.",
-      "mentalModel": "Q[3:0] 전체가 하나의 현재 상태이고 D[3:0] 전체가 다음 word 후보입니다. 같은 LOAD와 rising edge가 네 저장 셀을 한 번에 갱신합니다.",
+      "motivation": "CPU의 기본 state 단위는 보통 한 bit가 아니라 word입니다. 4-bit Register는 네 bit를 같은 control과 clock으로 묶어 하나의 값처럼 동시에 저장하는 방법을 보여줍니다.",
+      "mentalModel": "네 개의 1-bit enable register가 D[3:0]의 각 bit를 담당하지만 LOAD와 CLK는 공통입니다. 따라서 한 edge에서 word 전체가 함께 유지되거나 갱신됩니다.",
       "howItWorks": [
-        "LOAD=1인 rising edge에서 D의 네 bit가 각각 대응하는 저장 cell에 샘플되어 Q word 전체가 갱신됩니다.",
-        "LOAD=0이면 네 bit 모두 hold해야 합니다. 일부 bit만 갱신되면 하나의 word가 시간적으로 찢어진 상태가 됩니다.",
-        "D는 ‘지금 보이는 state’가 아니라 다음 edge에 저장될 후보이고 Q가 현재 저장된 state입니다.",
-        "bit order를 보존해야 binary 값의 의미가 유지되므로 Split4 B0↔LSB, B3↔MSB 대응을 끝까지 유지해야 합니다."
+        "Split4가 D를 네 bit로 나누고 각 bit가 독립적인 storage cell에 들어갑니다.",
+        "LOAD와 CLK를 모든 bit에 공유하면 update policy와 timing이 word 전체에서 일치합니다.",
+        "각 Q bit를 같은 significance로 Join해 다시 하나의 4-bit state로 봅니다."
       ],
       "applications": [
-        "Counter와 Program Counter의 state register",
-        "RAM의 한 word",
-        "Register File의 각 general-purpose register"
+        "CPU data register",
+        "counter/PC state",
+        "RAM word storage"
       ],
       "commonMistakes": [
-        "각 bit register에 서로 다른 LOAD/CLK를 연결해 word가 동시에 갱신되지 않는 것",
-        "Split/Join bit order를 바꿔 저장된 숫자가 뒤집히는 것",
-        "D 값을 현재 출력으로 보고 rising edge 이전부터 Q가 바뀌어야 한다고 생각하는 것"
+        "bit마다 다른 LOAD/CLK를 사용해 word가 부분적으로 갱신되게 하는 것",
+        "Join bit 순서를 뒤집는 것",
+        "Q를 combinational result와 같은 것으로 생각하는 것"
       ],
-      "buildsToward": "Counter에서는 Register4.Q가 present state가 되고 combinational logic이 그 값에서 next state를 계산합니다. 이후 RAM에서는 Register4 여러 개가 addressable word array가 됩니다."
+      "buildsToward": "Counter에서는 이 Register4가 present state를 보존하고 Incrementer/MUX가 next state를 계산합니다."
     },
     "state.counter4": {
-      "motivation": "Counter는 지금까지의 state와 combinational logic을 처음으로 명확한 state machine 형태로 결합합니다. 중요한 것은 ‘증가 회로’가 아니라 현재 상태와 다음 상태를 분리하고 control 신호에 따라 next-state 함수를 정의하는 방법입니다.",
-      "mentalModel": "Register4가 present state Q를 기억하고, Incrementer와 MUX가 Q와 control 신호에서 next state D를 계산합니다. rising edge는 계산된 D를 새로운 Q로 확정하는 경계입니다.",
+      "motivation": "Counter는 state element와 combinational next-state logic이 닫힌 고리를 이루는 첫 명확한 FSM형 회로입니다. ‘증가’ 자체보다 현재 상태와 다음 상태를 분리해 생각하는 법이 핵심입니다.",
+      "mentalModel": "Register4의 Q가 present state이고 Incrementer/MUX가 next D를 계산합니다. rising edge가 D를 새 Q로 확정합니다.",
       "howItWorks": [
-        "현재 Q는 cycle 동안 안정된 state이고 Incrementer는 그 값으로 Q+1 후보를 계속 계산합니다.",
-        "ENABLE=1이면 next state는 Q+1, ENABLE=0이면 Q입니다. RESET=1이면 더 높은 우선순위로 next state를 0000으로 선택합니다.",
-        "MUX 출력은 아직 state가 아닙니다. rising edge에서 Register4가 그것을 샘플한 뒤에야 Q가 바뀝니다.",
-        "이 구조는 FSM의 일반형인 ‘present-state register + combinational next-state logic’과 같습니다."
+        "cycle 동안 Q는 현재 state로 유지되고 Incrementer는 계속 Q+1 후보를 계산합니다.",
+        "ENABLE=0이면 next=Q, ENABLE=1이면 next=Q+1입니다.",
+        "RESET이 가장 높은 우선순위라면 next=0000을 선택해야 하며, 이 우선순위는 MUX 구조에 직접 반영됩니다.",
+        "MUX output은 아직 state가 아니고 rising edge 이후에만 Q가 바뀝니다."
       ],
       "applications": [
-        "event/timer count",
-        "순차 메모리 주소 생성",
-        "Program Counter의 기본 증가 경로"
+        "event count",
+        "timer/sequence index",
+        "PC의 sequential path"
       ],
       "commonMistakes": [
-        "Q 대신 MUX/Incrementer 출력을 외부 출력으로 내보내 한 cycle 앞선 값을 표시하는 것",
-        "RESET을 asynchronous reset처럼 즉시 Q를 바꾸게 해 과제의 synchronous 계약과 다르게 만드는 것",
-        "hold일 때 Q feedback 경로를 빼먹는 것"
+        "Q 대신 next-state node를 output으로 내보내는 것",
+        "synchronous RESET을 즉시 바뀌는 asynchronous reset처럼 해석하는 것",
+        "hold feedback path를 빼먹는 것"
       ],
-      "buildsToward": "Program Counter는 같은 next-state 구조에 외부 address load와 우선순위를 추가해 ‘다음 instruction 주소를 선택하는 state machine’이 됩니다."
+      "buildsToward": "Program Counter는 같은 구조에 external load와 더 명확한 control priority를 추가합니다."
     },
     "state.program-counter4": {
-      "motivation": "CPU가 순서대로 명령을 실행하려면 ‘다음에 어디를 읽을지’를 기억하는 상태가 필요합니다. Program Counter는 단순 counter가 아니라 sequential execution, jump/load, reset 같은 여러 next-address 후보를 control 우선순위로 선택하는 register입니다.",
-      "mentalModel": "PC.Q는 현재 instruction address이고, 조합논리는 HOLD/Q+1/external D/0000 중 next PC를 고릅니다. edge가 오기 전에는 후보일 뿐이며 rising edge에서 새 PC가 됩니다.",
+      "motivation": "CPU는 다음 instruction이 어디 있는지 기억해야 합니다. PC는 단순 counter가 아니라 sequential execution, jump/load, reset 중 어떤 next address를 사용할지 control priority로 결정하는 state register입니다.",
+      "mentalModel": "Q는 current PC이고, combinational logic이 hold/Q+1/external D/0000 중 next PC를 선택합니다. edge가 오기 전까지는 후보일 뿐입니다.",
       "howItWorks": [
-        "일반 실행에서는 INC가 선택되어 Q+1이 next PC가 됩니다. INC가 없으면 current Q를 유지할 수 있습니다.",
-        "LOAD가 활성되면 외부 D가 next PC가 되어 jump/branch target 같은 비순차 주소로 이동할 수 있습니다.",
-        "RESET은 가장 높은 우선순위로 next PC를 0000으로 선택합니다. 우선순위는 MUX의 배치 순서 자체에 인코딩됩니다.",
-        "PC 역시 특별한 종류의 memory가 아니라 next-state logic이 붙은 register라는 점이 핵심입니다."
+        "일반 실행에서는 INC가 Q+1을 next PC로 만듭니다.",
+        "LOAD가 활성되면 external D가 next PC가 되어 비순차 control flow를 표현할 수 있습니다.",
+        "RESET은 가장 높은 우선순위로 0000을 선택하고, control 우선순위는 MUX nesting 순서에 인코딩됩니다.",
+        "PC도 특별한 magic block이 아니라 next-state logic을 가진 register입니다."
       ],
       "applications": [
-        "instruction fetch 주소 유지와 순차 증가",
-        "jump/branch target으로 제어 흐름 변경",
-        "reset 시 시작 주소 설정"
+        "instruction fetch address",
+        "jump/branch target load",
+        "reset vector"
       ],
       "commonMistakes": [
-        "MUX 우선순위를 잘못 배치해 INC가 LOAD나 RESET을 덮는 것",
-        "현재 PC(Q)와 next PC(MUX output)를 같은 신호로 취급하는 것",
-        "PC를 단순 counter로만 이해해 비순차 control-flow의 load 경로를 놓치는 것"
+        "INC가 LOAD/RESET을 덮어쓰도록 priority를 잘못 구성하는 것",
+        "current PC와 next PC를 혼동하는 것",
+        "PC를 단순 증가 counter로만 이해하는 것"
       ],
-      "buildsToward": "최종 CPU datapath에서도 control signal은 여러 후보 중 하나를 고르고 state element가 edge에서 그 선택을 확정합니다. PC는 그 패턴의 대표적인 예입니다."
+      "buildsToward": "memory addressing과 CPU control에서도 binary control이 ‘어느 대상/경로를 고를지’ 결정하는 같은 패턴이 이어집니다."
     },
     "routing.decoder2to4": {
-      "motivation": "MUX가 여러 data 중 하나를 ‘읽어 오는’ 선택기라면 Decoder는 binary 번호를 여러 개의 one-hot control 선으로 펼쳐 ‘누구를 활성화할지’ 지정합니다. 메모리의 write path에서 정확히 한 저장 위치만 갱신하려면 이 형태가 필요합니다.",
-      "mentalModel": "2-bit 주소는 0~3이라는 번호이고 Decoder는 그 번호를 Y0~Y3 중 정확히 하나만 1인 one-hot 벡터로 바꿉니다.",
+      "motivation": "MUX가 여러 data 중 하나를 읽어 오는 selector라면 Decoder는 binary 번호를 one-hot control로 바꿔 ‘정확히 누구를 활성화할지’를 지정합니다. memory write처럼 한 대상만 갱신해야 할 때 핵심입니다.",
+      "mentalModel": "2-bit ADDR는 0~3의 번호이고 Y0~Y3는 그 번호를 ‘한 선만 1’인 형태로 펼친 표현입니다.",
       "howItWorks": [
-        "ADDR=00,01,10,11은 각각 네 개의 가능한 입력 조합이며 Decoder의 각 출력은 그 조합 하나를 검출하는 Boolean 함수입니다.",
-        "Y0=¬A1·¬A0, Y1=¬A1·A0, Y2=A1·¬A0, Y3=A1·A0처럼 원래 bit와 보수 bit의 AND 조합으로 각 주소를 검출할 수 있습니다.",
-        "정상 입력에서는 네 출력 중 정확히 하나만 1이므로 one-hot selection이 됩니다.",
-        "Decoder는 data를 전달하지 않습니다. 주소를 enable/control 신호 집합으로 변환한다는 점에서 MUX와 역할이 다릅니다."
+        "각 Y는 주소 한 조합만 검출하는 minterm입니다.",
+        "예를 들어 Y2는 ADDR=10일 때만 1이므로 A1·¬A0로 표현할 수 있습니다.",
+        "정상 binary input에서는 네 출력 중 정확히 하나만 1이 됩니다.",
+        "Decoder는 data를 전달하지 않고 control enable들을 생성한다는 점에서 MUX와 역할이 다릅니다."
       ],
       "applications": [
-        "RAM word의 write select",
-        "Register File destination register 선택",
-        "chip select와 memory-mapped peripheral address decode"
+        "RAM write select",
+        "Register File destination decode",
+        "chip select/address decode"
       ],
       "commonMistakes": [
-        "A1/A0의 significance를 바꿔 주소와 Y 번호가 뒤집히는 것",
-        "두 개 이상의 Y가 같은 주소에서 동시에 1이 되게 만드는 것",
-        "Decoder를 MUX처럼 여러 data 입력 중 하나를 출력하는 부품으로 생각하는 것"
+        "MSB/LSB를 뒤집어 Y 번호가 어긋나는 것",
+        "한 주소에서 두 Y가 동시에 1이 되게 만드는 것",
+        "Decoder를 data selector로 생각하는 것"
       ],
-      "buildsToward": "RAM4에서 Decoder는 write address를 one-hot LOAD로 바꾸고, 별도의 MUX tree가 같은 address로 read data를 선택합니다."
+      "buildsToward": "RAM4에서는 Decoder가 write destination을 고르고 MUX network가 read source를 고릅니다."
     },
     "memory.ram4": {
-      "motivation": "RAM은 ‘값을 저장하는 새로운 종류의 셀’이라기보다 여러 register를 주소로 조직한 구조입니다. 이 과제의 핵심은 같은 ADDR가 write path에서는 decoder control로, read path에서는 mux select로 쓰인다는 점과 두 경로의 타이밍이 다르다는 점입니다.",
-      "mentalModel": "네 Register4가 네 word이고 ADDR가 하나를 가리킵니다. write는 Decoder가 하나의 LOAD만 열고, read는 MUX가 하나의 Q만 OUT으로 고릅니다.",
+      "motivation": "RAM의 핵심은 새로운 저장 cell이 아니라 여러 register를 addressable array로 조직하는 것입니다. 이 과제에서 같은 ADDR가 write path와 read path에서 서로 다른 방식으로 쓰이는 이유를 분명히 봅니다.",
+      "mentalModel": "네 Register4가 네 word입니다. Decoder는 ‘어디에 쓸지’를 one-hot LOAD로 만들고, MUX는 ‘어디에서 읽을지’를 Q 중 하나로 선택합니다.",
       "howItWorks": [
-        "D와 CLK는 모든 word에 공통으로 배포할 수 있지만 실제 state를 갱신할 word는 global LOAD와 one-hot address select가 함께 참인 하나뿐입니다.",
-        "이 커리큘럼의 RAM read는 asynchronous/combinational입니다. ADDR가 바뀌면 저장 state 자체는 변하지 않고 Q가 가리키는 word만 바뀝니다.",
-        "write는 synchronous입니다. LOAD=1인 상태에서 rising edge가 올 때만 선택된 register가 D를 새 state로 저장합니다.",
-        "따라서 ‘어디에서 읽을지’와 ‘어디에 쓸지’는 같은 주소를 사용하지만 서로 다른 회로(MUX vs Decoder)를 통해 구현됩니다."
+        "D와 CLK는 모든 word에 공통으로 배포해도 되지만 실제 write enable은 선택된 register 하나에만 들어가야 합니다.",
+        "read는 combinational/asynchronous라 ADDR가 바뀌면 state를 변경하지 않고 Q만 다른 word를 가리킵니다.",
+        "write는 synchronous라 LOAD=1인 rising edge에서만 선택된 register가 D를 저장합니다.",
+        "같은 address라도 read path에서는 MUX select, write path에서는 Decoder input이라는 서로 다른 역할을 합니다."
       ],
       "applications": [
-        "작은 scratchpad memory",
-        "Register array와 Register File 구조의 기초",
-        "주소 기반 read/write datapath"
+        "small scratchpad memory",
+        "Register array",
+        "addressed state storage"
       ],
       "commonMistakes": [
-        "global LOAD를 모든 register에 직접 연결해 선택과 무관하게 전부 갱신하는 것",
-        "read MUX와 write Decoder의 역할을 서로 바꾸는 것",
-        "ADDR가 바뀌는 것 자체가 memory contents를 변경한다고 생각하는 것"
+        "global LOAD를 모든 register에 직접 연결하는 것",
+        "read MUX와 write Decoder 역할을 바꾸는 것",
+        "ADDR 변화 자체가 memory contents를 변경한다고 생각하는 것"
       ],
-      "buildsToward": "RAM16에서는 RAM4를 하나의 bank로 취급하고 주소의 상위 bit가 bank를, 하위 bit가 bank 내부 word를 고르게 하면서 계층적 addressing을 배웁니다."
+      "buildsToward": "RAM16에서는 RAM4를 bank로 재사용하고 address를 bank select와 bank-local address로 나누는 계층화를 배웁니다."
     },
     "memory.ram16": {
-      "motivation": "저장 위치가 늘어날 때 모든 register를 한 평면에서 직접 배선하면 선택 회로가 빠르게 커집니다. RAM16은 RAM4 네 개를 bank로 재사용하면서 주소를 계층적으로 해석하는 방법을 보여줍니다. 이것이 작은 memory block을 더 큰 address space로 조립하는 기본 패턴입니다.",
-      "mentalModel": "4-bit ADDR 전체는 언제나 0~15 중 한 word 번호입니다. 내부 구현에서만 ADDR[3:2]를 bank 번호, ADDR[1:0]을 bank 내부 word 번호로 나눕니다.",
+      "motivation": "저장 위치가 늘어날수록 모든 register를 한 평면에서 직접 선택하는 구조는 복잡해집니다. RAM16은 이미 만든 RAM4를 bank로 보고, 주소 일부는 bank를 고르고 나머지는 bank 내부 위치를 고르게 해 계층적 addressing을 보여줍니다.",
+      "mentalModel": "ADDR[3:0] 전체는 항상 0~15의 word 번호입니다. 내부 구현에서만 상위 2-bit를 bank 번호, 하위 2-bit를 bank 내부 word 번호로 해석합니다.",
       "howItWorks": [
-        "하위 2-bit ADDR[1:0]은 네 RAM4 모두에 같은 내부 주소로 전달됩니다. 상위 2-bit ADDR[3:2]가 실제로 사용할 bank 하나를 선택합니다.",
-        "write에서는 상위 주소를 decode해 선택된 bank의 LOAD만 활성화하고, read에서는 같은 상위 주소로 네 bank의 Q 중 하나를 MUX 선택합니다.",
-        "읽기는 ADDR 변화에 따라 즉시 선택 결과가 바뀌고, 쓰기는 LOAD=1인 rising edge에서만 정확히 한 word의 state를 바꿉니다.",
-        "RAM64, RAM256도 원리는 같습니다. 주소의 일부로 bank를 고르고 나머지를 하위 memory에 넘기는 계층을 반복할 뿐이라 이 커리큘럼은 RAM16에서 반복 제작을 멈춥니다."
+        "ADDR[1:0]은 네 RAM4에 공통으로 들어가 각 bank 내부의 같은 local index를 가리킵니다.",
+        "ADDR[3:2]는 write에서는 Decoder를 통해 한 bank의 LOAD만 열고, read에서는 MUX를 통해 한 bank의 Q만 선택합니다.",
+        "read는 address change에 따라 combinational하게 바뀌고, write는 LOAD=1인 rising edge에서 정확히 한 word만 갱신합니다.",
+        "더 큰 RAM도 같은 hierarchy를 반복할 뿐이므로 이 커리큘럼은 여기서 반복 제작을 멈춥니다."
       ],
       "applications": [
-        "작은 memory block을 bank로 묶어 address space 확장",
-        "상위/하위 주소 bit를 이용한 hierarchical decode",
-        "CPU data memory의 기본적인 addressable storage 모델"
+        "memory banking",
+        "hierarchical address decode",
+        "CPU data memory의 기본 조직"
       ],
       "commonMistakes": [
-        "상위 bit와 하위 bit 역할을 뒤집어 linear address 순서를 깨뜨리는 것",
-        "read MUX와 write Decoder가 서로 다른 bank-select bit를 사용해 읽는 곳과 쓰는 곳이 달라지는 것",
-        "LOAD=0이면 read도 비활성화된다고 생각하는 것"
+        "상위/하위 address bit 역할을 뒤집는 것",
+        "read와 write가 서로 다른 bank-select bit를 쓰는 것",
+        "LOAD=0이면 read도 꺼진다고 생각하는 것"
       ],
-      "buildsToward": "여기서 memory hierarchy의 핵심 원리는 충분히 배웠습니다. 다음부터는 같은 확장을 반복하지 않고 multi-bit 결과를 control에 필요한 status 신호로 바꾸고 CPU datapath를 구성합니다."
+      "buildsToward": "memory hierarchy는 충분히 배웠습니다. 다음 Zero Detector부터는 datapath 결과를 control에 필요한 status로 바꾸고 CPU 구성으로 넘어갑니다."
     },
     "logic.zero4": {
-      "motivation": "CPU는 4-bit/32-bit 결과 전체를 control logic에 그대로 넘기기보다 ‘결과가 0인가?’ 같은 요약된 status가 필요한 경우가 많습니다. Zero Detector는 여러 data bit를 하나의 Boolean condition으로 줄이는 reduction logic의 대표적인 예입니다.",
-      "mentalModel": "ZERO는 ‘모든 bit가 0’이라는 조건의 결과입니다. 하나라도 1인지 OR-reduction으로 확인한 뒤 그 결과를 뒤집으면 됩니다.",
+      "motivation": "CPU control은 4-bit/32-bit 결과 전체보다 ‘0인가?’, ‘같은가?’ 같은 1-bit condition을 필요로 하는 경우가 많습니다. Zero Detector는 multi-bit data를 하나의 predicate로 축약하는 reduction logic입니다.",
+      "mentalModel": "하나라도 1이면 non-zero입니다. 네 bit를 OR-reduce한 뒤 NOT하면 ‘모두 0’인 경우만 1인 ZERO가 됩니다.",
       "howItWorks": [
-        "IN=0000일 때만 ZERO=1이고 나머지 15개 4-bit 값에서는 ZERO=0입니다.",
-        "여러 bit 중 하나라도 1인지를 OR tree로 합치면 ‘non-zero’ 신호가 되고, NOT을 적용하면 ZERO가 됩니다.",
-        "이 회로는 bitwise OR처럼 4-bit 결과를 만드는 것이 아니라 4-bit 상태를 1-bit predicate로 축약합니다.",
-        "ALU의 status flag는 datapath의 계산 결과를 control-flow 판단에 사용할 수 있는 작은 control 신호로 바꾸는 연결점입니다."
+        "IN=0000일 때만 ZERO=1이고 나머지 모든 4-bit 값에서는 0입니다.",
+        "OR tree는 여러 bit를 하나의 non-zero signal로 축약합니다.",
+        "마지막 NOT이 의미를 뒤집어 ZERO predicate를 만듭니다.",
+        "이것은 4-bit→4-bit bitwise OR가 아니라 4-bit→1-bit reduction이라는 점이 중요합니다."
       ],
       "applications": [
-        "ALU ZERO status flag",
-        "equality/termination condition의 일부",
-        "조건 분기용 predicate 생성"
+        "ALU ZERO flag",
+        "equality/termination condition",
+        "branch predicate 생성"
       ],
       "commonMistakes": [
-        "OR tree 출력 자체를 ZERO로 사용해 의미가 반대로 되는 것",
-        "bitwise OR(4-bit→4-bit)와 reduction OR(4-bit→1-bit)를 혼동하는 것",
-        "입력 bit 하나를 누락해 특정 값에서 false zero가 나오는 것"
+        "OR tree output 자체를 ZERO로 사용하는 것",
+        "bitwise OR와 reduction OR를 혼동하는 것",
+        "한 bit를 tree에서 빠뜨리는 것"
       ],
-      "buildsToward": "ALU에서는 AND/OR/XOR/ADD 중 선택된 최종 OUT을 이 Zero Detector에 넣어, 현재 선택된 연산 결과와 일치하는 ZERO flag를 만듭니다."
+      "buildsToward": "ALU에서 최종 선택된 OUT을 Zero Detector에 넣어 현재 실행된 연산 결과에 대한 ZERO status를 만듭니다."
     },
     "arithmetic.alu4": {
-      "motivation": "ALU의 교육적 핵심은 AND4를 다시 손으로 네 번 배선하는 데 있지 않습니다. 이미 의미를 아는 연산 블록들을 같은 A/B에 연결해 후보 결과를 동시에 계산하고, control signal(OP)이 그중 하나를 선택하도록 datapath를 구성하는 데 있습니다.",
-      "mentalModel": "여러 계산기가 병렬로 A/B를 보고 있고 마지막 MUX tree가 OP에 따라 하나의 결과만 OUT으로 연결합니다. 계산 기능과 선택 control을 분리해 생각하세요.",
+      "motivation": "ALU에서 새로 배우는 것은 AND를 4번 배선하는 일이 아니라, 여러 기능 블록이 같은 operands를 보고 동시에 후보 결과를 만든 뒤 control signal이 하나를 선택하는 datapath 구조입니다.",
+      "mentalModel": "AND4, OR4, XOR4, Adder4가 병렬로 A/B를 계산하고 마지막 MUX tree가 OP를 해석해 하나의 OUT만 선택합니다.",
       "howItWorks": [
-        "AND4, OR4, XOR4, Adder4는 같은 A/B 입력으로 각각 후보 결과를 계산합니다. 이 중 bitwise gate는 단순 병렬 확장이므로 플랫폼 기본 부품으로 제공합니다.",
-        "OP는 data가 아니라 control입니다. OP=00/01/10/11이 각각 어떤 후보 결과를 최종 OUT으로 보낼지 결정합니다.",
-        "내부에서는 여러 결과가 동시에 존재해도 괜찮습니다. MUX가 외부에 보이는 하나의 결과만 선택합니다.",
-        "ZERO는 각 연산 블록별로 계산하는 것이 아니라 선택이 끝난 최종 OUT에서 계산해야 OP와 일치하는 상태 flag가 됩니다."
+        "4-bit AND/OR/XOR는 1-bit 연산의 단순 병렬 확장이므로 플랫폼이 기본 부품으로 제공합니다.",
+        "OP는 data가 아니라 control입니다. 00/01/10/11이 어떤 후보 결과를 OUT에 연결할지 결정합니다.",
+        "여러 후보 결과가 내부에 동시에 존재해도 문제없고, MUX가 외부에 보이는 하나만 선택합니다.",
+        "ZERO는 특정 연산기에서 미리 만들지 말고 최종 OUT에서 계산해야 OP와 일치합니다."
       ],
       "applications": [
-        "CPU의 arithmetic/logic execute block",
-        "opcode/control signal과 datapath 연결",
-        "비교 및 branch 판단을 위한 result + status 생성"
+        "CPU execute stage",
+        "opcode/control과 datapath 연결",
+        "result + status flag 생성"
       ],
       "commonMistakes": [
-        "4-bit AND/OR/XOR를 다시 Split→1-bit gate→Join으로 재구현해 핵심인 ALU selection을 가리는 것",
-        "OP bit 순서와 MUX 계층을 잘못 연결해 opcode mapping이 뒤집히는 것",
-        "ZERO를 최종 OUT이 아닌 특정 후보 연산 결과에서 계산하는 것"
+        "기본 bitwise gate 내부를 다시 재구현해 ALU의 selection 개념을 가리는 것",
+        "OP bit ordering과 MUX hierarchy를 잘못 연결하는 것",
+        "ZERO를 후보 결과 중 하나에서 계산하는 것"
       ],
-      "buildsToward": "Register File의 두 operand를 ALU에 공급하고 결과를 다시 destination register로 write-back하면 실제 CPU execute datapath가 됩니다."
+      "buildsToward": "Register File의 두 source operand를 ALU에 넣고 결과를 destination register에 write-back하면 CPU의 핵심 실행 고리가 됩니다."
     },
     "memory.register-file4": {
-      "motivation": "CPU는 연산할 때 매번 RAM에서 operand를 가져오지 않고 소수의 빠른 register에 작업 값을 보관합니다. Register File은 ‘여러 register를 주소로 선택한다’는 점에서는 RAM과 비슷하지만, CPU가 두 operand를 동시에 읽고 한 destination에 쓸 수 있도록 여러 port를 제공한다는 점이 핵심입니다.",
-      "mentalModel": "네 register의 state를 공유하는 세 개의 관점이 있습니다: RADDR_A가 고르는 read port A, RADDR_B가 고르는 read port B, WADDR+WE가 고르는 write destination.",
+      "motivation": "CPU는 연산마다 RAM에서 값을 꺼내지 않고 작은 register 집합에 working data를 보관합니다. Register File은 RAM처럼 addressable state를 가지지만, 두 operand를 동시에 읽고 한 destination에 쓸 수 있도록 여러 port를 제공한다는 점이 다릅니다.",
+      "mentalModel": "하나의 register array를 세 개의 port가 공유합니다: RADDR_A가 QA를 고르고, RADDR_B가 QB를 고르며, WADDR+WE가 다음 edge에 갱신할 destination을 고릅니다.",
       "howItWorks": [
-        "두 read port는 서로 독립적인 주소를 가지므로 같은 cycle에 서로 다른 두 register 값을 QA와 QB로 동시에 볼 수 있습니다.",
-        "read는 combinational하게 주소 선택 결과를 보여주지만 write는 WE가 활성인 rising edge에서 WADDR가 가리키는 한 register만 갱신됩니다.",
-        "write decoder는 destination 하나를 one-hot enable로 만들고, 두 read MUX network는 같은 register state에서 각각 독립적으로 source를 선택합니다.",
-        "CPU instruction 관점에서는 source register 두 개를 읽고 ALU가 계산한 결과를 destination register 하나에 쓰는 흐름을 직접 지원합니다."
+        "두 read port는 independent selector를 가지므로 같은 cycle에 서로 다른 두 register를 동시에 읽을 수 있습니다.",
+        "read는 combinational하게 주소 선택 결과를 보여주고, write는 WE=1인 rising edge에서만 WADDR register를 갱신합니다.",
+        "write Decoder는 destination 하나를 one-hot enable로 만들고 두 read MUX network는 같은 state에서 각각 source를 선택합니다.",
+        "이 구조가 register-register instruction의 두 source + 한 destination 형태를 직접 지원합니다."
       ],
       "applications": [
-        "CPU source/destination register storage",
-        "ALU에 두 operand 동시 공급",
-        "multi-port memory 구조 이해"
+        "CPU general-purpose registers",
+        "ALU operand 공급",
+        "multi-port storage 구조"
       ],
       "commonMistakes": [
-        "두 read port가 같은 selector/MUX를 공유해 독립적인 주소를 읽지 못하게 하는 것",
-        "WE를 모든 register에 직접 fan-out해 한 번에 여러 destination을 덮어쓰는 것",
-        "read address와 write address가 같은 역할이라고 생각하는 것"
+        "두 read port가 같은 selector를 공유해 독립성을 잃는 것",
+        "WE를 모든 register에 직접 연결하는 것",
+        "read address와 write address를 같은 역할로 해석하는 것"
       ],
-      "buildsToward": "Register Transfer에서는 이 Register File의 read data를 다시 write data로 돌려 보내며 CPU의 가장 기본적인 micro-operation인 register-to-register 이동을 만듭니다."
+      "buildsToward": "Register Transfer에서는 read한 값을 write-back path로 되돌려 Rdst←Rsrc 같은 micro-operation을 만듭니다."
     },
     "cpu.register-transfer4": {
-      "motivation": "CPU 동작을 gate 수준이 아니라 register 사이의 값 이동으로 보면 구조가 훨씬 명확해집니다. ‘Rdst ← Rsrc’ 같은 register-transfer 표기는 복잡한 배선을 한 번의 micro-operation으로 설명하는 방법이며, 이후 instruction 실행을 이해하는 언어가 됩니다.",
-      "mentalModel": "source address가 현재 값을 읽고, write-back path가 그 값을 destination register의 D로 보내며, write enable과 clock edge가 실제 state transfer를 확정합니다.",
+      "motivation": "복잡한 CPU 동작을 gate 수준이 아니라 ‘어느 register의 값이 어디로 이동하는가’로 설명하면 구조가 훨씬 선명해집니다. register-transfer notation은 instruction 실행을 데이터 이동과 state update로 보는 언어입니다.",
+      "mentalModel": "SRC가 출발 register를 읽고 write-back path가 그 값을 DST의 write data로 보냅니다. 실제 state change는 write enable이 켜진 rising edge에서만 일어납니다.",
       "howItWorks": [
-        "SRC는 읽을 register를 선택하고 DST는 쓸 register를 선택합니다. 두 주소는 데이터의 출발점과 도착점이라는 서로 다른 역할을 가집니다.",
-        "MOVE 경로에서는 source read value가 write data로 되돌아가고, rising edge에서 destination register가 그 값을 저장합니다.",
-        "외부 DATA load 같은 다른 write source가 있다면 MUX가 어떤 값을 write-back할지 선택하고 control logic이 WE를 만들게 됩니다.",
-        "이 관점에서 CPU는 ‘어떤 register의 값을 어떤 조합논리를 거쳐 어느 register에 저장할지’를 control하는 state machine으로 볼 수 있습니다."
+        "SRC와 DST는 각각 source와 destination이라는 다른 역할의 address입니다.",
+        "MOVE에서는 source read value가 write data가 되고, LOAD에서는 external DATA가 write data가 됩니다.",
+        "MUX는 어떤 write source를 사용할지 고르고 OR/control logic은 실제 write enable을 만듭니다.",
+        "read value가 wire에 보이는 것과 destination state가 edge에서 바뀌는 것은 서로 다른 사건입니다."
       ],
       "applications": [
-        "MOV/register copy 명령",
-        "외부 또는 immediate data를 register에 적재",
-        "register-transfer level(RTL)로 instruction 동작 표현"
+        "MOV/register copy",
+        "external/immediate load",
+        "RTL 수준의 micro-operation 표현"
       ],
       "commonMistakes": [
-        "SRC와 DST를 반대로 연결해 데이터 흐름 방향을 뒤집는 것",
-        "write-data MUX 선택과 WE 조건을 서로 다른 control 의미로 구성하는 것",
-        "read 값이 보이는 것만으로 destination state도 이미 바뀌었다고 생각하는 것"
+        "SRC와 DST를 뒤집는 것",
+        "write source select와 write enable을 혼동하는 것",
+        "read한 순간 destination도 바뀌었다고 생각하는 것"
       ],
-      "buildsToward": "최종 ALU datapath에서는 단순 source value 대신 ALU 결과도 write-back source가 되어 ‘read → transform → write’라는 일반적인 instruction 실행 형태로 확장됩니다."
+      "buildsToward": "최종 datapath에서는 source value가 ALU를 통과한 결과도 write-back 후보가 되어 read→execute→write cycle을 만듭니다."
     },
     "cpu.alu-datapath4": {
-      "motivation": "이 과제의 목표는 부품을 더 많이 만드는 것이 아니라 지금까지 만든 abstraction들이 하나의 clocked system에서 어떻게 협력하는지 보는 것입니다. Register File이 state를 제공하고, ALU와 MUX가 cycle 동안 next value를 계산하며, control signal이 다음 rising edge에 어떤 state를 바꿀지 결정합니다.",
-      "mentalModel": "한 cycle을 ‘state 읽기 → combinational 계산/선택 → state 쓰기’로 보세요. Register File의 Q는 출발점이고, ALU/write-back network는 중간 경로이며, 다음 edge의 register write가 cycle의 state transition입니다.",
+      "motivation": "이 단계의 목표는 새 부품을 더 만드는 것이 아니라 지금까지 만든 abstraction들이 한 clocked system에서 어떻게 협력하는지 보는 것입니다. CPU의 핵심은 state를 읽고, combinational datapath가 결과를 계산하고, control이 다음 edge에서 바꿀 state를 정하는 것입니다.",
+      "mentalModel": "한 cycle을 ‘register state 읽기 → ALU/selection settle → destination write 준비 → rising edge에서 commit’으로 보세요.",
       "howItWorks": [
-        "RA/RB가 두 source register를 선택하면 QA/QB가 ALU operand가 됩니다. 이 read 단계는 현재 register state를 관찰하는 과정입니다.",
-        "OP가 ALU 연산을 고르고 write-back MUX가 ALU result와 다른 source 중 destination에 저장할 값을 결정합니다. 이 부분은 모두 combinational datapath입니다.",
-        "WADDR와 write-enable control이 destination과 update 여부를 정하고, rising edge에서만 Register File state가 실제로 변경됩니다.",
-        "따라서 datapath와 control은 분리된 개념입니다. datapath는 가능한 데이터 이동/계산 경로이고 control은 현재 명령이 그중 어떤 경로를 활성화할지 결정합니다."
+        "RA/RB가 두 source register를 선택하면 QA/QB가 ALU operands로 나타납니다.",
+        "OP가 ALU operation을 고르고 write-back MUX가 ALU result와 다른 source 중 실제 write data를 선택합니다.",
+        "WADDR와 write-enable control이 destination과 update 여부를 정하고 rising edge에서 Register File state가 실제로 바뀝니다.",
+        "datapath는 가능한 데이터 이동 경로이고, control은 현재 operation에서 그중 어떤 경로를 활성화할지 정합니다."
       ],
       "applications": [
-        "register-register arithmetic/logic instruction 실행",
-        "load와 execute가 공유하는 write-back 구조",
-        "향후 instruction decoder/control unit이 구동할 CPU core datapath"
+        "register-register arithmetic/logic instruction",
+        "load/execute가 공유하는 write-back",
+        "instruction decoder가 구동할 CPU core"
       ],
       "commonMistakes": [
-        "ALU OUT을 외부에만 보여주고 Register File write-back으로 되돌리지 않는 것",
-        "RA/RB source address와 WADDR destination address를 같은 역할로 취급하는 것",
-        "combinational result가 안정된 것과 state가 clock edge에서 실제 갱신된 것을 구분하지 않는 것"
+        "ALU result를 외부에만 보여주고 write-back으로 연결하지 않는 것",
+        "RA/RB와 WADDR를 같은 종류의 address로만 보고 역할 차이를 놓치는 것",
+        "combinational result가 안정된 것과 state commit을 같은 순간으로 보는 것"
       ],
-      "buildsToward": "여기까지 오면 NAND에서 시작한 Boolean logic, clocked state, addressable memory, ALU, Register File이 하나의 datapath로 연결됩니다. 다음 확장은 instruction bits를 decode해 OP, address select, write enable, PC select를 자동 생성하는 control unit입니다."
+      "buildsToward": "다음 확장은 instruction bits를 decode해 OP, source/destination addresses, write enable, PC select를 자동 생성하는 control unit입니다."
     }
   }
 }
