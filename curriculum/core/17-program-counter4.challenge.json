@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.program-counter4",
   "title": "4-bit Program Counter",
-  "description": "RESET > LOAD > INC > HOLD 우선순위를 갖는 4-bit Program Counter를 구현하세요. PC를 단순 counter가 아니라 현재 instruction address를 저장하고 여러 next-address 후보를 control 우선순위로 선택하는 state register로 이해합니다.",
+  "description": "현재 PC를 유지하거나 증가시키고, 외부 주소를 load하거나 reset할 수 있는 4-bit Program Counter를 만드세요. 핵심은 여러 next-address 후보와 control priority를 하나의 state transition으로 표현하는 것입니다.",
   "interface": {
     "inputs": [
       {
@@ -263,8 +263,8 @@
     {
       "id": "priority",
       "title": "Program Counter 상태 전이표",
-      "description": "Program Counter는 여러 제어 신호 중 우선순위가 높은 동작 하나를 선택해 다음 Q를 결정합니다.",
-      "timing": "에지 트리거(edge-triggered) — 상승 에지(↑)에서 RESET > LOAD > INC > HOLD 우선순위로 동작합니다.",
+      "description": "PC의 동작표는 여러 control이 동시에 1일 때 어떤 next address가 선택되는지까지 포함한 priority specification입니다.",
+      "timing": "모든 control은 next PC를 combinational하게 선택하고, 실제 PC state는 rising edge에서만 갱신됩니다.",
       "columns": [
         {
           "id": "reset",
@@ -332,18 +332,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "PC는 제어 가능한 next-state 선택기입니다",
-      "body": "현재 Q를 유지할지, Q+1을 저장할지, 외부 D를 load할지, 0000으로 reset할지를 먼저 조합논리로 선택하고 그 결과를 Register에 저장하세요."
+      "title": "먼저 우선순위를 문장으로 정하세요",
+      "body": "RESET, LOAD, INC, HOLD가 동시에 요청될 수 있다고 가정하고 어떤 control이 무엇보다 우선해야 하는지 표의 contract대로 정리하세요."
     },
     {
       "level": 2,
-      "title": "우선순위를 MUX 단계로 표현",
-      "body": "Q/ Q+1을 INC로 선택하고, 그 결과/D를 LOAD로 선택하고, 마지막으로 그 결과/0000을 RESET으로 선택하면 RESET > LOAD > INC 우선순위가 됩니다."
+      "title": "MUX nesting이 priority를 구현합니다",
+      "body": "낮은 우선순위 후보를 먼저 선택하고, 더 높은 우선순위 control이 바깥쪽 MUX에서 그 결과를 덮어쓰게 하면 priority가 회로 구조에 직접 나타납니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "M1(A=Q,B=Q+1,SEL=INC), M2(A=M1.OUT,B=D,SEL=LOAD), M3(A=M2.OUT,B=0000,SEL=RESET), Register4.D=M3.OUT 순서로 연결하세요. Register4.LOAD=Const 1, CLK=외부 CLK입니다."
+      "title": "current와 next PC를 구분하세요",
+      "body": "Register.Q는 current PC이고 Incrementer/MUX network는 next PC를 계산합니다. 최종 MUX 출력만 Register.D로 보내고 Q를 회로 Q로 내보내세요."
     }
   ]
 }
