@@ -86,8 +86,26 @@ interface Point {
 
 interface DragState {
   instanceId: string;
+  instanceIds: readonly string[];
   offsetX: number;
   offsetY: number;
+  origins: Readonly<Record<string, Point>>;
+  connectionGeometry: Readonly<
+    Record<
+      string,
+      {
+        route?: readonly Point[];
+        branchStart?: Point;
+      }
+    >
+  >;
+}
+
+interface MarqueeState {
+  start: Point;
+  current: Point;
+  additive: boolean;
+  baseSelection: readonly string[];
 }
 
 interface InterfaceDragState {
@@ -931,6 +949,7 @@ export function App() {
   const [interfaceDrag, setInterfaceDrag] =
     useState<InterfaceDragState | null>(null);
   const [pan, setPan] = useState<PanState | null>(null);
+  const [marquee, setMarquee] = useState<MarqueeState | null>(null);
   const [viewport, setViewport] = useState<Viewport>({
     x: 0,
     y: 0,
@@ -957,6 +976,7 @@ export function App() {
   const dragGestureRef = useRef<DragState | null>(null);
   const interfaceDragGestureRef = useRef<InterfaceDragState | null>(null);
   const panGestureRef = useRef<PanState | null>(null);
+  const marqueeGestureRef = useRef<MarqueeState | null>(null);
   const pendingWireRef = useRef<CircuitEndpoint | null>(null);
   const wireDraggingRef = useRef(false);
   const wireRoutePointsRef = useRef<Point[]>([]);
@@ -966,6 +986,7 @@ export function App() {
   const wireNodeMoveRef = useRef<WireNodeMoveState | null>(null);
   const wireGestureCandidateRef = useRef<WireGestureCandidate | null>(null);
   const altPressedRef = useRef(false);
+  const spacePressedRef = useRef(false);
 
   useEffect(() => {
     async function loadCurriculum() {
@@ -1090,6 +1111,8 @@ export function App() {
     setTestStates({});
     setActiveTestId(null);
     setExpandedVerificationChecks(new Set());
+    marqueeGestureRef.current = null;
+    setMarquee(null);
     setTestRunning(false);
     setRevealedHintCount(0);
   }, [challenge?.id]);
@@ -1615,6 +1638,7 @@ export function App() {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === "Alt") altPressedRef.current = true;
+      if (event.code === "Space") spacePressedRef.current = true;
 
       const target = event.target as HTMLElement | null;
       if (
@@ -1674,6 +1698,7 @@ export function App() {
 
     function handleKeyUp(event: KeyboardEvent): void {
       if (event.key === "Alt") altPressedRef.current = false;
+      if (event.code === "Space") spacePressedRef.current = false;
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -2584,14 +2609,21 @@ export function App() {
     event.stopPropagation();
     clearPendingWireGesture();
     setSelectedConnection(null);
+    const contextSelection =
+      selectedInstances.includes(instanceId) && selectedInstances.length > 1
+        ? selectedInstances
+        : [instanceId];
     setSelectedInstance(instanceId);
-    setSelectedInstances([instanceId]);
+    setSelectedInstances(contextSelection);
     setCanvasContextMenu({
       kind: "component",
       targetId: instanceId,
       x: event.clientX,
       y: event.clientY,
-      label,
+      label:
+        contextSelection.length > 1
+          ? `${contextSelection.length} components`
+          : label,
     });
   }
 
@@ -2785,27 +2817,82 @@ export function App() {
     });
   }
 
-  function beginPan(event: ReactPointerEvent<SVGRectElement>): void {
-    if (testRunning) return;
+  function marqueeBounds(state: MarqueeState) {
+    return {
+      left: Math.min(state.start.x, state.current.x),
+      top: Math.min(state.start.y, state.current.y),
+      right: Math.max(state.start.x, state.current.x),
+      bottom: Math.max(state.start.y, state.current.y),
+    };
+  }
+
+  function selectedIdsInMarquee(state: MarqueeState): string[] {
+    if (!displayCircuit) return [...state.baseSelection];
+    const bounds = marqueeBounds(state);
+    const hits = displayCircuit.instances
+      .filter((instance) => {
+        const spec = registry.get(instance.componentId);
+        const geometry = componentGeometry(spec);
+        const position = instance.position ?? { x: 360, y: 220 };
+        const right = position.x + geometry.width;
+        const bottom = position.y + geometry.height;
+        return (
+          right >= bounds.left &&
+          position.x <= bounds.right &&
+          bottom >= bounds.top &&
+          position.y <= bounds.bottom
+        );
+      })
+      .map((instance) => instance.id);
+
+    if (!state.additive) return hits;
+    return [...new Set([...state.baseSelection, ...hits])];
+  }
+
+  function beginCanvasGesture(
+    event: ReactPointerEvent<SVGRectElement>,
+  ): void {
+    if (testRunning || isInspectingNested) return;
     if (event.button !== 0 && event.button !== 1) return;
     if (pendingPin && event.button === 0) {
       event.stopPropagation();
       return;
     }
+
     event.stopPropagation();
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    const nextPan = {
-      clientX: event.clientX,
-      clientY: event.clientY,
-      originX: viewport.x,
-      originY: viewport.y,
+    setCanvasContextMenu(null);
+
+    const shouldPan = event.button === 1 || spacePressedRef.current;
+    if (shouldPan) {
+      const nextPan = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        originX: viewport.x,
+        originY: viewport.y,
+      };
+      panGestureRef.current = nextPan;
+      setPan(nextPan);
+      marqueeGestureRef.current = null;
+      setMarquee(null);
+      return;
+    }
+
+    const point = clientToCanvasPoint(event.clientX, event.clientY);
+    const nextMarquee: MarqueeState = {
+      start: point,
+      current: point,
+      additive: event.shiftKey,
+      baseSelection: event.shiftKey ? selectedInstances : [],
     };
-    panGestureRef.current = nextPan;
-    setPan(nextPan);
-    setSelectedInstance(null);
-    setSelectedInstances([]);
+    marqueeGestureRef.current = nextMarquee;
+    setMarquee(nextMarquee);
     setSelectedConnection(null);
-    setPendingPin(null);
+    if (!event.shiftKey) {
+      setSelectedInstance(null);
+      setSelectedInstances([]);
+    }
   }
 
   function beginInterfaceDrag(
@@ -2879,31 +2966,91 @@ export function App() {
     if (!circuit || !challenge || testRunning || isInspectingNested) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
+    setCanvasContextMenu(null);
 
-    if (!selectedInstances.includes(instanceId)) {
-      setSelectedInstances([instanceId]);
-      setSelectedInstance(instanceId);
+    let movingIds: string[];
+    if (event.shiftKey) {
+      movingIds = selectedInstances.includes(instanceId)
+        ? selectedInstances.filter((id) => id !== instanceId)
+        : [...selectedInstances, instanceId];
+      if (movingIds.length === 0) movingIds = [instanceId];
+    } else if (
+      selectedInstances.includes(instanceId) &&
+      selectedInstances.length > 1
+    ) {
+      movingIds = [...selectedInstances];
+    } else {
+      movingIds = [instanceId];
     }
+
+    setSelectedInstances(movingIds);
+    setSelectedInstance(instanceId);
+    setSelectedConnection(null);
 
     const stack = undoRef.current[challenge.id] ?? [];
     stack.push(circuit);
     if (stack.length > 100) stack.shift();
     undoRef.current[challenge.id] = stack;
     redoRef.current[challenge.id] = [];
-    const position = instancePosition(circuit, instanceId);
-    const point = clientToCanvasPoint(event.clientX, event.clientY);
 
-    const nextDrag = {
+    const movingSet = new Set(movingIds);
+    const origins: Record<string, Point> = {};
+    for (const id of movingIds) {
+      origins[id] = instancePosition(circuit, id);
+    }
+
+    const connectionGeometry: Record<
+      string,
+      { route?: readonly Point[]; branchStart?: Point }
+    > = {};
+    for (const connection of circuit.connections) {
+      const fromSelected =
+        connection.from.kind === "instance" &&
+        movingSet.has(connection.from.instanceId);
+      const toSelected =
+        connection.to.kind === "instance" &&
+        movingSet.has(connection.to.instanceId);
+      if (!fromSelected || !toSelected) continue;
+      connectionGeometry[connection.id] = {
+        ...(connection.route
+          ? { route: connection.route.map((point) => ({ ...point })) }
+          : {}),
+        ...(connection.branchStart
+          ? { branchStart: { ...connection.branchStart } }
+          : {}),
+      };
+    }
+
+    const position = origins[instanceId] ?? instancePosition(circuit, instanceId);
+    const point = clientToCanvasPoint(event.clientX, event.clientY);
+    const nextDrag: DragState = {
       instanceId,
+      instanceIds: movingIds,
       offsetX: point.x - position.x,
       offsetY: point.y - position.y,
+      origins,
+      connectionGeometry,
     };
     dragGestureRef.current = nextDrag;
     setDrag(nextDrag);
-    setSelectedInstance(instanceId);
   }
 
   function moveDrag(event: ReactPointerEvent<SVGElement>): void {
+    const activeMarquee = marqueeGestureRef.current ?? marquee;
+    if (activeMarquee) {
+      const nextMarquee = {
+        ...activeMarquee,
+        current: clientToCanvasPoint(event.clientX, event.clientY),
+      };
+      marqueeGestureRef.current = nextMarquee;
+      setMarquee(nextMarquee);
+      const nextIds = selectedIdsInMarquee(nextMarquee);
+      setSelectedInstances(nextIds);
+      setSelectedInstance(nextIds[0] ?? null);
+      setSelectedConnection(null);
+      return;
+    }
+
     const activePan = panGestureRef.current ?? pan;
     if (activePan) {
       const rect = svgRef.current?.getBoundingClientRect();
@@ -3012,17 +3159,52 @@ export function App() {
     const activeDrag = dragGestureRef.current ?? drag;
     if (!activeDrag) return;
 
+    const primaryOrigin = activeDrag.origins[activeDrag.instanceId];
+    if (!primaryOrigin) return;
+    const primaryTarget = snapPoint({
+      x: point.x - activeDrag.offsetX,
+      y: point.y - activeDrag.offsetY,
+    });
+    const dx = primaryTarget.x - primaryOrigin.x;
+    const dy = primaryTarget.y - primaryOrigin.y;
+    const movingIds = new Set(activeDrag.instanceIds);
+
     updateCircuit(
       (current) => ({
         ...current,
         instances: current.instances.map((instance) => {
-          if (instance.id !== activeDrag.instanceId) return instance;
+          if (!movingIds.has(instance.id)) return instance;
+          const origin = activeDrag.origins[instance.id];
+          if (!origin) return instance;
           return {
             ...instance,
-            position: snapPoint({
-              x: point.x - activeDrag.offsetX,
-              y: point.y - activeDrag.offsetY,
-            }),
+            position: {
+              x: origin.x + dx,
+              y: origin.y + dy,
+            },
+          };
+        }),
+        connections: current.connections.map((connection) => {
+          const snapshot = activeDrag.connectionGeometry[connection.id];
+          if (!snapshot) return connection;
+          return {
+            ...connection,
+            ...(snapshot.route
+              ? {
+                  route: snapshot.route.map((routePoint) => ({
+                    x: routePoint.x + dx,
+                    y: routePoint.y + dy,
+                  })),
+                }
+              : {}),
+            ...(snapshot.branchStart
+              ? {
+                  branchStart: {
+                    x: snapshot.branchStart.x + dx,
+                    y: snapshot.branchStart.y + dy,
+                  },
+                }
+              : {}),
           };
         }),
       }),
@@ -3915,7 +4097,7 @@ export function App() {
         <section className="canvas-frame">
           <div className="canvas-toolbar">
             <div className="canvas-toolbar-info">
-              <span>빈 공간 드래그: 이동 · Wire 드래그: 분기 · Alt+Wire 드래그: 관절 추가/이동 · 12-unit grid snap · 줌: + / −</span>
+              <span>빈 공간 드래그: 다중 선택 · Space+드래그/가운데 버튼: 화면 이동 · 선택된 컴포넌트 드래그: 함께 이동 · Wire 드래그: 분기 · Alt+Wire 드래그: 관절 추가/이동 · 12-unit grid snap · 줌: + / −</span>
               {preview.error ? (
                 <span className="error-text">{preview.error}</span>
               ) : null}
@@ -4045,10 +4227,12 @@ export function App() {
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
+              marqueeGestureRef.current = null;
               wireNodeMoveRef.current = null;
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
+              setMarquee(null);
 
               if (wireCandidate) {
                 event.stopPropagation();
@@ -4062,13 +4246,15 @@ export function App() {
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
+              marqueeGestureRef.current = null;
               wireNodeMoveRef.current = null;
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
+              setMarquee(null);
             }}
             onClick={() => {
-              if (drag || interfaceDrag || pan || pendingPin) return;
+              if (drag || interfaceDrag || pan || marquee || pendingPin) return;
               setCanvasContextMenu(null);
               setSelectedInstance(null);
               setSelectedInstances([]);
@@ -4089,6 +4275,7 @@ export function App() {
               data-testid="canvas-pan-surface"
               onPointerDown={beginPan}
               onPointerMove={moveDrag}
+              onPointerDown={beginCanvasGesture}
             />
             {(displayCircuit?.connections ?? []).map((connection) => {
               if (wireEndpointMove?.connectionId === connection.id) {
@@ -4570,7 +4757,12 @@ export function App() {
                         setSelectedInstance(next[0] ?? null);
                         return next;
                       });
-                    } else {
+                    } else if (
+                      !(
+                        selectedInstances.includes(instance.id) &&
+                        selectedInstances.length > 1
+                      )
+                    ) {
                       setSelectedInstance(instance.id);
                       setSelectedInstances([instance.id]);
                     }
@@ -4977,6 +5169,21 @@ export function App() {
                 </g>
               );
             })}
+
+            {marquee ? (() => {
+              const bounds = marqueeBounds(marquee);
+              return (
+                <rect
+                  className="selection-marquee"
+                  data-testid="selection-marquee"
+                  x={bounds.left}
+                  y={bounds.top}
+                  width={bounds.right - bounds.left}
+                  height={bounds.bottom - bounds.top}
+                  pointerEvents="none"
+                />
+              );
+            })() : null}
           </svg>
         </section>
 
@@ -5310,8 +5517,9 @@ export function App() {
           <div>
             <strong>Selection</strong>
             <p className="muted">
-              클릭으로 선택, Shift+클릭으로 다중 선택합니다. Ctrl/Cmd+C/V로
-              복사/붙여넣기하고 Delete/Backspace로 일괄 삭제할 수 있습니다.
+              빈 공간을 드래그해 여러 컴포넌트를 박스로 선택할 수 있습니다. Shift+드래그/클릭은 기존 선택에 추가하고,
+              선택된 컴포넌트 하나를 드래그하면 선택 전체가 함께 이동합니다. Ctrl/Cmd+C/V로 복사/붙여넣기하고
+              Delete/Backspace로 일괄 삭제할 수 있습니다. 화면 이동은 Space+드래그 또는 가운데 버튼 드래그입니다.
             </p>
             <button
               className="danger"
@@ -5539,7 +5747,12 @@ export function App() {
               if (canvasContextMenu.kind === "wire") {
                 removeConnection(canvasContextMenu.targetId);
               } else {
-                removeInstances(new Set([canvasContextMenu.targetId]));
+                const ids =
+                  selectedInstances.includes(canvasContextMenu.targetId) &&
+                  selectedInstances.length > 1
+                    ? new Set(selectedInstances)
+                    : new Set([canvasContextMenu.targetId]);
+                removeInstances(ids);
               }
             }}
           >
