@@ -334,6 +334,83 @@ test("selected component can be deleted without dragging", async ({ page }) => {
   await expect(component).toHaveCount(0);
 });
 
+test("drag marquee selects multiple components for move copy and delete", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+  await page.getByTestId("palette-builtin.nand").click();
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const components = page.locator('[data-testid^="component-"]');
+  await expect(components).toHaveCount(3);
+
+  const boxes = await Promise.all(
+    [0, 1, 2].map((index) => components.nth(index).boundingBox()),
+  );
+  if (boxes.some((box) => !box)) throw new Error("missing component geometry");
+  const concrete = boxes as NonNullable<(typeof boxes)[number]>[];
+  const left = Math.min(...concrete.map((box) => box.x)) - 18;
+  const top = Math.min(...concrete.map((box) => box.y)) - 18;
+  const right = Math.max(...concrete.map((box) => box.x + box.width)) + 18;
+  const bottom = Math.max(...concrete.map((box) => box.y + box.height)) + 18;
+
+  await page.mouse.move(left, top);
+  await page.mouse.down();
+  await page.mouse.move(right, bottom, { steps: 8 });
+  await expect(page.getByTestId("selection-marquee")).toBeVisible();
+  await page.mouse.up();
+
+  await expect(page.locator(".compact-symbol.selected")).toHaveCount(3);
+
+  const before = await Promise.all(
+    [0, 1, 2].map(async (index) => ({
+      x: Number(await components.nth(index).getAttribute("data-position-x")),
+      y: Number(await components.nth(index).getAttribute("data-position-y")),
+    })),
+  );
+
+  const firstHitbox = components.first().locator(".component-hitbox");
+  const firstBox = await firstHitbox.boundingBox();
+  if (!firstBox) throw new Error("missing selected component hitbox");
+
+  await page.mouse.move(
+    firstBox.x + firstBox.width / 2,
+    firstBox.y + firstBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    firstBox.x + firstBox.width / 2 + 72,
+    firstBox.y + firstBox.height / 2 + 48,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+
+  const after = await Promise.all(
+    [0, 1, 2].map(async (index) => ({
+      x: Number(await components.nth(index).getAttribute("data-position-x")),
+      y: Number(await components.nth(index).getAttribute("data-position-y")),
+    })),
+  );
+
+  const dx = after[0]!.x - before[0]!.x;
+  const dy = after[0]!.y - before[0]!.y;
+  expect(dx).not.toBe(0);
+  expect(dy).not.toBe(0);
+  for (let index = 0; index < 3; index += 1) {
+    expect(after[index]!.x - before[index]!.x).toBe(dx);
+    expect(after[index]!.y - before[index]!.y).toBe(dy);
+    expect(after[index]!.x % 12).toBe(0);
+    expect(after[index]!.y % 12).toBe(0);
+  }
+  await expect(page.locator(".compact-symbol.selected")).toHaveCount(3);
+
+  await page.keyboard.press("Control+c");
+  await page.keyboard.press("Control+v");
+  await expect(components).toHaveCount(6);
+  await expect(page.locator(".compact-symbol.selected")).toHaveCount(3);
+
+  await page.keyboard.press("Delete");
+  await expect(components).toHaveCount(3);
+});
+
 test("component dragging snaps to the hidden placement grid", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
