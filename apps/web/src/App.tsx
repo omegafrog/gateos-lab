@@ -3961,6 +3961,7 @@ export function App() {
                           : "branch",
                       );
                     }}
+                    onPointerMove={moveDrag}
                   />
                   {(connection.route ?? []).map((node, nodeIndex) => (
                     <circle
@@ -3983,6 +3984,7 @@ export function App() {
                             : undefined,
                         );
                       }}
+                      onPointerMove={moveDrag}
                     />
                   ))}
                 </g>
