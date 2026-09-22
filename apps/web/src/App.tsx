@@ -1752,11 +1752,88 @@ export function App() {
     setTraceRevision((current) => current + 1);
   }
 
+  function externalClockInput() {
+    return challenge?.interface.inputs.find(
+      (pin) =>
+        pin.width === 1 &&
+        (pin.id.toLowerCase() === "clk" ||
+          pin.name.trim().toLowerCase() === "clk"),
+    );
+  }
+
+  function applyStagedInputsToSimulator(
+    simulator: Simulator,
+    clockPinId?: string,
+  ): Record<string, string> {
+    const applied: Record<string, string> = {};
+    if (!challenge) return applied;
+
+    for (const pin of challenge.interface.inputs) {
+      if (pin.id === clockPinId) continue;
+      const value =
+        draftInputValues[pin.id] ??
+        inputValues[pin.id] ??
+        zeroBits(pin.width);
+      simulator.setInput(pin.id, BitVector.fromBinary(value));
+      applied[pin.id] = value;
+    }
+    simulator.settle();
+    return applied;
+  }
+
+  function driveExternalClockEdge(
+    edge: "rising" | "falling",
+  ): boolean {
+    const simulator = simulationRuntime.simulator;
+    const clockPin = externalClockInput();
+    if (!simulator || !clockPin) return false;
+
+    const applied = applyStagedInputsToSimulator(simulator, clockPin.id);
+    const before = edge === "rising" ? "0" : "1";
+    const after = edge === "rising" ? "1" : "0";
+
+    // An edge button means "produce this edge", not merely "set CLK to this
+    // level". Force the opposite level first so repeated clicks still produce
+    // a real transition for explicit-clock registers.
+    simulator.setInput(clockPin.id, BitVector.fromBinary(before));
+    simulator.settle();
+    simulator.setInput(clockPin.id, BitVector.fromBinary(after));
+    simulator.settle();
+
+    const nextInputs = { ...applied, [clockPin.id]: after };
+    setInputValues((current) => ({ ...current, ...nextInputs }));
+    setDraftInputValues((current) => ({ ...current, ...nextInputs }));
+    return true;
+  }
+
+  function driveExternalClockCycle(): boolean {
+    const simulator = simulationRuntime.simulator;
+    const clockPin = externalClockInput();
+    if (!simulator || !clockPin) return false;
+
+    const applied = applyStagedInputsToSimulator(simulator, clockPin.id);
+
+    // One cycle ends low: 0 → 1 samples D/EN, then 1 → 0 closes the cycle.
+    simulator.setInput(clockPin.id, BitVector.zeros(1));
+    simulator.settle();
+    simulator.setInput(clockPin.id, BitVector.ones(1));
+    simulator.settle();
+    simulator.setInput(clockPin.id, BitVector.zeros(1));
+    simulator.settle();
+
+    const nextInputs = { ...applied, [clockPin.id]: "0" };
+    setInputValues((current) => ({ ...current, ...nextInputs }));
+    setDraftInputValues((current) => ({ ...current, ...nextInputs }));
+    return true;
+  }
+
   function stepSimulationEdge(edge: "rising" | "falling"): void {
     if (!simulationRuntime.simulator || testRunning) return;
 
     try {
-      simulationRuntime.simulator.stepEdge(edge);
+      if (!driveExternalClockEdge(edge)) {
+        simulationRuntime.simulator.stepEdge(edge);
+      }
       captureTrace(`${edge} edge`);
       setSimulationRevision((current) => current + 1);
     } catch (error) {
@@ -1770,7 +1847,9 @@ export function App() {
     if (!simulationRuntime.simulator || testRunning) return;
 
     try {
-      simulationRuntime.simulator.stepClock();
+      if (!driveExternalClockCycle()) {
+        simulationRuntime.simulator.stepClock();
+      }
       captureTrace("clock");
       setSimulationRevision((current) => current + 1);
     } catch (error) {
@@ -3784,20 +3863,27 @@ export function App() {
                 <div className="clock-controls">
                   <strong>Clock</strong>
                   <button
+                    data-testid="clock-rising"
                     disabled={testRunning}
                     onClick={() => stepSimulationEdge("rising")}
-                    title="상승 에지(rising edge)"
+                    title="상승 에지(rising edge) — 현재 입력을 적용한 뒤 CLK 0→1"
                   >
                     ↑
                   </button>
                   <button
+                    data-testid="clock-falling"
                     disabled={testRunning}
                     onClick={() => stepSimulationEdge("falling")}
-                    title="하강 에지(falling edge)"
+                    title="하강 에지(falling edge) — 현재 입력을 적용한 뒤 CLK 1→0"
                   >
                     ↓
                   </button>
-                  <button disabled={testRunning} onClick={stepSimulationClock}>
+                  <button
+                    data-testid="clock-cycle"
+                    disabled={testRunning}
+                    onClick={stepSimulationClock}
+                    title="현재 입력을 적용한 뒤 CLK 0→1→0"
+                  >
                     1 cycle
                   </button>
                   <button
