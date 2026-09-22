@@ -820,6 +820,16 @@ function componentDisplayName(spec: ComponentSpec): string {
   return spec.name || spec.id;
 }
 
+function componentShowsStoredValue(spec: ComponentSpec): boolean {
+  const id = spec.id.toLowerCase();
+  return (
+    id.includes("register") ||
+    id.includes("counter") ||
+    id.includes("dff") ||
+    id.includes("latch")
+  );
+}
+
 interface CurriculumStage {
   id: string;
   title: string;
@@ -1671,9 +1681,12 @@ export function App() {
   const stageCompletedCount = stageChallenges.filter(({ item }) =>
     project.completed.includes(item.id),
   ).length;
+  const visualSequenceExpectSteps = visualSequenceSteps.filter(
+    (item) => "expect" in item.step,
+  );
   const visualVerificationItems = [
     ...visualTestCases.map((testCase) => testCase.id),
-    ...visualSequenceSteps.map((step) => step.id),
+    ...visualSequenceExpectSteps.map((step) => step.id),
   ];
   const passedVisualTests = visualVerificationItems.filter(
     (id) => testStates[id]?.status === "pass",
@@ -1804,7 +1817,9 @@ export function App() {
     simulationRuntime.netlist?.nodes.some(
       (node) =>
         node.primitiveId === "builtin.clock" ||
-        node.primitiveId === "builtin.dff",
+        node.primitiveId === "builtin.dff" ||
+        node.primitiveId === "builtin.user-dff" ||
+        node.primitiveId === "builtin.user-register",
     ) ?? false;
 
   const traceFrames = traceRuntime?.frames.slice(-16) ?? [];
@@ -3056,7 +3071,7 @@ export function App() {
             }));
           }
 
-          await sleep(320);
+          await sleep("expect" in step ? 320 : 70);
         }
       }
 
@@ -3175,15 +3190,6 @@ export function App() {
           >
             Journey
           </button>
-          <button
-            className="curriculum-toggle"
-            data-testid="curriculum-toggle"
-            aria-controls="curriculum-drawer"
-            aria-expanded={curriculumOpen}
-            onClick={() => setCurriculumOpen((open) => !open)}
-          >
-            {curriculumOpen ? "Hide curriculum" : "Curriculum"}
-          </button>
           <button onClick={undo}>Undo</button>
           <button onClick={redo}>Redo</button>
           <button onClick={exportProject}>Export project</button>
@@ -3203,6 +3209,19 @@ export function App() {
           </span>
         </div>
       </header>
+
+      <button
+        type="button"
+        className={`curriculum-side-tab ${curriculumOpen ? "open" : ""}`}
+        data-testid="curriculum-toggle"
+        aria-controls="curriculum-drawer"
+        aria-expanded={curriculumOpen}
+        aria-label="커리큘럼 열기"
+        onClick={() => setCurriculumOpen(true)}
+      >
+        <span>Curriculum</span>
+        <strong>{currentIndex + 1}</strong>
+      </button>
 
       <div
         className={`curriculum-backdrop ${curriculumOpen ? "open" : ""}`}
@@ -3385,6 +3404,14 @@ export function App() {
               onClick={() => void runTests()}
             >
               {testRunning ? "Testing…" : "Run all tests"}
+            </button>
+            <button
+              data-testid="reset-chip-state"
+              disabled={testRunning || !simulationRuntime.simulator}
+              onClick={resetSimulation}
+              title="테스트나 수동 clock 실행으로 바뀐 칩 내부 상태와 입력을 초기화합니다."
+            >
+              Reset chip values
             </button>
             <button
               className="success"
@@ -4282,6 +4309,25 @@ export function App() {
               const symbolKind = compactSymbolKind(spec);
               const symbolLabel = compactComponentLabel(spec);
               const selected = selectedInstances.includes(instance.id);
+              const storedValuePin = componentShowsStoredValue(spec)
+                ? outputs.find(
+                    (pin) =>
+                      pin.id.toLowerCase() === "q" ||
+                      pin.name.toLowerCase() === "q",
+                  ) ?? outputs[0]
+                : undefined;
+              const storedValue = storedValuePin
+                ? preview.signals[
+                    signalVertex(
+                      {
+                        kind: "instance",
+                        instanceId: instance.id,
+                        pinId: storedValuePin.id,
+                      },
+                      inspection.prefix,
+                    )
+                  ] ?? "X".repeat(storedValuePin.width)
+                : null;
 
               return (
                 <g
@@ -4569,12 +4615,30 @@ export function App() {
                       />
                       <text
                         x={position.x + geometry.width / 2}
-                        y={position.y + geometry.height / 2 + 4}
+                        y={
+                          position.y +
+                          geometry.height / 2 +
+                          (storedValue ? -4 : 4)
+                        }
                         textAnchor="middle"
                         className="compact-symbol-label"
                       >
                         {symbolLabel}
                       </text>
+                      {storedValue && storedValuePin ? (
+                        <text
+                          x={position.x + geometry.width / 2}
+                          y={position.y + geometry.height / 2 + 15}
+                          textAnchor="middle"
+                          className={[
+                            "compact-state-value",
+                            signalValueClass(storedValue),
+                          ].join(" ")}
+                          data-testid={`component-state-value-${instance.id}`}
+                        >
+                          {storedValuePin.name}={storedValue}
+                        </text>
+                      ) : null}
                     </g>
                   )}
 
@@ -4851,7 +4915,7 @@ export function App() {
                 </div>
               );
             })}
-            {visualSequenceSteps.map((sequenceStep, index) => {
+            {visualSequenceExpectSteps.map((sequenceStep, index) => {
               const state =
                 testStates[sequenceStep.id] ?? { status: "idle" as const };
               const reveal =
@@ -4860,27 +4924,10 @@ export function App() {
               const isActive = activeTestId === sequenceStep.id;
               const step = sequenceStep.step;
 
-              let action = "STEP";
-              let detail = "";
-              let expected = "—";
-
-              if ("set" in step) {
-                action = "SET";
-                detail = reveal
-                  ? formatSignals(step.set)
-                  : "hidden until execution";
-              } else if ("edge" in step) {
-                action = "EDGE";
-                detail = reveal ? step.edge.toUpperCase() : "hidden";
-              } else if ("clock" in step) {
-                action = "CLOCK";
-                detail = reveal ? `× ${step.clock}` : "hidden";
-              } else {
-                action = "EXPECT";
-                expected = reveal
-                  ? formatSignals(step.expect)
-                  : "hidden until execution";
-              }
+              if (!("expect" in step)) return null;
+              const expected = reveal
+                ? formatSignals(step.expect)
+                : "hidden until execution";
 
               return (
                 <div
@@ -4895,25 +4942,17 @@ export function App() {
                   <span className="test-case-number">
                     S{index + 1}
                   </span>
-                  <div>
-                    <small>ACTION</small>
-                    <code>{action}</code>
+                  <div className="sequence-expect-label">
+                    <small>CHECK</small>
+                    <code>EXPECT</code>
                   </div>
                   <div>
-                    <small>VALUE / EXPECTED</small>
-                    <code>{action === "EXPECT" ? expected : detail}</code>
+                    <small>EXPECTED VALUE</small>
+                    <code>{expected}</code>
                   </div>
                   <div>
-                    <small>ACTUAL</small>
-                    <code>
-                      {state.error
-                        ? state.error
-                        : action === "EXPECT"
-                          ? formatActual(state.actual)
-                          : state.status === "pass"
-                            ? "done"
-                            : "—"}
-                    </code>
+                    <small>CURRENT VALUE</small>
+                    <code>{state.error ? state.error : formatActual(state.actual)}</code>
                   </div>
                   <span className="test-case-status">
                     {state.status === "idle"
@@ -4946,7 +4985,7 @@ export function App() {
             <p className="muted">
               핀에서 Wire를 시작한 뒤 빈 grid 지점에 놓으면 node가 생깁니다.
               node를 이어 원하는 경로를 만든 뒤 목적지 핀에 놓으면 연결됩니다.
-              Wire 말단 핀을 드래그하면 연결 끝을 이동하고, Wire 중간이나 junction을 클릭하면 그 지점에서 새 branch가 생성됩니다.
+              Wire 말단 핀을 드래그하면 연결 끝을 이동합니다. Wire 중간이나 junction은 드래그해야 branch가 시작되고, Alt+드래그하면 관절을 추가하거나 이동합니다. 단순 클릭은 배선을 바꾸지 않습니다.
             </p>
             {pendingPin ? (
               <p>
