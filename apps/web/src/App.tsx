@@ -2855,6 +2855,10 @@ export function App() {
           wireCandidate.connectionId,
           wireCandidate.existingNodeIndex,
         );
+        // Inserting a new joint updates the circuit. Do not immediately run
+        // the move branch below against the pre-insertion render snapshot;
+        // the next pointermove will move the newly inserted node.
+        return;
       }
     }
 
