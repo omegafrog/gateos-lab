@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.and",
   "title": "AND",
-  "description": "NAND와 이전 단계의 NOT을 재사용해 AND를 구현하세요. 두 조건이 모두 참일 때만 1이 되는 함수가 NAND의 반전 관계와 계층적 회로 조합으로 어떻게 만들어지는지 확인합니다.",
+  "description": "NAND와 앞에서 만든 NOT을 조합해 AND를 만드세요. NAND가 AND 결과의 반전이라는 관계를 이용해, Boolean 식의 이중 부정을 실제 회로 구조로 바꿔봅니다.",
   "interface": {
     "inputs": [
       {
@@ -84,18 +84,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "NAND의 결과를 한 번 더 뒤집기",
-      "body": "NAND는 AND 결과를 반전한 값입니다. NAND 뒤에서 한 번 더 반전하면 AND가 됩니다."
+      "title": "NAND는 거의 AND입니다",
+      "body": "NAND의 출력은 ¬(A·B)입니다. 원하는 A·B와 무엇이 한 단계 다른지 보세요."
     },
     {
       "level": 2,
-      "title": "두 단계 구조",
-      "body": "먼저 A와 B를 NAND에 넣고, 그 출력을 이전 단계에서 만든 NOT으로 반전해보세요."
+      "title": "반전을 한 번 더 제거",
+      "body": "A와 B를 NAND에 넣고 그 출력을 NOT에 통과시키면 ¬¬(A·B)=A·B가 됩니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "A,B → NAND, NAND.OUT → NOT.IN, NOT.OUT → 회로 OUT 순서로 연결하세요."
+      "title": "배선 확인",
+      "body": "A/B→NAND.A/B, NAND.OUT→NOT.IN, NOT.OUT→회로 OUT 순서로 연결하세요."
     }
   ]
 }
