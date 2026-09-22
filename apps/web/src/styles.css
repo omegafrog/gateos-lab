@@ -2893,9 +2893,8 @@ button:disabled {
 
 
 /* Verification shows assertions, not sequence setup noise. */
-.sequence-step-row .sequence-expect-label code {
-  color: #5b66a8;
-  letter-spacing: 0.04em;
+.sequence-step-row {
+  grid-template-columns: 34px 1fr 1fr 38px;
 }
 
 .run-actions [data-testid="reset-chip-state"] {
