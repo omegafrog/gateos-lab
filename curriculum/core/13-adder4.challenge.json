@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.adder4",
   "title": "4-bit Ripple Carry Adder",
-  "description": "네 개의 Full Adder를 carry chain으로 연결해 A + B + CIN을 계산하는 4-bit Adder를 만드세요. B0가 LSB이고 마지막 carry는 COUT으로 출력합니다.",
+  "description": "네 Full Adder를 LSB→MSB carry chain으로 연결해 A+B+CIN을 계산하는 4-bit Adder를 구현하세요. bitwise 연산과 달리 낮은 자리의 carry가 높은 자리 결과에 영향을 주는 multi-bit arithmetic의 의존성을 이해합니다.",
   "interface": {
     "inputs": [
       {
