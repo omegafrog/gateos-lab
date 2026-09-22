@@ -3441,7 +3441,7 @@ export function App() {
 
             <div className="learning-grid">
               <article>
-                <h3>어떻게 동작하나요?</h3>
+                <h3>동작 원리</h3>
                 <ol>
                   {challengeLearning.howItWorks.map((item) => (
                     <li key={item}>{item}</li>
@@ -4896,7 +4896,7 @@ export function App() {
                     </code>
                   </div>
                   <div>
-                    <small>ACTUAL</small>
+                    <small>CURRENT</small>
                     <code>
                       {state.error
                         ? state.error
