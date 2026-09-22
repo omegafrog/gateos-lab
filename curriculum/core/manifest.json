@@ -84,16 +84,8 @@
       "file": "20-ram16.challenge.json"
     },
     {
-      "id": "logic.and4",
-      "file": "22-and4.challenge.json"
-    },
-    {
-      "id": "logic.or4",
-      "file": "23-or4.challenge.json"
-    },
-    {
-      "id": "logic.xor4",
-      "file": "24-xor4.challenge.json"
+      "id": "logic.logic-unit4",
+      "file": "22-logic-unit4.challenge.json"
     },
     {
       "id": "logic.zero4",
