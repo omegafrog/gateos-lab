@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.register4",
   "title": "4-bit Enable Register",
-  "description": "이전에 만든 1-bit Enable Register 네 개를 묶어 4-bit Register를 만드세요. LOAD=1인 rising edge에서 D[3:0]를 저장하고, LOAD=0이면 이전 Q[3:0]를 유지해야 합니다.",
+  "description": "1-bit Enable Register 네 개를 묶어 4-bit word를 같은 LOAD와 rising edge에서 함께 저장하는 Register4를 구현하세요. D는 다음 값 후보, Q는 현재 state이며 네 bit가 하나의 word로 원자적으로 갱신되어야 합니다.",
   "interface": {
     "inputs": [
       {
