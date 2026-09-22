@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "routing.decoder2to4",
   "title": "2-to-4 Address Decoder",
-  "description": "2-bit ADDR를 네 개의 one-hot 선택선 Y0~Y3로 바꾸는 Address Decoder를 만드세요. ADDR=00이면 Y0만 1, 01이면 Y1만 1, 10이면 Y2만 1, 11이면 Y3만 1이어야 합니다.",
+  "description": "2-bit ADDR를 Y0~Y3 중 정확히 하나만 1이 되는 one-hot 신호로 바꾸는 2-to-4 Address Decoder를 구현하세요. binary 번호를 개별 enable 선으로 펼치는 write-side address selection을 배우는 과제입니다.",
   "interface": {
     "inputs": [
       {
