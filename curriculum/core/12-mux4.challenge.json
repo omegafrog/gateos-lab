@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "routing.mux4",
   "title": "4-bit Multiplexer",
-  "description": "4-bit A와 B 중 하나를 SEL로 선택하는 4-bit MUX를 만드세요. Split4/Join4는 bus를 1-bit 선으로 나누고 다시 묶는 배선 도구이며, B0가 LSB입니다.",
+  "description": "4-bit A와 B 중 하나의 word를 SEL로 선택하는 4-bit MUX를 구현하세요. 새 논리 함수보다 하나의 control signal이 여러 bit lane을 동시에 선택하고 bus의 bit order를 보존한다는 bus-wide routing 개념에 집중합니다.",
   "interface": {
     "inputs": [
       {
