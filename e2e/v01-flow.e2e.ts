@@ -11,6 +11,21 @@ async function connect(
   await page.mouse.up();
 }
 
+async function pointOnSvgPath(
+  path: Locator,
+  ratio = 0.5,
+): Promise<{ x: number; y: number }> {
+  return path.evaluate((element, ratioValue) => {
+    const svgPath = element as SVGPathElement;
+    const length = svgPath.getTotalLength();
+    const local = svgPath.getPointAtLength(length * ratioValue);
+    const matrix = svgPath.getScreenCTM();
+    if (!matrix) throw new Error("missing SVG transform");
+    const point = new DOMPoint(local.x, local.y).matrixTransform(matrix);
+    return { x: point.x, y: point.y };
+  }, ratio);
+}
+
 async function openCurriculum(page: Page): Promise<void> {
   const toggle = page.getByTestId("curriculum-toggle");
   if ((await toggle.getAttribute("aria-expanded")) !== "true") {
@@ -66,6 +81,9 @@ test("curriculum is split into stage pages instead of one long list", async ({
   await expect(page.getByTestId("curriculum-toggle")).toHaveAttribute(
     "aria-expanded",
     "false",
+  );
+  await expect(page.getByTestId("curriculum-toggle")).toHaveClass(
+    /curriculum-side-tab/,
   );
   await expect(page.getByTestId("palette-builtin.nand")).toBeVisible();
   await openCurriculum(page);
@@ -123,6 +141,12 @@ test("builds NOT, verifies it, publishes it, and persists progression", async ({
   await expect(page.getByTestId("challenge-logic.and")).toBeEnabled();
   await page.getByTestId("challenge-logic.and").click();
   await expect(page.getByTestId("palette-user.not")).toBeVisible();
+});
+
+test("chip state reset control is available beside verification actions", async ({ page }) => {
+  const reset = page.getByTestId("reset-chip-state");
+  await expect(reset).toBeVisible();
+  await expect(reset).toBeEnabled();
 });
 
 test("selected component can be deleted without dragging", async ({ page }) => {
@@ -643,11 +667,7 @@ test("clicking a wire does not create a branch or joint", async ({ page }) => {
 
   const hitTarget = page.locator("path.wire-hit-target").first();
   await expect(hitTarget).toBeVisible();
-  const hitBox = await hitTarget.boundingBox();
-  if (!hitBox) throw new Error("missing wire geometry");
-
-  const x = hitBox.x + hitBox.width / 2;
-  const y = hitBox.y + hitBox.height / 2;
+  const { x, y } = await pointOnSvgPath(hitTarget);
 
   await page.mouse.click(x, y);
   await expect(page.locator("circle.wire-junction")).toHaveCount(0);
@@ -683,13 +703,9 @@ test("dragging from an existing wire creates a branch immediately", async ({
 
   const hitTarget = page.locator("path.wire-hit-target").first();
   await expect(hitTarget).toBeVisible();
-  const hitBox = await hitTarget.boundingBox();
-  if (!hitBox) throw new Error("missing wire geometry");
+  const branchPoint = await pointOnSvgPath(hitTarget);
 
-  await page.mouse.move(
-    hitBox.x + hitBox.width / 2,
-    hitBox.y + hitBox.height / 2,
-  );
+  await page.mouse.move(branchPoint.x, branchPoint.y);
   await page.mouse.down();
   await inputB.hover();
   await page.mouse.up();
@@ -727,11 +743,7 @@ test("alt-dragging a wire segment inserts and moves a joint", async ({
   await connect(page, source, inputA);
 
   const hitTarget = page.locator("path.wire-hit-target").first();
-  const hitBox = await hitTarget.boundingBox();
-  if (!hitBox) throw new Error("missing wire geometry");
-
-  const startX = hitBox.x + hitBox.width / 2;
-  const startY = hitBox.y + hitBox.height / 2;
+  const { x: startX, y: startY } = await pointOnSvgPath(hitTarget);
 
   await page.keyboard.down("Alt");
   await page.mouse.move(startX, startY);
