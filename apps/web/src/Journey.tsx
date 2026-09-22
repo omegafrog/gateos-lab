@@ -154,7 +154,7 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
     explanation:
       "Decoder가 write 대상을 고르고 MUX가 read 대상을 고릅니다. RAM4를 bank로 묶어 RAM16을 만들면, 더 큰 RAM도 같은 계층 원리의 반복이라는 점까지 이해할 수 있습니다.",
     payoff: "이제 CPU가 읽고 쓸 수 있는 주소 공간이 생겼습니다.",
-    artifact: "Memory Subsystem",
+    artifact: "RAM16 Memory Subsystem",
     challengeIds: [
       "routing.decoder2to4",
       "memory.ram4",
@@ -442,7 +442,7 @@ function ArtifactGraphic({
           )),
         )}
         <text x="326" y="338" textAnchor="middle" className="journey-artifact-title">
-          RAM
+          RAM16
         </text>
       </g>
     );
