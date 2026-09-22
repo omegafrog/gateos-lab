@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "routing.mux2",
   "title": "2-to-1 Multiplexer",
-  "description": "SEL=0이면 A를, SEL=1이면 B를 출력하는 2:1 MUX를 만드세요.",
+  "description": "SEL=0이면 A, SEL=1이면 B를 출력하는 2:1 MUX를 구현하세요. A/B는 data, SEL은 control이라는 구분과 control signal이 datapath의 경로를 선택한다는 개념이 핵심입니다.",
   "interface": {
     "inputs": [
       {
