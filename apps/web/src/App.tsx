@@ -3790,8 +3790,8 @@ export function App() {
           <section className="learning-panel" data-testid="learning-panel">
             <div className="learning-panel-header">
               <div>
-                <span>CONCEPT LESSON</span>
-                <strong>이 회로를 왜 만드는가?</strong>
+                <span>ENGINEERING NOTE</span>
+                <strong>설계 목적과 시스템 내 역할</strong>
               </div>
               <p>{challengeLearning.motivation}</p>
             </div>
@@ -3828,7 +3828,7 @@ export function App() {
 
             <div className="learning-grid">
               <article>
-                <h3>동작 원리</h3>
+                <h3>Operational semantics</h3>
                 <ol>
                   {challengeLearning.howItWorks.map((item) => (
                     <li key={item}>{item}</li>
@@ -3862,7 +3862,7 @@ export function App() {
             </div>
 
             <div className="learning-builds-toward">
-              <strong>다음 단계와의 연결</strong>
+              <strong>Architectural progression</strong>
               <p>{challengeLearning.buildsToward}</p>
             </div>
           </section>
