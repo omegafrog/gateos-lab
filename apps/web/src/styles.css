@@ -2911,3 +2911,41 @@ button:disabled {
     border-radius: 0 9px 9px 0;
   }
 }
+
+
+.canvas-context-menu {
+  position: fixed;
+  z-index: 140;
+  width: 176px;
+  padding: 6px;
+  border: 1px solid #c9d0dc;
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgb(25 34 50 / 22%);
+}
+
+.canvas-context-menu-title {
+  padding: 6px 8px 7px;
+  overflow: hidden;
+  color: #687386;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-context-menu button {
+  width: 100%;
+  min-height: 34px;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.canvas-context-menu button.danger {
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+.canvas-context-menu button.danger:hover {
+  background: #fff1f1 !important;
+}
