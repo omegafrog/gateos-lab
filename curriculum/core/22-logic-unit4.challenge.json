@@ -1,0 +1,196 @@
+{
+  "schema": "gateos.challenge/v1",
+  "id": "logic.logic-unit4",
+  "title": "4-bit Logic Unit",
+  "description": "4-bit A와 B를 한 번 분해해 AND, OR, XOR 결과를 동시에 만드는 word-level Logic Unit을 만드세요. 세 연산은 같은 bit 위치끼리 독립적으로 계산되며, 이 칩은 다음 ALU에서 논리 연산 묶음으로 재사용됩니다.",
+  "interface": {
+    "inputs": [
+      {
+        "id": "a",
+        "name": "A",
+        "width": 4
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "width": 4
+      }
+    ],
+    "outputs": [
+      {
+        "id": "and",
+        "name": "AND",
+        "width": 4
+      },
+      {
+        "id": "or",
+        "name": "OR",
+        "width": 4
+      },
+      {
+        "id": "xor",
+        "name": "XOR",
+        "width": 4
+      }
+    ]
+  },
+  "allowedComponents": [
+    "builtin.split4",
+    "builtin.join4",
+    "user.and",
+    "user.or",
+    "user.xor"
+  ],
+  "validators": [
+    {
+      "type": "truthTable",
+      "visibility": "visible",
+      "cases": [
+        {
+          "in": {
+            "a": 0,
+            "b": 15
+          },
+          "out": {
+            "and": 0,
+            "or": 15,
+            "xor": 15
+          }
+        },
+        {
+          "in": {
+            "a": 15,
+            "b": 15
+          },
+          "out": {
+            "and": 15,
+            "or": 15,
+            "xor": 0
+          }
+        },
+        {
+          "in": {
+            "a": 10,
+            "b": 12
+          },
+          "out": {
+            "and": 8,
+            "or": 14,
+            "xor": 6
+          }
+        },
+        {
+          "in": {
+            "a": 5,
+            "b": 3
+          },
+          "out": {
+            "and": 1,
+            "or": 7,
+            "xor": 6
+          }
+        }
+      ]
+    },
+    {
+      "type": "truthTable",
+      "visibility": "hidden",
+      "cases": [
+        {
+          "in": {
+            "a": 9,
+            "b": 6
+          },
+          "out": {
+            "and": 0,
+            "or": 15,
+            "xor": 15
+          }
+        },
+        {
+          "in": {
+            "a": 14,
+            "b": 7
+          },
+          "out": {
+            "and": 6,
+            "or": 15,
+            "xor": 9
+          }
+        }
+      ]
+    },
+    {
+      "type": "structural",
+      "visibility": "visible",
+      "rules": {
+        "maxComponents": 17
+      }
+    }
+  ],
+  "unlocks": [
+    "logic.zero4"
+  ],
+  "referenceTables": [
+    {
+      "id": "bitwise-meaning",
+      "title": "Bitwise word 연산",
+      "description": "4-bit 값을 하나의 boolean으로 계산하는 것이 아니라, 같은 위치의 bit 네 쌍에서 같은 1-bit 논리를 병렬로 수행합니다.",
+      "columns": [
+        {
+          "id": "operation",
+          "label": "연산",
+          "group": "note"
+        },
+        {
+          "id": "bit",
+          "label": "각 bit i",
+          "group": "note"
+        },
+        {
+          "id": "example",
+          "label": "예: A=1010, B=1100",
+          "group": "output"
+        }
+      ],
+      "rows": [
+        {
+          "operation": "AND",
+          "bit": "OUT[i] = A[i] AND B[i]",
+          "example": "1000"
+        },
+        {
+          "operation": "OR",
+          "bit": "OUT[i] = A[i] OR B[i]",
+          "example": "1110"
+        },
+        {
+          "operation": "XOR",
+          "bit": "OUT[i] = A[i] XOR B[i]",
+          "example": "0110"
+        }
+      ],
+      "notes": [
+        "세 연산 모두 carry가 없고 bit 사이에 의존성이 없습니다.",
+        "A와 B를 한 번만 Split한 뒤 각 bit 쌍에서 AND/OR/XOR를 병렬로 계산할 수 있습니다."
+      ]
+    }
+  ],
+  "hints": [
+    {
+      "level": 1,
+      "title": "같은 입력을 세 연산이 공유합니다",
+      "body": "A와 B를 각각 한 번만 Split4로 나누세요. 각 A[i], B[i] 쌍은 AND, OR, XOR 세 gate에 동시에 들어갈 수 있습니다."
+    },
+    {
+      "level": 2,
+      "title": "bit slice를 네 번 반복",
+      "body": "한 bit에 대해 AND/OR/XOR 세 결과를 만들고, 같은 구조를 B0부터 B3까지 반복하세요. 연산별 네 결과는 각각 Join4로 묶습니다."
+    },
+    {
+      "level": 3,
+      "title": "출력 묶기",
+      "body": "AND 결과 네 개는 AND 출력용 Join4, OR 결과 네 개는 OR 출력용 Join4, XOR 결과 네 개는 XOR 출력용 Join4에 B0~B3 순서로 연결하세요."
+    }
+  ]
+}
