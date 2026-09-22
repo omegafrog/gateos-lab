@@ -1,6 +1,9 @@
 import {
   BitVector,
+  logicAnd,
   logicNand,
+  logicOr,
+  logicXor,
   type CompiledNode,
 } from "@gateos/circuit-model";
 
@@ -177,6 +180,24 @@ export function createBuiltinPrimitiveRegistry(): PrimitiveRegistry {
       out: BitVector.fromLSB(bits.map((bit) => bit!.get(0))),
     };
   });
+
+  for (const [id, operation] of [
+    ["builtin.and4", logicAnd],
+    ["builtin.or4", logicOr],
+    ["builtin.xor4", logicXor],
+  ] as const) {
+    registry.register(id, (inputs) => {
+      const a = inputs.a;
+      const b = inputs.b;
+      if (!a || !b) throw new Error(`${id} requires inputs 'a' and 'b'`);
+      if (a.width !== 4 || b.width !== 4) {
+        throw new Error(
+          `${id} expects two 4-bit inputs, got ${a.width} and ${b.width}`,
+        );
+      }
+      return { out: a.zip(b, operation) };
+    });
+  }
 
   registry.register("builtin.const1.zero", () => ({
     out: BitVector.zeros(1),
