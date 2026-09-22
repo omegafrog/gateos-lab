@@ -242,7 +242,7 @@
     }
   ],
   "unlocks": [
-    "memory.ram64"
+    "logic.and4"
   ],
   "referenceTables": [
     {
