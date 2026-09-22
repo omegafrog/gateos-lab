@@ -143,7 +143,7 @@ test("builds NOT, verifies it, publishes it, and persists progression", async ({
   await expect(page.getByTestId("palette-user.not")).toBeVisible();
 });
 
-test("sequence verification hides setup steps and shows only expected versus current", async ({
+test("sequence verification keeps expected/current compact and expands input operations on demand", async ({
   page,
 }) => {
   await page.evaluate(() => {
@@ -172,9 +172,23 @@ test("sequence verification hides setup steps and shows only expected versus cur
   await expect(checks).toHaveCount(4);
   await expect(checks.first()).toContainText("EXPECTED VALUE");
   await expect(checks.first()).toContainText("CURRENT VALUE");
-  await expect(checks.first()).not.toContainText("SET");
-  await expect(checks.first()).not.toContainText("EDGE");
-  await expect(checks.first()).not.toContainText("CLOCK");
+  await expect(checks.first()).not.toContainText("INPUT");
+
+  const toggle = page.getByTestId("sequence-details-toggle-sequence-0-1");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("sequence-details-sequence-0-1")).toHaveCount(0);
+
+  await toggle.click();
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const details = page.getByTestId("sequence-details-sequence-0-1");
+  await expect(details).toBeVisible();
+  await expect(details).toContainText("INPUT");
+  await expect(details).toContainText("S̅=0");
+  await expect(details).toContainText("R̅=1");
+
+  await toggle.click();
+  await expect(page.getByTestId("sequence-details-sequence-0-1")).toHaveCount(0);
 });
 
 test("chip state reset control is available beside verification actions", async ({ page }) => {
