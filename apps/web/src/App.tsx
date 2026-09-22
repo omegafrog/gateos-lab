@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -112,6 +113,14 @@ interface WireGestureCandidate {
   pointerId: number;
   clientX: number;
   clientY: number;
+}
+
+interface CanvasContextMenu {
+  kind: "component" | "wire";
+  targetId: string;
+  x: number;
+  y: number;
+  label: string;
 }
 
 interface PanState {
@@ -911,6 +920,8 @@ export function App() {
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
+  const [canvasContextMenu, setCanvasContextMenu] =
+    useState<CanvasContextMenu | null>(null);
   const [inspectionPath, setInspectionPath] = useState<string[]>([]);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [interfaceDrag, setInterfaceDrag] =
@@ -1614,6 +1625,7 @@ export function App() {
       }
 
       if (event.key === "Escape") {
+        setCanvasContextMenu(null);
         setPendingPin(null);
         setWirePointer(null);
         wireDraftStartRef.current = null;
@@ -2497,18 +2509,11 @@ export function App() {
       connections: current.connections.filter((connection) => connection.id !== id),
     }));
     setSelectedConnection((current) => (current === id ? null : current));
+    setCanvasContextMenu(null);
   }
 
-  function removeSelectedInstance(): void {
-    if (isInspectingNested) return;
-    const ids = new Set(
-      selectedInstances.length > 0
-        ? selectedInstances
-        : selectedInstance
-          ? [selectedInstance]
-          : [],
-    );
-    if (ids.size === 0) return;
+  function removeInstances(ids: ReadonlySet<string>): void {
+    if (isInspectingNested || ids.size === 0) return;
 
     updateCircuit((current) => ({
       ...current,
@@ -2529,6 +2534,60 @@ export function App() {
     }));
     setSelectedInstance(null);
     setSelectedInstances([]);
+    setSelectedConnection(null);
+    setCanvasContextMenu(null);
+  }
+
+  function removeSelectedInstance(): void {
+    const ids = new Set(
+      selectedInstances.length > 0
+        ? selectedInstances
+        : selectedInstance
+          ? [selectedInstance]
+          : [],
+    );
+    removeInstances(ids);
+  }
+
+  function openComponentContextMenu(
+    event: ReactMouseEvent<SVGGElement>,
+    instanceId: string,
+    label: string,
+  ): void {
+    if (isInspectingNested || testRunning) return;
+    event.preventDefault();
+    event.stopPropagation();
+    clearPendingWireGesture();
+    setSelectedConnection(null);
+    setSelectedInstance(instanceId);
+    setSelectedInstances([instanceId]);
+    setCanvasContextMenu({
+      kind: "component",
+      targetId: instanceId,
+      x: event.clientX,
+      y: event.clientY,
+      label,
+    });
+  }
+
+  function openWireContextMenu(
+    event: ReactMouseEvent<SVGPathElement>,
+    connectionId: string,
+  ): void {
+    if (isInspectingNested || testRunning) return;
+    event.preventDefault();
+    event.stopPropagation();
+    clearPendingWireGesture();
+    setSelectedInstance(null);
+    setSelectedInstances([]);
+    setSelectedConnection(connectionId);
+    setCanvasContextMenu({
+      kind: "wire",
+      targetId: connectionId,
+      x: event.clientX,
+      y: event.clientY,
+      label: "Wire",
+    });
   }
 
   function copySelection(): void {
@@ -2791,6 +2850,7 @@ export function App() {
     event: ReactPointerEvent<SVGGElement>,
     instanceId: string,
   ): void {
+    if (event.button !== 0) return;
     if (!circuit || !challenge || testRunning || isInspectingNested) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -3978,9 +4038,14 @@ export function App() {
             }}
             onClick={() => {
               if (drag || interfaceDrag || pan || pendingPin) return;
+              setCanvasContextMenu(null);
               setSelectedInstance(null);
               setSelectedInstances([]);
               setSelectedConnection(null);
+            }}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              setCanvasContextMenu(null);
             }}
           >
             <rect
@@ -4052,6 +4117,9 @@ export function App() {
                       );
                     }}
                     onPointerMove={moveDrag}
+                    onContextMenu={(event) =>
+                      openWireContextMenu(event, connection.id)
+                    }
                   />
                   {(connection.route ?? []).map((node, nodeIndex) => (
                     <circle
@@ -4447,6 +4515,13 @@ export function App() {
                   data-position-x={position.x}
                   data-position-y={position.y}
                   onPointerDown={(event) => beginDrag(event, instance.id)}
+                  onContextMenu={(event) =>
+                    openComponentContextMenu(
+                      event,
+                      instance.id,
+                      componentDisplayName(spec),
+                    )
+                  }
                   onDoubleClick={(event) => {
                     event.stopPropagation();
                     enterComposite(instance.id);
@@ -5307,6 +5382,39 @@ export function App() {
             ))}
         </div>
       </aside>
+
+      {canvasContextMenu ? (
+        <div
+          className="canvas-context-menu"
+          data-testid="canvas-context-menu"
+          role="menu"
+          style={{
+            left: Math.min(canvasContextMenu.x, window.innerWidth - 190),
+            top: Math.min(canvasContextMenu.y, window.innerHeight - 96),
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <div className="canvas-context-menu-title">
+            {canvasContextMenu.label}
+          </div>
+          <button
+            type="button"
+            role="menuitem"
+            className="danger"
+            data-testid={`context-delete-${canvasContextMenu.kind}`}
+            onClick={() => {
+              if (canvasContextMenu.kind === "wire") {
+                removeConnection(canvasContextMenu.targetId);
+              } else {
+                removeInstances(new Set([canvasContextMenu.targetId]));
+              }
+            }}
+          >
+            Delete {canvasContextMenu.kind}
+          </button>
+        </div>
+      ) : null}
 
       {stageCelebration ? (
         <StageCompletionReveal
