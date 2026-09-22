@@ -4940,7 +4940,7 @@ export function App() {
                   ].join(" ")}
                 >
                   <span className="test-case-number">
-                    S{index + 1}
+                    E{index + 1}
                   </span>
                   <div className="sequence-expect-label">
                     <small>CHECK</small>
