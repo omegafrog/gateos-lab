@@ -901,9 +901,9 @@ const CURRICULUM_STAGES: readonly CurriculumStage[] = [
   {
     id: "cpu",
     title: "CPU Datapath",
-    description: "ALU, Register File, write-back datapath를 연결합니다.",
+    description: "Logic Unit, Zero flag, ALU, Register File, write-back datapath를 연결합니다.",
     startIndex: 20,
-    endIndex: 27,
+    endIndex: 25,
   },
 ];
 
