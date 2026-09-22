@@ -406,7 +406,6 @@ describe("extended curriculum", () => {
       "18-decoder2to4.challenge.json",
       "19-ram4.challenge.json",
       "20-ram16.challenge.json",
-      "21-ram64.challenge.json",
       "22-and4.challenge.json",
       "23-or4.challenge.json",
       "24-xor4.challenge.json",
@@ -431,7 +430,6 @@ describe("extended curriculum", () => {
       "17-program-counter4.challenge.json",
       "19-ram4.challenge.json",
       "20-ram16.challenge.json",
-      "21-ram64.challenge.json",
       "27-register-file4.challenge.json",
       "28-register-transfer4.challenge.json",
       "29-alu-datapath4.challenge.json",
@@ -502,17 +500,14 @@ describe("extended curriculum", () => {
     ]);
   });
 
-  it("keeps RAM64 hierarchical and introduces CPU datapath capabilities", () => {
-    const ram64 = readChallenge("21-ram64.challenge.json");
+  it("moves from RAM16 directly into CPU datapath capabilities", () => {
+    const ram16 = readChallenge("20-ram16.challenge.json");
     const alu = readChallenge("26-alu4.challenge.json");
     const registerFile = readChallenge("27-register-file4.challenge.json");
     const transfer = readChallenge("28-register-transfer4.challenge.json");
     const datapath = readChallenge("29-alu-datapath4.challenge.json");
 
-    expect(ram64.interface.inputs.find((pin) => pin.id === "addr")?.width).toBe(6);
-    expect(ram64.allowedComponents).toContain("user.ram16");
-    expect(ram64.allowedComponents).not.toContain("builtin.ram");
-    expect(ram64.unlocks).toContain("logic.and4");
+    expect(ram16.unlocks).toContain("logic.and4");
 
     const opTable = alu.referenceTables?.find((table) => table.id === "opcodes");
     expect(opTable?.rows).toEqual(
@@ -548,21 +543,22 @@ describe("extended curriculum", () => {
     expect(datapath.validators.some((validator) => validator.type === "sequence")).toBe(true);
   });
 
-  it("loads the guided curriculum in order through challenge 29", () => {
+  it("loads the guided curriculum in order through 28 focused challenges", () => {
     const manifest = readManifest();
-    expect(manifest.challenges).toHaveLength(29);
-    expect(manifest.challenges[20]).toEqual({
-      id: "memory.ram64",
-      file: "21-ram64.challenge.json",
+    expect(manifest.challenges).toHaveLength(28);
+    expect(manifest.challenges[19]).toEqual({
+      id: "memory.ram16",
+      file: "20-ram16.challenge.json",
     });
-    expect(manifest.challenges[25]).toEqual({
+    expect(manifest.challenges[24]).toEqual({
       id: "arithmetic.alu4",
       file: "26-alu4.challenge.json",
     });
-    expect(manifest.challenges[28]).toEqual({
+    expect(manifest.challenges[27]).toEqual({
       id: "cpu.alu-datapath4",
       file: "29-alu-datapath4.challenge.json",
     });
+    expect(manifest.challenges.some((entry) => entry.id === "memory.ram64")).toBe(false);
     expect(manifest.title).toContain("CPU Datapath");
   });
 });
