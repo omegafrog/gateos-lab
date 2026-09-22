@@ -60,6 +60,7 @@ export interface ChallengeReferenceTableColumn {
 export interface ChallengeReferenceTable {
   id: string;
   title: string;
+  kind?: "state" | "operation" | "address";
   description?: string;
   timing?: string;
   columns: readonly ChallengeReferenceTableColumn[];
