@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "memory.ram16",
   "title": "RAM16 — 16 words × 4 bits",
-  "description": "이전에 만든 RAM4 네 개를 계층적으로 묶어 16-word RAM을 만드세요. ADDR[1:0]은 bank 내부 word를, ADDR[3:2]는 네 RAM4 bank 중 하나를 선택합니다.",
+  "description": "16개의 4-bit word를 저장하는 RAM을 만드세요. ADDR[3:0]은 0~15 중 현재 읽을 word를 고르며, Q는 clock 없이도 항상 RAM[ADDR]를 보여줍니다. LOAD=1인 rising edge에서만 현재 ADDR가 가리키는 한 word에 D를 저장합니다. 구현할 때는 ADDR[3:2]로 RAM4 bank를 고르고 ADDR[1:0]을 그 bank 내부 주소로 사용합니다.",
   "interface": {
     "inputs": [
       {
@@ -246,78 +246,167 @@
   ],
   "referenceTables": [
     {
-      "id": "address-hierarchy",
-      "title": "RAM16 주소 계층",
-      "description": "4-bit 주소를 상위 2-bit bank 선택과 하위 2-bit word 선택으로 나눕니다.",
+      "id": "memory-operation",
+      "title": "RAM16 읽기 / 쓰기 동작",
+      "kind": "operation",
+      "description": "RAM16은 일반 조합논리 진리표로 표현할 수 없습니다. Q는 현재 메모리 상태 RAM[ADDR]에 의존하고, 메모리 내용은 rising edge에서만 바뀝니다. LOAD는 읽기 허가가 아니라 쓰기 허가입니다.",
+      "timing": "Read: ADDR가 바뀌면 Q가 선택된 word 값으로 즉시 바뀝니다. Write: LOAD=1인 rising edge(↑)에서만 RAM[ADDR] ← D가 일어납니다.",
       "columns": [
+        {
+          "id": "load",
+          "label": "LOAD",
+          "group": "input"
+        },
         {
           "id": "addr",
           "label": "ADDR[3:0]",
           "group": "input"
         },
         {
-          "id": "bank",
+          "id": "clk",
+          "label": "CLK",
+          "group": "input"
+        },
+        {
+          "id": "d",
+          "label": "D[3:0]",
+          "group": "input"
+        },
+        {
+          "id": "effect",
+          "label": "메모리 변화",
+          "group": "note"
+        },
+        {
+          "id": "q",
+          "label": "Q[3:0]",
+          "group": "output"
+        }
+      ],
+      "rows": [
+        {
+          "load": "0",
+          "addr": "aaaa",
+          "clk": "—",
+          "d": "xxxx",
+          "effect": "변화 없음",
+          "q": "RAM[aaaa]"
+        },
+        {
+          "load": "0",
+          "addr": "aaaa",
+          "clk": "↑",
+          "d": "xxxx",
+          "effect": "변화 없음",
+          "q": "RAM[aaaa]"
+        },
+        {
+          "load": "1",
+          "addr": "aaaa",
+          "clk": "↑ 없음",
+          "d": "dddd",
+          "effect": "변화 없음",
+          "q": "RAM[aaaa]"
+        },
+        {
+          "load": "1",
+          "addr": "aaaa",
+          "clk": "↑",
+          "d": "dddd",
+          "effect": "RAM[aaaa] ← dddd",
+          "q": "dddd (edge 후)"
+        }
+      ],
+      "notes": [
+        "LOAD=0이어도 읽기는 계속 됩니다. LOAD는 Q를 끄는 신호가 아닙니다.",
+        "D는 write가 일어나는 rising edge에서만 저장값에 영향을 줍니다.",
+        "쓰기 직후에도 같은 ADDR를 유지하면 비동기 read 경로 때문에 Q에서 방금 저장한 값이 보입니다."
+      ]
+    },
+    {
+      "id": "address-hierarchy",
+      "title": "RAM16 주소 해석",
+      "kind": "address",
+      "description": "전체 4-bit 주소는 그대로 0~15 중 한 word를 가리킵니다. 구현 내부에서만 상위 2-bit를 bank 번호, 하위 2-bit를 그 bank 안의 word 번호로 나눕니다.",
+      "columns": [
+        {
+          "id": "range",
+          "label": "전체 ADDR",
+          "group": "input"
+        },
+        {
+          "id": "bankBits",
           "label": "ADDR[3:2]",
+          "group": "input"
+        },
+        {
+          "id": "bank",
+          "label": "선택 bank",
           "group": "state"
         },
         {
-          "id": "word",
+          "id": "wordBits",
           "label": "ADDR[1:0]",
-          "group": "state"
+          "group": "input"
         },
         {
           "id": "meaning",
-          "label": "선택 위치",
+          "label": "실제 위치",
           "group": "note"
         }
       ],
       "rows": [
         {
-          "addr": "00ww",
-          "bank": "00",
-          "word": "ww",
-          "meaning": "RAM4 bank 0의 word ww"
+          "range": "0000 ~ 0011",
+          "bankBits": "00",
+          "bank": "RAM4 #0",
+          "wordBits": "00 ~ 11",
+          "meaning": "전체 주소 0~3"
         },
         {
-          "addr": "01ww",
-          "bank": "01",
-          "word": "ww",
-          "meaning": "RAM4 bank 1의 word ww"
+          "range": "0100 ~ 0111",
+          "bankBits": "01",
+          "bank": "RAM4 #1",
+          "wordBits": "00 ~ 11",
+          "meaning": "전체 주소 4~7"
         },
         {
-          "addr": "10ww",
-          "bank": "10",
-          "word": "ww",
-          "meaning": "RAM4 bank 2의 word ww"
+          "range": "1000 ~ 1011",
+          "bankBits": "10",
+          "bank": "RAM4 #2",
+          "wordBits": "00 ~ 11",
+          "meaning": "전체 주소 8~11"
         },
         {
-          "addr": "11ww",
-          "bank": "11",
-          "word": "ww",
-          "meaning": "RAM4 bank 3의 word ww"
+          "range": "1100 ~ 1111",
+          "bankBits": "11",
+          "bank": "RAM4 #3",
+          "wordBits": "00 ~ 11",
+          "meaning": "전체 주소 12~15"
         }
       ],
       "notes": [
-        "Split4로 ADDR를 B0~B3로 나눈 뒤 Join2 두 개로 low/high address를 만듭니다.",
-        "RAM16도 저장 원리는 새롭지 않습니다. RAM4를 한 단계 더 계층적으로 조합한 것입니다."
+        "Split4에서 B0가 LSB, B3가 MSB입니다. LOW = {B1,B0}, HIGH = {B3,B2}가 되도록 Join2에 연결합니다.",
+        "HIGH는 어떤 RAM4 bank가 write/read 대상인지 고르고, LOW는 네 RAM4 모두의 내부 ADDR로 들어갑니다.",
+        "Read용 MUX tree와 write용 Decoder가 같은 HIGH 주소를 사용해야 같은 bank를 읽고 쓰게 됩니다."
       ]
     }
   ],
   "hints": [
     {
       "level": 1,
-      "title": "주소를 bank와 word로 나누세요",
-      "body": "16개 위치를 한 번에 생각하지 말고, RAM4 네 개 × 각 4개 word로 생각하세요. 하위 2-bit는 bank 내부 주소이고 상위 2-bit는 bank 번호입니다."
+      "title": "먼저 주소의 의미를 분리하세요",
+      "body": "ADDR는 하나의 4-bit word 번호입니다. 내부 구현에서만 상위 2-bit는 bank(0~3), 하위 2-bit는 그 bank 안의 word(0~3)로 나눠 생각하세요."
     },
     {
       "level": 2,
-      "title": "Write는 bank 하나만, Read는 bank 하나를 선택",
-      "body": "상위 주소를 Decoder2to4에 넣어 LOAD를 bank별로 gate하고, 하위 주소는 RAM4 네 개에 공통으로 넣으세요. 네 RAM4 출력은 MUX4 세 개로 선택합니다."
+      "title": "Read와 Write는 같은 주소를 다른 방식으로 사용합니다",
+      "body": "LOW 주소는 RAM4 네 개에 공통으로 들어갑니다. HIGH 주소는 write 때 Decoder로 bank 하나의 LOAD만 켜고, read 때 MUX tree로 bank 하나의 Q만 선택합니다. D와 CLK는 네 bank에 공통입니다."
     },
     {
       "level": 3,
-      "title": "구체적인 연결",
-      "body": "ADDR B0/B1→Join2 LOW→모든 RAM4.ADDR, B2/B3→Join2 HIGH→Decoder. LOAD·Y0~Y3→RAM4 0~3 LOAD, D/CLK는 공통. 출력은 bank0/1을 B2로, bank2/3을 B2로 선택한 뒤 두 결과를 B3로 최종 선택하세요."
+      "title": "구체적인 배선",
+      "body": "Split4의 B0,B1을 Join2의 b0,b1에 넣어 LOW를 만들고 모든 RAM4.ADDR에 연결하세요. B2,B3을 다른 Join2의 b0,b1에 넣어 HIGH를 만들고 Decoder2to4에 연결합니다. 외부 LOAD와 Decoder Y0~Y3를 각각 AND해 각 RAM4.LOAD로 보내고, D/CLK는 공통 연결합니다. 읽기 MUX tree는 B2로 bank0/1 및 bank2/3을 각각 고른 뒤 B3로 두 결과 중 하나를 고릅니다."
     }
   ]
 }
