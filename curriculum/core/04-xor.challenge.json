@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.xor",
   "title": "XOR",
-  "description": "두 입력이 서로 다를 때만 1이 되는 XOR를 구현하세요. XOR를 단순한 게이트 하나가 아니라 ‘불일치 검출’이자 binary addition의 SUM 함수로 이해하는 단계입니다.",
+  "description": "NOT, AND, OR을 사용해 XOR을 만드세요. XOR은 ‘두 입력이 서로 다를 때만 1’이며, 뒤에서 binary addition의 SUM bit가 되는 중요한 함수입니다.",
   "interface": {
     "inputs": [
       {
@@ -85,18 +85,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "서로 다를 때만 1",
-      "body": "XOR는 A=1,B=0 또는 A=0,B=1인 두 경우를 합친 논리입니다."
+      "title": "1이 되는 두 경우를 분리하세요",
+      "body": "XOR은 01과 10에서만 1입니다. 이 두 input pattern을 각각 검출하는 식을 먼저 생각하세요."
     },
     {
       "level": 2,
-      "title": "두 경로 만들기",
-      "body": "A AND NOT B 경로와 NOT A AND B 경로를 각각 만든 뒤 두 결과를 OR로 합쳐보세요."
+      "title": "두 minterm을 OR로 합치기",
+      "body": "A·¬B와 ¬A·B를 각각 만들고 두 결과를 OR하면 XOR이 됩니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "A와 B를 각각 한 번씩 반전해 A·B̅, A̅·B를 두 AND로 만들고, 두 AND 출력을 OR에 넣어 OUT으로 연결하세요."
+      "title": "배선 확인",
+      "body": "A/B의 반전 신호를 준비한 뒤 AND 두 개로 A·¬B, ¬A·B를 만들고, 두 AND 출력을 OR해 OUT으로 보내세요."
     }
   ]
 }
