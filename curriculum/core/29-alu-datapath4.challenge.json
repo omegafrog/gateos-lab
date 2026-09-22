@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "cpu.alu-datapath4",
   "title": "Register → ALU → Register Datapath",
-  "description": "Register File에서 두 operand를 읽고 ALU가 계산한 뒤 결과를 다시 destination register에 write-back하는 4-bit CPU datapath를 구현하세요. 한 cycle을 state read → combinational execute/select → state write로 바라보고 datapath와 control의 역할을 분리하는 것이 최종 목표입니다.",
+  "description": "Register File의 두 source를 ALU에 넣고 결과를 다시 destination register로 write-back하는 CPU형 datapath를 만드세요. 한 cycle을 state read → combinational execute/select → rising-edge commit으로 추적할 수 있어야 합니다.",
   "interface": {
     "inputs": [
       {
@@ -271,8 +271,8 @@
     {
       "id": "datapath-control",
       "title": "Datapath write-back 제어",
-      "description": "Register File의 두 출력은 항상 ALU 입력으로 연결되고, write-back source만 LOAD/EXEC에 따라 달라집니다.",
-      "timing": "LOAD 또는 EXEC가 1인 rising edge에서 WADDR Register가 갱신됩니다.",
+      "description": "이 표는 gate truth table이 아니라 datapath control contract입니다. control 조합마다 어떤 write source가 선택되고 register state가 갱신되는지 추적하세요.",
+      "timing": "RA/RB/OP 변화는 cycle 안에서 combinational하게 전파됩니다. Register File write는 write-back data와 control이 안정된 뒤 rising edge에서 commit됩니다.",
       "columns": [
         {
           "id": "load",
@@ -331,18 +331,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "CPU datapath의 핵심 고리",
-      "body": "Register File에서 두 값을 읽고 ALU가 계산한 결과를 다시 Register File에 쓰는 순환 경로가 CPU datapath의 중심입니다."
+      "title": "한 cycle을 세 구간으로 나누세요",
+      "body": "먼저 RA/RB가 current register state를 읽고, 그다음 ALU와 write-back MUX가 결과를 계산하며, 마지막 rising edge에서만 destination state가 바뀝니다."
     },
     {
       "level": 2,
-      "title": "read → execute → write-back",
-      "body": "RF.QA/QB를 ALU.A/B로 연결하고 ALU.OUT을 write-back MUX에 넣으세요. 외부 DATA는 load용 다른 입력입니다."
+      "title": "datapath와 control을 분리하세요",
+      "body": "Register File→ALU→write-back은 가능한 data path입니다. OP, LOAD, EXEC는 그 경로에서 어떤 연산/소스/write를 활성화할지 정하는 control입니다."
     },
     {
       "level": 3,
-      "title": "구체적인 연결",
-      "body": "RF.RADDR_A=RA, RADDR_B=RB, WADDR=WADDR, QA/QB→ALU.A/B, OP→ALU.OP. MUX(A=DATA,B=ALU.OUT,SEL=EXEC)→RF.D, OR(LOAD,EXEC)→RF.WE, ALU.OUT/ZERO와 RF.QA/QB를 출력에 연결하세요."
+      "title": "write-back loop를 닫으세요",
+      "body": "QA/QB→ALU.A/B, ALU.OUT→RESULT와 write-back MUX 후보, MUX.OUT→RegisterFile.D로 연결하세요. WADDR와 write enable을 준비한 뒤 clock edge가 실제 state transition을 만듭니다."
     }
   ]
 }
