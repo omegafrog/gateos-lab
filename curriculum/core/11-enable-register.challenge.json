@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.enable-register",
   "title": "1-bit Enable Register",
-  "description": "D Flip-Flop과 MUX를 이용해 LOAD=1일 때만 새 D를 저장하고, LOAD=0이면 이전 Q를 다시 입력으로 되먹임해 유지하는 1-bit Register를 만드세요.",
+  "description": "D Flip-Flop과 MUX를 이용해 LOAD=1인 rising edge에서만 새 D를 저장하는 1-bit Enable Register를 구현하세요. 이 과제의 LOAD는 ISA의 load 명령이 아니라 register write-enable이며, Q hold와 state update를 control로 선택하는 것이 핵심입니다.",
   "interface": {
     "inputs": [
       {
