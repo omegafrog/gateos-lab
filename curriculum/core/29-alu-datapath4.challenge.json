@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "cpu.alu-datapath4",
   "title": "Register → ALU → Register Datapath",
-  "description": "Register File의 두 read port를 ALU에 연결하고, ALU 결과를 다시 Register File에 write-back하는 4-bit datapath를 만드세요. LOAD는 외부 DATA를 저장하고 EXEC는 ALU 결과를 저장합니다.",
+  "description": "Register File에서 두 operand를 읽고 ALU가 계산한 뒤 결과를 다시 destination register에 write-back하는 4-bit CPU datapath를 구현하세요. 한 cycle을 state read → combinational execute/select → state write로 바라보고 datapath와 control의 역할을 분리하는 것이 최종 목표입니다.",
   "interface": {
     "inputs": [
       {
