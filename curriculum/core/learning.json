@@ -44,9 +44,9 @@
     "cpu": {
       "why": "지금까지 만든 계산기와 저장소를 따로 두면 아직 CPU가 아닙니다. 이 챕터에서는 control signal이 데이터가 흐를 경로를 선택하고, Register에서 읽은 값을 ALU가 계산한 뒤 다시 Register로 저장하는 CPU의 핵심 순환 구조를 만듭니다.",
       "outcomes": [
-        "word-level AND/OR/XOR를 하나의 Logic Unit으로 묶기",
         "multi-bit 결과를 ZERO 같은 1-bit status flag로 축약하기",
-        "OP control로 논리/산술 결과를 선택하는 ALU 구성하기",
+        "여러 연산 결과를 동시에 준비하고 OP control로 하나를 선택하는 ALU 구성하기",
+        "word-level 기본 연산 부품과 직접 만든 산술 부품을 함께 재사용하기",
         "Register File과 ALU를 연결해 read→execute→write-back datapath 구성하기"
       ],
       "connectsTo": "완성된 datapath에 instruction decoder와 control unit을 붙이면 명령어에 따라 자동으로 움직이는 CPU로 확장할 수 있습니다."
@@ -471,25 +471,25 @@
         "네 bit 중 하나를 OR tree에서 빠뜨리는 것",
         "ZERO를 4-bit 0000 값 자체와 같은 신호라고 생각하는 것"
       ],
-      "buildsToward": "다음 ALU4에서 Logic Unit4 또는 Adder4에서 선택된 최종 OUT을 Zero Detector에 넣어 연산 결과에 대한 ZERO flag를 생성합니다."
+      "buildsToward": "다음 ALU4에서는 제공되는 AND4/OR4/XOR4와 앞에서 만든 Adder4의 결과 중 하나를 OP로 선택하고, 최종 OUT을 Zero Detector에 넣어 ZERO flag를 생성합니다."
     },
     "arithmetic.alu4": {
-      "motivation": "ALU는 CPU의 계산 중심입니다. 앞에서 만든 Logic Unit4가 AND/OR/XOR 후보를, Adder4가 ADD 후보를 제공하고 OP라는 control signal이 그중 하나를 선택합니다. 반복된 bitwise 회로 제작 대신 여기서부터는 여러 기능 블록을 하나의 datapath로 조합하는 데 집중합니다.",
-      "mentalModel": "Logic Unit과 Adder가 같은 A/B를 동시에 계산하고, MUX tree가 OP에 따라 네 후보 중 하나를 최종 OUT으로 선택합니다.",
+      "motivation": "ALU는 CPU의 계산 중심입니다. 여기서는 이미 의미를 아는 bitwise AND/OR/XOR를 다시 4-bit로 손배선하지 않고 제공 부품으로 사용합니다. 학습 초점은 여러 연산 결과를 동시에 준비한 뒤 OP라는 control signal로 하나를 선택해 하나의 datapath로 만드는 데 있습니다.",
+      "mentalModel": "AND4, OR4, XOR4, Adder4가 같은 A/B를 동시에 계산하고 MUX tree가 OP에 따라 네 후보 중 하나를 최종 OUT으로 선택합니다.",
       "howItWorks": [
-        "Logic Unit4는 AND/OR/XOR를 동시에 계산하고 Adder4는 ADD를 계산합니다. OP는 이미 계산된 네 후보 중 어느 결과를 사용할지 정합니다.",
-        "OP는 데이터를 직접 변형하는 값이 아니라 데이터 경로를 선택하는 control signal입니다.",
-        "ZERO 같은 상태 flag는 특정 연산기 출력이 아니라 최종 선택된 OUT을 기준으로 계산해야 현재 명령의 결과와 일치합니다."
+        "4-bit AND/OR/XOR는 각 bit에 같은 1-bit 논리를 병렬 적용한 것뿐이므로 여기서는 기본 word-level 부품으로 제공합니다.",
+        "ALU에서 새로 배우는 핵심은 여러 연산 결과를 동시에 준비하고 OP라는 control signal로 원하는 결과만 최종 출력에 연결하는 것입니다.",
+        "ZERO 같은 상태 flag는 특정 연산기 출력이 아니라 최종 선택된 OUT을 기준으로 계산해야 현재 실행 중인 연산과 일치합니다."
       ],
       "applications": [
         "CPU instruction의 arithmetic/logic 실행",
-        "비교를 위한 XOR/ADD 결과와 ZERO flag",
+        "opcode/control signal로 datapath 선택",
         "Register-to-Register 계산의 execute stage"
       ],
       "commonMistakes": [
-        "Logic Unit4 내부 연산 선택과 ALU의 최종 OP 선택을 같은 문제로 혼동하는 것",
+        "bitwise gate 내부를 다시 Split/gate/Join으로 재구현하느라 ALU의 핵심인 선택 구조를 놓치는 것",
         "OP bit 순서를 잘못 연결해 opcode와 연산 매핑이 바뀌는 것",
-        "ZERO를 최종 OUT이 아닌 Logic Unit이나 Adder의 특정 출력에서 계산하는 것"
+        "ZERO를 최종 OUT이 아닌 특정 연산기 출력에서 계산하는 것"
       ],
       "buildsToward": "Register File의 두 read port를 ALU에 연결하고 결과를 다시 Register에 쓰는 최종 CPU datapath의 execute 블록이 됩니다."
     },
@@ -552,26 +552,6 @@
         "EXEC/LOAD 우선순위와 write-data MUX 선택이 서로 일치하지 않는 것"
       ],
       "buildsToward": "여기까지 오면 NAND에서 시작한 논리, 상태, memory, ALU, Register File이 하나의 CPU datapath로 이어집니다. 다음 확장은 instruction decode와 control unit을 붙여 이 datapath를 자동 구동하는 것입니다."
-    },
-    "logic.logic-unit4": {
-      "motivation": "AND4, OR4, XOR4를 각각 따로 만드는 것은 같은 Split→1-bit gate 반복→Join 패턴을 세 번 다시 하는 작업에 가깝습니다. Logic Unit4에서는 입력 bus를 한 번만 분해하고 세 논리 연산을 함께 계산하면서, word-level 연산을 하나의 재사용 가능한 블록으로 묶는 방법을 익힙니다.",
-      "mentalModel": "A와 B의 각 bit 쌍은 서로 독립적인 작은 logic slice입니다. 한 slice에서 AND/OR/XOR 세 결과를 동시에 만들고, 네 slice의 같은 종류 결과를 다시 4-bit word로 묶습니다.",
-      "howItWorks": [
-        "AND, OR, XOR는 모두 같은 bit 위치끼리 독립적으로 계산되며 bit 사이에 carry나 상태 전달이 없습니다.",
-        "A와 B를 한 번 Split하면 각 A[i], B[i]를 AND/OR/XOR 세 gate가 공유할 수 있어 세 개의 별도 4-bit 회로를 반복 제작할 필요가 없습니다.",
-        "세 4-bit 결과를 동시에 출력해 두면 다음 ALU에서 OP가 어떤 논리 결과를 사용할지만 선택하면 됩니다."
-      ],
-      "applications": [
-        "ALU의 논리 연산 후보를 한 블록에서 제공",
-        "bit mask, flag 조작, toggle 같은 word-level 연산",
-        "여러 연산기가 입력 bus를 공유하는 datapath 구조"
-      ],
-      "commonMistakes": [
-        "4-bit word 전체를 하나의 boolean 값처럼 처리해 1-bit 결과를 만들려는 것",
-        "A[i]와 B[j]처럼 서로 다른 bit 위치를 교차 연결하는 것",
-        "AND/OR/XOR마다 A와 B를 별도로 Split해 불필요하게 같은 배선을 반복하는 것"
-      ],
-      "buildsToward": "다음 Zero Detector는 4-bit 결과를 하나의 status flag로 축약하고, ALU4는 Logic Unit4의 세 출력과 Adder4 결과를 OP로 선택합니다."
     }
   }
 }
