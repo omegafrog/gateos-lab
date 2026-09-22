@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "logic.or",
   "title": "OR",
-  "description": "지금까지 만든 NOT과 AND를 이용해 OR 게이트를 만드세요.",
+  "description": "이전에 만든 NOT과 AND를 이용해 OR를 구현하세요. 00에서만 0이 되는 truth table을 De Morgan 법칙과 실제 gate network 사이에서 번역하는 것이 핵심입니다.",
   "interface": {
     "inputs": [
       {
