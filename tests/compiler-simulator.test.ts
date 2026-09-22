@@ -306,6 +306,67 @@ describe("bus primitives", () => {
     expect(simulator.readOutput("out").toBinary()).toBe("1010");
   });
 
+  it("provides 4-bit AND OR and XOR as word-level primitives", () => {
+    const circuit: CircuitDefinition = {
+      schema: "gateos.circuit/v1",
+      id: "test.bitwise4-builtins",
+      name: "Bitwise4 Builtins",
+      pins: [
+        { id: "a", name: "A", direction: "input", width: 4 },
+        { id: "b", name: "B", direction: "input", width: 4 },
+        { id: "and", name: "AND", direction: "output", width: 4 },
+        { id: "or", name: "OR", direction: "output", width: 4 },
+        { id: "xor", name: "XOR", direction: "output", width: 4 },
+      ],
+      instances: [
+        { id: "and4", componentId: "builtin.and4" },
+        { id: "or4", componentId: "builtin.or4" },
+        { id: "xor4", componentId: "builtin.xor4" },
+      ],
+      connections: [
+        ...["and4", "or4", "xor4"].flatMap((instanceId) => [
+          {
+            id: `a-${instanceId}`,
+            from: { kind: "interface" as const, pinId: "a" },
+            to: { kind: "instance" as const, instanceId, pinId: "a" },
+          },
+          {
+            id: `b-${instanceId}`,
+            from: { kind: "interface" as const, pinId: "b" },
+            to: { kind: "instance" as const, instanceId, pinId: "b" },
+          },
+        ]),
+        {
+          id: "and-out",
+          from: { kind: "instance", instanceId: "and4", pinId: "out" },
+          to: { kind: "interface", pinId: "and" },
+        },
+        {
+          id: "or-out",
+          from: { kind: "instance", instanceId: "or4", pinId: "out" },
+          to: { kind: "interface", pinId: "or" },
+        },
+        {
+          id: "xor-out",
+          from: { kind: "instance", instanceId: "xor4", pinId: "out" },
+          to: { kind: "interface", pinId: "xor" },
+        },
+      ],
+    };
+
+    const simulator = new Simulator(
+      compileCircuit(circuit, createBuiltinComponentRegistry()),
+      createBuiltinPrimitiveRegistry(),
+    );
+    simulator.setInput("a", BitVector.fromBinary("1010"));
+    simulator.setInput("b", BitVector.fromBinary("1100"));
+    simulator.settle();
+
+    expect(simulator.readOutput("and").toBinary()).toBe("1000");
+    expect(simulator.readOutput("or").toBinary()).toBe("1110");
+    expect(simulator.readOutput("xor").toBinary()).toBe("0110");
+  });
+
   it("exposes fixed 1-bit and 4-bit constants", () => {
     const circuit: CircuitDefinition = {
       schema: "gateos.circuit/v1",
