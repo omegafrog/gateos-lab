@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "memory.ram4",
   "title": "RAM4 — 4 words × 4 bits",
-  "description": "4개의 4-bit Register를 사용해 4-word RAM을 만드세요. ADDR가 읽을 word를 선택하고, LOAD=1인 rising edge에서는 선택된 word 하나에만 D를 저장해야 합니다. 읽기는 ADDR 변경에 따라 즉시 바뀝니다.",
+  "description": "4개의 Register4를 하나의 4-word RAM처럼 보이게 구성하세요. 같은 ADDR가 write path에서는 Decoder로 저장 대상을 고르고 read path에서는 MUX로 읽을 word를 고르며, read는 조합식·write는 rising-edge state update라는 차이를 이해하는 것이 핵심입니다.",
   "interface": {
     "inputs": [
       {
