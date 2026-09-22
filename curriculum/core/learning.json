@@ -39,7 +39,7 @@
         "clocked write와 combinational read 구분하기",
         "작은 RAM을 bank로 묶어 주소 공간 확장하기"
       ],
-      "connectsTo": "주소 decode와 bank hierarchy 개념은 Register File과 더 큰 memory system, 향후 cache/memory map 설계로 이어집니다."
+      "connectsTo": "RAM16에서 익힌 주소 decode와 bank hierarchy는 더 큰 memory system에도 그대로 반복됩니다. 이제 같은 원리를 또 만드는 대신 Register File과 CPU datapath로 넘어갑니다."
     },
     "cpu": {
       "why": "지금까지 만든 계산기와 저장소를 따로 두면 아직 CPU가 아닙니다. 이 챕터에서는 control signal이 데이터가 흐를 경로를 선택하고, Register에서 읽은 값을 ALU가 계산한 뒤 다시 Register로 저장하는 CPU의 핵심 순환 구조를 만듭니다.",
@@ -431,7 +431,7 @@
         "write Decoder와 read MUX의 역할을 섞는 것",
         "주소 bit 순서를 잘못 써 저장 위치와 읽는 위치가 달라지는 것"
       ],
-      "buildsToward": "RAM16과 RAM64는 이 RAM4를 bank로 재사용해 주소를 상위/하위 부분으로 나누는 계층 설계를 연습합니다."
+      "buildsToward": "RAM16에서는 이 RAM4를 bank로 재사용해 주소를 상위/하위 부분으로 나누는 계층 설계를 완성합니다."
     },
     "memory.ram16": {
       "motivation": "RAM4를 네 배 복사해 16개의 word를 평평하게 직접 제어하면 주소 선택 배선이 금방 복잡해집니다. RAM16의 핵심은 4-bit 주소 하나를 그대로 0~15의 word 번호로 보면서, 내부 구현에서만 그 주소를 bank 번호와 bank 내부 번호로 나눠 작은 RAM을 재사용하는 것입니다.",
@@ -451,27 +451,7 @@
         "ADDR[3:2]와 ADDR[1:0]의 역할을 뒤집어 전체 주소 0~15의 순서가 뒤섞이는 것",
         "네 RAM4의 LOAD를 모두 동시에 켜거나 read MUX와 write Decoder에 서로 다른 bank bit를 사용해 다른 위치를 읽고 쓰는 것"
       ],
-      "buildsToward": "RAM64에서는 동일한 원리를 한 번 더 반복합니다. 상위 주소 일부로 큰 bank를 고르고 나머지 주소를 bank 내부에 전달하는 방식이 메모리 계층 확장의 기본 패턴이 됩니다."
-    },
-    "memory.ram64": {
-      "motivation": "RAM64는 memory hierarchy를 반복 적용해 규모를 키우는 연습입니다. 목적은 더 많은 선을 그리는 것이 아니라 작은 검증 블록을 계층적으로 재사용하면 복잡도가 관리된다는 설계 감각을 익히는 것입니다.",
-      "mentalModel": "RAM16 네 개의 bank입니다. 6-bit 주소의 상위 2-bit가 bank를, 하위 4-bit가 각 RAM16 내부 위치를 고릅니다.",
-      "howItWorks": [
-        "RAM64도 RAM16과 같은 주소 계층 원리를 한 단계 더 반복한 구조입니다.",
-        "상위 주소는 네 개의 RAM16 bank 중 하나를 선택하고, 나머지 주소는 선택된 bank 내부 위치를 가리킵니다.",
-        "메모리 크기가 커져도 read는 주소 선택, write는 선택된 위치의 상태 갱신이라는 기본 의미는 그대로 유지됩니다."
-      ],
-      "applications": [
-        "계층적 메모리 설계",
-        "bank selection과 memory map 이해",
-        "큰 시스템을 작은 reusable chip으로 조립"
-      ],
-      "commonMistakes": [
-        "6-bit 주소를 3+3처럼 잘못 나누는 것",
-        "모든 RAM16의 LOAD를 동시에 활성화하는 것",
-        "flat하게 64개 Register를 직접 배치해 hierarchy 목적을 잃는 것"
-      ],
-      "buildsToward": "이제 충분한 저장 구조를 만들었으므로 다음 챕터에서는 CPU가 word 단위 데이터를 실제로 계산하는 ALU와 Register File을 결합합니다."
+      "buildsToward": "여기서 메모리 계층의 핵심 패턴은 완성됩니다. 더 큰 RAM은 같은 bank 선택 원리를 반복하면 되므로, 다음 단계에서는 CPU가 word 단위 데이터를 계산하고 저장하는 ALU와 Register File로 넘어갑니다."
     },
     "logic.and4": {
       "motivation": "ALU는 4-bit word 전체에 bitwise 논리 연산을 수행해야 합니다. AND4는 1-bit gate를 word 전체에 병렬 적용하는 가장 단순한 word-level 연산입니다.",
