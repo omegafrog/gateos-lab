@@ -2764,8 +2764,6 @@ export function App() {
           event,
           wireCandidate.connectionId,
           wireCandidate.existingNodeIndex,
-          wireCandidate.clientX,
-          wireCandidate.clientY,
         );
       }
     }
