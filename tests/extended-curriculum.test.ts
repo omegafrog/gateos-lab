@@ -389,6 +389,14 @@ describe("extended curriculum", () => {
       expect(lesson, entry.id).toBeDefined();
       expect(lesson?.motivation.length, entry.id).toBeGreaterThan(80);
       expect(lesson?.mentalModel.length, entry.id).toBeGreaterThan(50);
+      expect(lesson?.formalModel.length, entry.id).toBeGreaterThanOrEqual(2);
+      expect(
+        lesson?.formalModel.every((item) => item.length > 8),
+        entry.id,
+      ).toBe(true);
+      expect(lesson?.designInvariants.length, entry.id).toBeGreaterThanOrEqual(2);
+      expect(lesson?.timingModel.length, entry.id).toBeGreaterThan(50);
+      expect(lesson?.engineeringNotes.length, entry.id).toBeGreaterThanOrEqual(2);
       expect(lesson?.howItWorks.length, entry.id).toBeGreaterThanOrEqual(3);
       expect(
         lesson?.howItWorks.every((paragraph) => paragraph.length > 35),
