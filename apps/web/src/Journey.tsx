@@ -187,13 +187,11 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
     title: "부품들이 CPU가 됩니다",
     statement: "PC, ALU, Register File과 데이터 선택 회로가 하나의 순환 경로로 합쳐집니다.",
     explanation:
-      "Register File이 두 값을 읽고 ALU가 계산합니다. 계산 결과는 write-back 경로를 통해 다시 Register File에 저장됩니다.",
+      "Logic Unit이 word-level AND/OR/XOR를 한 번에 제공하고 ALU가 산술 결과와 함께 선택합니다. Register File에서 읽은 값은 계산 후 write-back 경로로 다시 저장됩니다.",
     payoff: "여기서부터 소자 모음이 아니라 실제로 계산을 수행하는 CPU가 보이기 시작합니다.",
     artifact: "CPU Core",
     challengeIds: [
-      "logic.and4",
-      "logic.or4",
-      "logic.xor4",
+      "logic.logic-unit4",
       "logic.zero4",
       "arithmetic.alu4",
       "memory.register-file4",
