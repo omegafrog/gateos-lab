@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "memory.ram16",
   "title": "RAM16 — 16 words × 4 bits",
-  "description": "16개의 4-bit word를 저장하는 RAM을 만드세요. ADDR[3:0]은 0~15 중 현재 읽을 word를 고르며, Q는 clock 없이도 항상 RAM[ADDR]를 보여줍니다. LOAD=1인 rising edge에서만 현재 ADDR가 가리키는 한 word에 D를 저장합니다. 구현할 때는 ADDR[3:2]로 RAM4 bank를 고르고 ADDR[1:0]을 그 bank 내부 주소로 사용합니다.",
+  "description": "RAM4 네 개를 bank로 묶어 16개의 4-bit word를 저장하는 RAM16을 구현하세요. 4-bit ADDR 전체는 0~15의 word 번호이며, 내부에서만 상위 2-bit로 bank를 고르고 하위 2-bit로 bank 내부 word를 고르는 계층적 addressing을 사용합니다.",
   "interface": {
     "inputs": [
       {
