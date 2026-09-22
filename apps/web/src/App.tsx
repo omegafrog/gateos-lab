@@ -2971,9 +2971,8 @@ export function App() {
     let movingIds: string[];
     if (event.shiftKey) {
       movingIds = selectedInstances.includes(instanceId)
-        ? selectedInstances.filter((id) => id !== instanceId)
+        ? [...selectedInstances]
         : [...selectedInstances, instanceId];
-      if (movingIds.length === 0) movingIds = [instanceId];
     } else if (
       selectedInstances.includes(instanceId) &&
       selectedInstances.length > 1
@@ -4273,9 +4272,8 @@ export function App() {
               fill="transparent"
               pointerEvents="all"
               data-testid="canvas-pan-surface"
-              onPointerDown={beginPan}
-              onPointerMove={moveDrag}
               onPointerDown={beginCanvasGesture}
+              onPointerMove={moveDrag}
             />
             {(displayCircuit?.connections ?? []).map((connection) => {
               if (wireEndpointMove?.connectionId === connection.id) {
