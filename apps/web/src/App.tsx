@@ -948,6 +948,7 @@ export function App() {
   const wireEndpointMoveRef = useRef<WireEndpointMoveState | null>(null);
   const wireNodeMoveRef = useRef<WireNodeMoveState | null>(null);
   const wireGestureCandidateRef = useRef<WireGestureCandidate | null>(null);
+  const altPressedRef = useRef(false);
 
   useEffect(() => {
     async function loadCurriculum() {
@@ -1574,6 +1575,8 @@ export function App() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Alt") altPressedRef.current = true;
+
       const target = event.target as HTMLElement | null;
       if (
         target?.closest(
@@ -1629,8 +1632,16 @@ export function App() {
       }
     }
 
+    function handleKeyUp(event: KeyboardEvent): void {
+      if (event.key === "Alt") altPressedRef.current = false;
+    }
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [selectedInstance, selectedInstances, selectedConnection, challenge?.id, circuit]);
 
   if (loadError) {
@@ -3945,7 +3956,9 @@ export function App() {
                       beginWireDragCandidate(
                         event,
                         connection.id,
-                        event.altKey ? "move-node" : "branch",
+                        event.altKey || altPressedRef.current
+                          ? "move-node"
+                          : "branch",
                       );
                     }}
                   />
@@ -3962,8 +3975,12 @@ export function App() {
                         beginWireDragCandidate(
                           event,
                           connection.id,
-                          event.altKey ? "move-node" : "branch",
-                          event.altKey ? nodeIndex : undefined,
+                          event.altKey || altPressedRef.current
+                            ? "move-node"
+                            : "branch",
+                          event.altKey || altPressedRef.current
+                            ? nodeIndex
+                            : undefined,
                         );
                       }}
                     />
