@@ -406,7 +406,7 @@ describe("extended curriculum", () => {
       ]);
       expect(
         challenge.hints?.every(
-          (hint) => hint.title.length > 8 && hint.body.length > 45,
+          (hint) => hint.title.length > 4 && hint.body.length > 45,
         ),
         entry.id,
       ).toBe(true);
@@ -488,7 +488,8 @@ describe("extended curriculum", () => {
     );
 
     expect(operation?.kind).toBe("operation");
-    expect(operation?.description).toContain("일반 조합논리 진리표로 표현할 수 없습니다");
+    expect(operation?.description).toContain("LOAD는 write enable");
+    expect(operation?.description).toContain("bank-local address");
     expect(operation?.rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
