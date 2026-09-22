@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "routing.mux4",
   "title": "4-bit Multiplexer",
-  "description": "4-bit A와 B 중 하나의 word를 SEL로 선택하는 4-bit MUX를 구현하세요. 새 논리 함수보다 하나의 control signal이 여러 bit lane을 동시에 선택하고 bus의 bit order를 보존한다는 bus-wide routing 개념에 집중합니다.",
+  "description": "두 4-bit word A와 B 중 하나를 SEL로 선택하는 4-bit MUX를 만드세요. 새 논리 함수를 배우기보다 bus를 bit-slice로 다루고, 하나의 control이 word 전체를 일관되게 선택하게 만드는 연습입니다.",
   "interface": {
     "inputs": [
       {
@@ -121,18 +121,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "bus는 여러 개의 1-bit 신호입니다",
-      "body": "4-bit MUX는 새로운 논리 원리가 아니라 1-bit MUX 네 개가 같은 SEL을 공유하는 구조라고 생각해보세요."
+      "title": "word 전체가 같은 선택을 따라야 합니다",
+      "body": "A0/B0부터 A3/B3까지 네 bit pair를 각각 1-bit MUX로 고르되 SEL은 네 MUX가 모두 공유해야 합니다."
     },
     {
       "level": 2,
-      "title": "각 bit를 따로 선택하기",
-      "body": "A와 B를 각각 Split4로 나눈 뒤 같은 번호의 bit끼리 2-to-1 MUX에 넣고, 네 MUX 출력은 Join4로 다시 묶으세요."
+      "title": "Split → parallel select → Join",
+      "body": "A/B를 Split4로 나누고 같은 bit index끼리 MUX에 넣은 뒤, 네 출력을 같은 index로 Join4에 다시 묶으세요."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "A.B0/B.B0→MUX0, A.B1/B.B1→MUX1처럼 B0~B3를 각각 연결하고 모든 MUX의 SEL을 공통 SEL에 연결하세요. MUX0~3의 OUT을 Join4의 B0~B3에 연결하면 됩니다."
+      "title": "bit significance를 확인하세요",
+      "body": "B0는 LSB, B3는 MSB입니다. A.B0/B.B0→OUT.B0 … A.B3/B.B3→OUT.B3 순서를 보존하세요."
     }
   ]
 }
