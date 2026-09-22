@@ -171,6 +171,10 @@ interface VisualSequenceStep {
   step: SequenceStep;
 }
 
+interface VisualSequenceCheck extends VisualSequenceStep {
+  setupSteps: readonly VisualSequenceStep[];
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -940,6 +944,8 @@ export function App() {
   const [testResult, setTestResult] = useState<ChallengeRunResult | null>(null);
   const [testStates, setTestStates] = useState<Record<string, VisualTestState>>({});
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
+  const [expandedVerificationChecks, setExpandedVerificationChecks] =
+    useState<Set<string>>(() => new Set());
   const [testRunning, setTestRunning] = useState(false);
   const [revealedHintCount, setRevealedHintCount] = useState(0);
   const [loadError, setLoadError] = useState<string>("");
@@ -1083,6 +1089,7 @@ export function App() {
     setTestResult(null);
     setTestStates({});
     setActiveTestId(null);
+    setExpandedVerificationChecks(new Set());
     setTestRunning(false);
     setRevealedHintCount(0);
   }, [challenge?.id]);
@@ -1311,6 +1318,27 @@ export function App() {
 
     return steps;
   }, [challenge]);
+
+  const visualSequenceChecks = useMemo<VisualSequenceCheck[]>(() => {
+    const setupByValidator = new Map<number, VisualSequenceStep[]>();
+    const checks: VisualSequenceCheck[] = [];
+
+    for (const item of visualSequenceSteps) {
+      const setup = setupByValidator.get(item.validatorIndex) ?? [];
+      if ("expect" in item.step) {
+        checks.push({
+          ...item,
+          setupSteps: [...setup],
+        });
+        setupByValidator.set(item.validatorIndex, []);
+      } else {
+        setup.push(item);
+        setupByValidator.set(item.validatorIndex, setup);
+      }
+    }
+
+    return checks;
+  }, [visualSequenceSteps]);
 
   function applyTruthRow(
     inputs: Readonly<Record<string, number | string>>,
@@ -1704,12 +1732,9 @@ export function App() {
   const stageCompletedCount = stageChallenges.filter(({ item }) =>
     project.completed.includes(item.id),
   ).length;
-  const visualSequenceExpectSteps = visualSequenceSteps.filter(
-    (item) => "expect" in item.step,
-  );
   const visualVerificationItems = [
     ...visualTestCases.map((testCase) => testCase.id),
-    ...visualSequenceExpectSteps.map((step) => step.id),
+    ...visualSequenceChecks.map((step) => step.id),
   ];
   const passedVisualTests = visualVerificationItems.filter(
     (id) => testStates[id]?.status === "pass",
@@ -5097,7 +5122,7 @@ export function App() {
                 </div>
               );
             })}
-            {visualSequenceExpectSteps.map((sequenceStep, index) => {
+            {visualSequenceChecks.map((sequenceStep, index) => {
               const state =
                 testStates[sequenceStep.id] ?? { status: "idle" as const };
               const reveal =
@@ -5111,36 +5136,137 @@ export function App() {
                 ? formatSignals(step.expect)
                 : "hidden until execution";
 
+              const expanded = expandedVerificationChecks.has(
+                sequenceStep.id,
+              );
+
               return (
                 <div
                   key={sequenceStep.id}
                   className={[
-                    "test-case-row",
-                    "sequence-step-row",
-                    state.status,
-                    isActive ? "active" : "",
+                    "sequence-check",
+                    expanded ? "expanded" : "",
                   ].join(" ")}
                 >
-                  <span className="test-case-number">
-                    E{index + 1}
-                  </span>
-                  <div>
-                    <small>EXPECTED VALUE</small>
-                    <code>{expected}</code>
+                  <div
+                    className={[
+                      "test-case-row",
+                      "sequence-step-row",
+                      state.status,
+                      isActive ? "active" : "",
+                    ].join(" ")}
+                  >
+                    <span className="test-case-number">
+                      E{index + 1}
+                    </span>
+                    <div>
+                      <small>EXPECTED VALUE</small>
+                      <code>{expected}</code>
+                    </div>
+                    <div>
+                      <small>CURRENT VALUE</small>
+                      <code>
+                        {state.error ? state.error : formatActual(state.actual)}
+                      </code>
+                    </div>
+                    <span className="test-case-status">
+                      {state.status === "idle"
+                        ? "○"
+                        : state.status === "running"
+                          ? "▶"
+                          : state.status === "pass"
+                            ? "✓"
+                            : "✗"}
+                    </span>
+                    <button
+                      type="button"
+                      className="sequence-details-toggle"
+                      data-testid={`sequence-details-toggle-${sequenceStep.id}`}
+                      aria-expanded={expanded}
+                      aria-label={
+                        expanded ? "검증 입력과 동작 접기" : "검증 입력과 동작 펼치기"
+                      }
+                      onClick={() =>
+                        setExpandedVerificationChecks((current) => {
+                          const next = new Set(current);
+                          if (next.has(sequenceStep.id)) {
+                            next.delete(sequenceStep.id);
+                          } else {
+                            next.add(sequenceStep.id);
+                          }
+                          return next;
+                        })
+                      }
+                    >
+                      {expanded ? "▴" : "▾"}
+                    </button>
                   </div>
-                  <div>
-                    <small>CURRENT VALUE</small>
-                    <code>{state.error ? state.error : formatActual(state.actual)}</code>
-                  </div>
-                  <span className="test-case-status">
-                    {state.status === "idle"
-                      ? "○"
-                      : state.status === "running"
-                        ? "▶"
-                        : state.status === "pass"
-                          ? "✓"
-                          : "✗"}
-                  </span>
+
+                  {expanded ? (
+                    <div
+                      className="sequence-details"
+                      data-testid={`sequence-details-${sequenceStep.id}`}
+                    >
+                      <div className="sequence-details-header">
+                        <strong>이 검사까지 적용되는 입력 / 동작</strong>
+                        <span>
+                          {sequenceStep.setupSteps.length} step
+                          {sequenceStep.setupSteps.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      {reveal ? (
+                        <div className="sequence-operation-list">
+                          {sequenceStep.setupSteps.map((setupStep, setupIndex) => {
+                            const setup = setupStep.step;
+                            let action = "STEP";
+                            let value = "—";
+
+                            if ("set" in setup) {
+                              action = "INPUT";
+                              value = Object.entries(setup.set)
+                                .map(([pinId, literal]) => {
+                                  const pin = challenge.interface.inputs.find(
+                                    (candidate) => candidate.id === pinId,
+                                  );
+                                  if (!pin) {
+                                    return `${pinId.toUpperCase()}=${literal}`;
+                                  }
+                                  const binary = literalToVector(
+                                    literal,
+                                    pin.width,
+                                  ).toBinary();
+                                  return `${pin.name}=${binary}`;
+                                })
+                                .join("  ");
+                            } else if ("edge" in setup) {
+                              action = "EDGE";
+                              value = setup.edge.toUpperCase();
+                            } else if ("clock" in setup) {
+                              action = "CLOCK";
+                              value = `${setup.clock} cycle${
+                                setup.clock === 1 ? "" : "s"
+                              }`;
+                            }
+
+                            return (
+                              <div
+                                key={setupStep.id}
+                                className="sequence-operation-row"
+                              >
+                                <span>{setupIndex + 1}</span>
+                                <strong>{action}</strong>
+                                <code>{value}</code>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="muted sequence-details-hidden">
+                          hidden until execution
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
