@@ -2052,6 +2052,64 @@ button:disabled {
   line-height: 1.55;
 }
 
+.learning-technical-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 12px;
+}
+
+.learning-technical-grid article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #d8dee9;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.learning-technical-grid h3 {
+  margin: 0 0 9px;
+  color: #27334a;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+
+.learning-technical-grid ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #505d71;
+  font-size: 12px;
+  line-height: 1.62;
+}
+
+.learning-technical-grid li + li {
+  margin-top: 6px;
+}
+
+.learning-technical-grid p {
+  margin: 0;
+  color: #505d71;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.learning-formal-list {
+  list-style: none;
+  padding-left: 0 !important;
+}
+
+.learning-formal-list code {
+  display: block;
+  overflow-x: auto;
+  padding: 7px 9px;
+  border: 1px solid #e0e4ec;
+  border-radius: 6px;
+  background: #f7f8fb;
+  color: #243149;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .learning-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2099,6 +2157,7 @@ button:disabled {
 
 @media (max-width: 1100px) {
   .learning-panel-header,
+  .learning-technical-grid,
   .learning-grid {
     grid-template-columns: 1fr;
   }
