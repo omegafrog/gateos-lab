@@ -170,4 +170,4 @@ CPU 제작.
 
 ## Status
 
-현재 guided curriculum은 NAND에서 시작해 logic gate, MUX, Adder, Latch/Flip-Flop, Register, Counter, Program Counter를 거쳐 Address Decoder, RAM4/RAM16, 4-bit bitwise logic, Zero Detector, ALU, dual-read Register File, Register-to-Register Transfer, Register → ALU → Register datapath까지 브라우저에서 진행할 수 있다. RAM16에서 bank hierarchy를 한 번 완성한 뒤에는 더 큰 RAM을 반복 제작하지 않고 CPU 쪽으로 넘어간다. 다음 단계는 Instruction Register, fetch path, opcode decoder와 control signal을 연결해 실제 CPU 실행 흐름으로 확장하는 것이다.
+현재 guided curriculum은 NAND에서 시작해 logic gate, MUX, Adder, Latch/Flip-Flop, Register, Counter, Program Counter를 거쳐 Address Decoder, RAM4/RAM16, 4-bit Logic Unit, Zero Detector, ALU, dual-read Register File, Register-to-Register Transfer, Register → ALU → Register datapath까지 브라우저에서 진행할 수 있다. RAM16에서 bank hierarchy를 한 번 완성한 뒤에는 더 큰 RAM을 반복 제작하지 않고 CPU 쪽으로 넘어간다. 다음 단계는 Instruction Register, fetch path, opcode decoder와 control signal을 연결해 실제 CPU 실행 흐름으로 확장하는 것이다.
