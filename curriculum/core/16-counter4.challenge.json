@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.counter4",
   "title": "4-bit Counter",
-  "description": "RESET, ENABLE, CLK를 받는 4-bit Counter를 만드세요. RESET=1이면 다음 rising edge에서 0000, RESET=0이고 ENABLE=1이면 Q+1, ENABLE=0이면 현재 값을 유지합니다.",
+  "description": "RESET, ENABLE, CLK를 받는 4-bit Counter를 구현하세요. Register가 present state Q를 기억하고 조합논리가 Q에서 next state를 계산한 뒤 rising edge에서 state를 갱신하는 전형적인 synchronous state-machine 구조를 만드는 과제입니다.",
   "interface": {
     "inputs": [
       {
