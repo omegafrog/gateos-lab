@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.full-adder",
   "title": "Full Adder",
-  "description": "두 Half Adder와 OR을 이용해 A, B, CIN을 더하는 Full Adder를 만드세요.",
+  "description": "A, B, CIN 세 bit를 더해 SUM과 COUT을 만드는 Full Adder를 구현하세요. 이전 자리의 carry를 받아 다음 자리로 전달할 수 있는 재사용 가능한 ‘한 자리 덧셈 블록’을 만드는 것이 목표입니다.",
   "interface": {
     "inputs": [
       {
