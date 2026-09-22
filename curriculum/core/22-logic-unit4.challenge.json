@@ -173,7 +173,8 @@
       "notes": [
         "세 연산 모두 carry가 없고 bit 사이에 의존성이 없습니다.",
         "A와 B를 한 번만 Split한 뒤 각 bit 쌍에서 AND/OR/XOR를 병렬로 계산할 수 있습니다."
-      ]
+      ],
+      "kind": "operation"
     }
   ],
   "hints": [
