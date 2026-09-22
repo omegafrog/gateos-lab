@@ -434,24 +434,24 @@
       "buildsToward": "RAM16과 RAM64는 이 RAM4를 bank로 재사용해 주소를 상위/하위 부분으로 나누는 계층 설계를 연습합니다."
     },
     "memory.ram16": {
-      "motivation": "실제 메모리는 저장 cell을 무한히 평평하게 늘어놓지 않고 작은 memory block을 계층적으로 묶어 확장합니다. RAM16은 주소 일부를 bank 선택, 나머지를 bank 내부 주소로 사용하는 scaling 원리를 익힙니다.",
-      "mentalModel": "RAM4 네 개를 bank로 보고 4-bit 주소를 상위 2-bit bank 번호와 하위 2-bit word 번호로 나눕니다.",
+      "motivation": "RAM4를 네 배 복사해 16개의 word를 평평하게 직접 제어하면 주소 선택 배선이 금방 복잡해집니다. RAM16의 핵심은 4-bit 주소 하나를 그대로 0~15의 word 번호로 보면서, 내부 구현에서만 그 주소를 bank 번호와 bank 내부 번호로 나눠 작은 RAM을 재사용하는 것입니다.",
+      "mentalModel": "ADDR=aaaa는 항상 RAM[aaaa] 한 word를 가리킵니다. 상위 2-bit는 어떤 RAM4 bank인지, 하위 2-bit는 그 bank 안의 어느 word인지 나타냅니다. LOAD는 읽기 신호가 아니라 rising edge에서 저장을 허용하는 write enable입니다.",
       "howItWorks": [
-        "RAM16은 주소를 상위 bit와 하위 bit로 나눠 '어느 bank인가'와 'bank 안의 어느 word인가'를 동시에 표현합니다.",
-        "하위 주소는 각 작은 RAM의 내부 위치를 가리키고, 상위 주소는 어떤 bank의 결과를 읽거나 어느 bank에 쓸지를 결정합니다.",
-        "이 계층 구조 덕분에 저장 위치 수가 늘어나도 모든 register를 한 층에서 직접 제어할 필요가 없습니다."
+        "읽기는 비동기입니다. LOAD나 clock과 관계없이 ADDR가 바뀌면 Q는 현재 저장된 RAM[ADDR] 값으로 바뀝니다.",
+        "쓰기는 동기식입니다. LOAD=1인 rising edge에서만 현재 ADDR가 가리키는 정확히 한 word가 D로 갱신됩니다. LOAD=0이거나 rising edge가 없으면 메모리 내용은 바뀌지 않습니다.",
+        "계층 구현에서는 ADDR[3:2]가 네 RAM4 bank 중 하나를 선택하고 ADDR[1:0]은 네 bank에 공통으로 들어가는 내부 word 주소가 됩니다. 같은 상위 주소를 write Decoder와 read MUX가 함께 사용해야 읽고 쓰는 bank가 일치합니다."
       ],
       "applications": [
-        "banked memory 구조",
-        "주소를 계층적으로 decode하는 memory organization",
-        "작은 검증 RAM 블록으로 큰 RAM 조립"
+        "작은 RAM block을 bank로 묶어 더 큰 address space 구성",
+        "주소의 상위/하위 bit를 계층적으로 decode하는 메모리 organization",
+        "CPU가 주소 하나로 여러 memory word 중 정확히 하나를 읽고 쓰는 기본 구조"
       ],
       "commonMistakes": [
-        "상위/하위 주소 bit 그룹을 바꾸는 것",
-        "write LOAD만 bank별로 gate해야 하는데 D/CLK까지 불필요하게 분리하는 것",
-        "read MUX selector와 write Decoder address가 서로 다른 bit를 쓰는 것"
+        "LOAD=0이면 Q도 꺼진다고 생각하는 것 — LOAD는 write enable일 뿐 read는 계속 동작합니다.",
+        "ADDR[3:2]와 ADDR[1:0]의 역할을 뒤집어 전체 주소 0~15의 순서가 뒤섞이는 것",
+        "네 RAM4의 LOAD를 모두 동시에 켜거나 read MUX와 write Decoder에 서로 다른 bank bit를 사용해 다른 위치를 읽고 쓰는 것"
       ],
-      "buildsToward": "RAM64에서 같은 계층화 패턴을 한 번 더 반복하면서 주소 공간이 커져도 설계 원리가 변하지 않는다는 점을 확인합니다."
+      "buildsToward": "RAM64에서는 동일한 원리를 한 번 더 반복합니다. 상위 주소 일부로 큰 bank를 고르고 나머지 주소를 bank 내부에 전달하는 방식이 메모리 계층 확장의 기본 패턴이 됩니다."
     },
     "memory.ram64": {
       "motivation": "RAM64는 memory hierarchy를 반복 적용해 규모를 키우는 연습입니다. 목적은 더 많은 선을 그리는 것이 아니라 작은 검증 블록을 계층적으로 재사용하면 복잡도가 관리된다는 설계 감각을 익히는 것입니다.",
