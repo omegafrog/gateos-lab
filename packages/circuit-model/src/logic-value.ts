@@ -15,6 +15,25 @@ export function logicAnd(a: LogicValue, b: LogicValue): LogicValue {
   return "X";
 }
 
+export function logicOr(a: LogicValue, b: LogicValue): LogicValue {
+  const left = a === "Z" ? "X" : a;
+  const right = b === "Z" ? "X" : b;
+
+  if (left === 1 || right === 1) return 1;
+  if (left === 0 && right === 0) return 0;
+  return "X";
+}
+
+export function logicXor(a: LogicValue, b: LogicValue): LogicValue {
+  const left = a === "Z" ? "X" : a;
+  const right = b === "Z" ? "X" : b;
+
+  if ((left !== 0 && left !== 1) || (right !== 0 && right !== 1)) {
+    return "X";
+  }
+  return left === right ? 0 : 1;
+}
+
 export function logicNand(a: LogicValue, b: LogicValue): LogicValue {
   return logicNot(logicAnd(a, b));
 }
