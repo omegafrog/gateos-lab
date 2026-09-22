@@ -84,10 +84,6 @@
       "file": "20-ram16.challenge.json"
     },
     {
-      "id": "logic.logic-unit4",
-      "file": "22-logic-unit4.challenge.json"
-    },
-    {
       "id": "logic.zero4",
       "file": "25-zero4.challenge.json"
     },
