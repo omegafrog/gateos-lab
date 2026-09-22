@@ -143,6 +143,40 @@ test("builds NOT, verifies it, publishes it, and persists progression", async ({
   await expect(page.getByTestId("palette-user.not")).toBeVisible();
 });
 
+test("sequence verification hides setup steps and shows only expected versus current", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        circuits: {},
+        published: {},
+        completed: [
+          "logic.not",
+          "logic.and",
+          "logic.or",
+          "logic.xor",
+          "routing.mux2",
+          "arithmetic.half-adder",
+          "arithmetic.full-adder",
+        ],
+      }),
+    );
+  });
+  await page.reload();
+
+  await expect(page.getByRole("heading", { name: "SR Latch" })).toBeVisible();
+  const checks = page.locator(".sequence-step-row");
+  await expect(checks).toHaveCount(4);
+  await expect(checks.first()).toContainText("EXPECTED VALUE");
+  await expect(checks.first()).toContainText("CURRENT VALUE");
+  await expect(checks.first()).not.toContainText("SET");
+  await expect(checks.first()).not.toContainText("EDGE");
+  await expect(checks.first()).not.toContainText("CLOCK");
+});
+
 test("chip state reset control is available beside verification actions", async ({ page }) => {
   const reset = page.getByTestId("reset-chip-state");
   await expect(reset).toBeVisible();
