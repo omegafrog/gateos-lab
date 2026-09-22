@@ -71,7 +71,20 @@
         "NOT을 stateful element처럼 해석하는 것",
         "왜 두 입력을 묶는지 truth table로 확인하지 않는 것"
       ],
-      "buildsToward": "다음 AND에서는 방금 만든 NOT을 내부 NAND 구현을 다시 보지 않고 하나의 부품으로 재사용합니다. 이것이 hierarchical design의 시작입니다."
+      "buildsToward": "다음 AND에서는 방금 만든 NOT을 내부 NAND 구현을 다시 보지 않고 하나의 부품으로 재사용합니다. 이것이 hierarchical design의 시작입니다.",
+      "formalModel": [
+        "OUT = ¬IN",
+        "Truth table: 0→1, 1→0"
+      ],
+      "designInvariants": [
+        "For every binary IN, OUT is its Boolean complement.",
+        "The circuit is combinational: no stored state is permitted."
+      ],
+      "timingModel": "After IN changes, OUT changes only after combinational propagation has settled. GateOS abstracts physical propagation delay and verifies the settled logic value.",
+      "engineeringNotes": [
+        "Tying both NAND inputs to one source is legal fan-out, not multiple-driver wiring.",
+        "Functional completeness means NAND alone can synthesize any Boolean function; NOT is the smallest constructive example."
+      ]
     },
     "logic.and": {
       "motivation": "하드웨어 제어에서는 ‘조건 A와 조건 B가 동시에 참일 때만 동작’하는 상황이 반복됩니다. AND는 carry 생성, write enable, address match처럼 여러 조건의 동시 만족을 표현하는 기본 연산입니다.",
@@ -91,7 +104,20 @@
         "AND를 OR의 ‘비슷한 버전’으로 외워 조건 의미를 놓치는 것",
         "fan-out과 multiple drivers를 같은 것으로 생각하는 것"
       ],
-      "buildsToward": "OR에서는 같은 기능을 직접 새 gate로 가정하지 않고, NOT과 AND를 De Morgan 법칙으로 다시 조합합니다."
+      "buildsToward": "OR에서는 같은 기능을 직접 새 gate로 가정하지 않고, NOT과 AND를 De Morgan 법칙으로 다시 조합합니다.",
+      "formalModel": [
+        "OUT = A ∧ B",
+        "OUT = ¬(NAND(A,B))"
+      ],
+      "designInvariants": [
+        "OUT=1 iff both A and B are 1.",
+        "No history, clock, or feedback affects the result."
+      ],
+      "timingModel": "Pure combinational logic. A or B may change independently; the verified result is the stable output after propagation.",
+      "engineeringNotes": [
+        "The NAND→NOT decomposition illustrates hierarchical composition rather than a special-case trick.",
+        "In later circuits AND often combines control predicates, e.g. global write-enable ∧ address-select."
+      ]
     },
     "logic.or": {
       "motivation": "OR은 여러 가능한 원인 중 하나라도 발생하면 동작해야 하는 조건을 표현합니다. 이 과제에서는 De Morgan 법칙을 실제 회로 변환에 적용해, Boolean algebra가 배선 설계 도구라는 점을 확인합니다.",
@@ -111,7 +137,20 @@
         "De Morgan 적용 시 입력/출력 inversion 위치를 섞는 것",
         "Boolean OR를 산술 덧셈으로 해석하는 것"
       ],
-      "buildsToward": "XOR에서는 여러 AND 조건을 OR로 합쳐 ‘두 입력이 서로 다른가?’라는 더 복합적인 Boolean function을 만듭니다."
+      "buildsToward": "XOR에서는 여러 AND 조건을 OR로 합쳐 ‘두 입력이 서로 다른가?’라는 더 복합적인 Boolean function을 만듭니다.",
+      "formalModel": [
+        "OUT = A ∨ B",
+        "De Morgan: A ∨ B = ¬(¬A ∧ ¬B)"
+      ],
+      "designInvariants": [
+        "OUT=0 iff A=0 and B=0.",
+        "The implementation may vary, but every legal implementation must preserve the four-row truth table."
+      ],
+      "timingModel": "Pure combinational logic; only the settled Boolean function is modeled.",
+      "engineeringNotes": [
+        "De Morgan transformations are algebraic equivalences used by synthesis tools to map logic into available gate libraries.",
+        "OR is frequently used to merge mutually independent causes of the same control action."
+      ]
     },
     "logic.xor": {
       "motivation": "XOR는 ‘두 bit가 다른가?’를 나타내는 비교 함수이면서 동시에 binary addition의 SUM bit입니다. 하나의 Boolean pattern이 비교와 산술이라는 두 문맥에서 재사용되는 좋은 예입니다.",
@@ -131,7 +170,20 @@
         "XOR 하나가 carry까지 만든다고 생각하는 것",
         "1-bit inequality와 multi-bit equality test를 같은 것으로 보는 것"
       ],
-      "buildsToward": "Half Adder에서 XOR는 SUM, AND는 CARRY가 되어 Boolean logic이 binary arithmetic으로 연결됩니다."
+      "buildsToward": "Half Adder에서 XOR는 SUM, AND는 CARRY가 되어 Boolean logic이 binary arithmetic으로 연결됩니다.",
+      "formalModel": [
+        "OUT = A ⊕ B",
+        "OUT = (A ∧ ¬B) ∨ (¬A ∧ B)"
+      ],
+      "designInvariants": [
+        "OUT=1 iff A and B differ.",
+        "XOR alone computes a sum bit without carry information."
+      ],
+      "timingModel": "Pure combinational logic; changes propagate through the two minterm paths and final OR.",
+      "engineeringNotes": [
+        "XOR is both a parity primitive and the sum function of one-bit addition.",
+        "For multi-bit equality, bitwise XOR must still be reduced across all bit positions."
+      ]
     },
     "routing.mux2": {
       "motivation": "컴퓨터 회로에서는 계산만큼 ‘어떤 값이 다음 단계로 가야 하는가’를 고르는 일이 중요합니다. MUX는 data와 control을 분리하는 가장 기본적인 selector이며 CPU datapath의 거의 모든 선택 지점에 등장합니다.",
@@ -151,7 +203,20 @@
         "SEL을 data input처럼 해석하는 것",
         "MUX가 선택한 값을 기억한다고 생각하는 것"
       ],
-      "buildsToward": "뒤의 stateful 회로 대부분은 ‘MUX가 next value를 고르고 register가 clock edge에서 저장한다’는 형태로 나타납니다."
+      "buildsToward": "뒤의 stateful 회로 대부분은 ‘MUX가 next value를 고르고 register가 clock edge에서 저장한다’는 형태로 나타납니다.",
+      "formalModel": [
+        "OUT = SEL ? B : A",
+        "OUT = (¬SEL ∧ A) ∨ (SEL ∧ B)"
+      ],
+      "designInvariants": [
+        "Exactly one data path contributes to OUT for a known binary SEL.",
+        "SEL is control; A and B are data. Their roles are not interchangeable."
+      ],
+      "timingModel": "Combinational selector. OUT follows the selected input after selector propagation delay; no value is stored.",
+      "engineeringNotes": [
+        "A MUX is the canonical datapath-selection primitive and maps control decisions into data movement.",
+        "Cascaded MUXes encode priority when a later stage can override an earlier selection."
+      ]
     },
     "arithmetic.half-adder": {
       "motivation": "두 bit를 더하면 처음으로 한 bit 출력만으로는 결과를 표현할 수 없는 경우가 생깁니다. 1+1=10이기 때문에 현재 자리의 SUM과 다음 자리로 넘길 CARRY를 분리해야 합니다.",
@@ -171,7 +236,21 @@
         "1+1에서 SUM을 1로 두는 것",
         "Half Adder에도 CIN이 있다고 가정하는 것"
       ],
-      "buildsToward": "Full Adder는 여기에 carry-in을 추가해 어떤 bit 위치에서도 재사용 가능한 1-bit adder를 만듭니다."
+      "buildsToward": "Full Adder는 여기에 carry-in을 추가해 어떤 bit 위치에서도 재사용 가능한 1-bit adder를 만듭니다.",
+      "formalModel": [
+        "SUM = A ⊕ B",
+        "CARRY = A ∧ B",
+        "A + B = 2·CARRY + SUM"
+      ],
+      "designInvariants": [
+        "{CARRY,SUM} is the exact unsigned 2-bit representation of A+B.",
+        "There is no carry-in input, so this block is not sufficient for arbitrary interior bit positions."
+      ],
+      "timingModel": "Combinational arithmetic. SUM and CARRY settle from the same A/B inputs without a clock.",
+      "engineeringNotes": [
+        "The integer identity  A+B=2C+S is more informative than memorizing two truth tables.",
+        "Separating sum and carry is the bridge from Boolean logic to positional binary arithmetic."
+      ]
     },
     "arithmetic.full-adder": {
       "motivation": "multi-bit 덧셈에서는 각 bit가 독립적이지 않습니다. 낮은 자리에서 생긴 carry가 높은 자리의 계산에 영향을 주기 때문에, 그 의존성을 한 bit-slice 안에 명시적으로 포함해야 합니다.",
@@ -191,7 +270,21 @@
         "COUT을 같은 자리 SUM 일부로 처리하는 것",
         "CIN을 무시해 2번째 bit 이상이 틀리는 것"
       ],
-      "buildsToward": "Adder4에서는 네 Full Adder를 LSB부터 연결해 ‘repeated bit-slice + carry chain’ 구조를 완성합니다."
+      "buildsToward": "Adder4에서는 네 Full Adder를 LSB부터 연결해 ‘repeated bit-slice + carry chain’ 구조를 완성합니다.",
+      "formalModel": [
+        "SUM = A ⊕ B ⊕ CIN",
+        "COUT = (A∧B) ∨ (A∧CIN) ∨ (B∧CIN)",
+        "A + B + CIN = 2·COUT + SUM"
+      ],
+      "designInvariants": [
+        "COUT=1 iff at least two of A, B, CIN are 1.",
+        "The block is composable because COUT has the same semantic role as the next stage's CIN."
+      ],
+      "timingModel": "Combinational arithmetic; carry propagation through composed stages determines the longest path in a ripple-carry adder.",
+      "engineeringNotes": [
+        "COUT is a positional carry, not an error flag.",
+        "The majority expression for COUT is equivalent to the two-half-adder implementation used in the lab."
+      ]
     },
     "state.sr-latch": {
       "motivation": "여기서 처음으로 출력이 현재 입력만으로 결정되지 않는 회로를 만듭니다. feedback을 의도적으로 사용하면 두 안정 상태 중 하나가 유지되고, 이것이 ‘기억’의 가장 작은 형태가 됩니다.",
@@ -212,7 +305,21 @@
         "hold 상태를 초기화 상태로 생각하는 것",
         "forbidden input을 정상적인 세 번째 상태로 사용하는 것"
       ],
-      "buildsToward": "D Latch는 SR latch의 위험한 입력 조합을 외부에서 직접 만들지 못하게 하고, 하나의 D와 enable로 저장 동작을 제어합니다."
+      "buildsToward": "D Latch는 SR latch의 위험한 입력 조합을 외부에서 직접 만들지 못하게 하고, 하나의 D와 enable로 저장 동작을 제어합니다.",
+      "formalModel": [
+        "Q = ¬(S̅ ∧ Q̅)",
+        "Q̅ = ¬(R̅ ∧ Q)",
+        "S̅=R̅=1 ⇒ hold previous state"
+      ],
+      "designInvariants": [
+        "In legal stable states, Q̅ is the logical complement of Q.",
+        "S̅=R̅=0 violates the intended complementary-state invariant and is excluded from normal operation."
+      ],
+      "timingModel": "Asynchronous level-sensitive state formed by feedback. There is no clock; state changes after the feedback network settles.",
+      "engineeringNotes": [
+        "This is intentionally not combinational because its output cannot be expressed only as a function of present external inputs.",
+        "The active-low convention follows directly from the NAND implementation."
+      ]
     },
     "state.d-latch": {
       "motivation": "SR latch는 state를 저장하지만 사용자가 S와 R을 올바르게 조합해야 합니다. D latch는 입력을 하나의 data D와 enable로 정리해 ‘열려 있을 때는 따라가고, 닫히면 마지막 값을 유지’하는 더 사용하기 쉬운 저장소를 만듭니다.",
@@ -232,7 +339,20 @@
         "ENABLE=1일 때 한 번만 샘플한다고 생각하는 것",
         "D와 ¬D 경로를 잘못 만들어 SR forbidden state를 유발하는 것"
       ],
-      "buildsToward": "D Flip-Flop은 두 latch가 반대 위상으로 열리게 해 입력이 Q로 통과하는 시간을 하나의 clock edge로 제한합니다."
+      "buildsToward": "D Flip-Flop은 두 latch가 반대 위상으로 열리게 해 입력이 Q로 통과하는 시간을 하나의 clock edge로 제한합니다.",
+      "formalModel": [
+        "ENABLE=1 ⇒ Q(next)=D",
+        "ENABLE=0 ⇒ Q(next)=Q(previous)"
+      ],
+      "designInvariants": [
+        "While ENABLE=1 the latch is transparent.",
+        "While ENABLE=0 changes on D must not alter the stored Q."
+      ],
+      "timingModel": "Level-sensitive storage. The entire asserted ENABLE interval is a transparency window; this is fundamentally different from edge-triggered sampling.",
+      "engineeringNotes": [
+        "D/¬D encoding prevents the external interface from requesting SR set and reset simultaneously.",
+        "Real latches have setup/hold and propagation constraints; GateOS models the logical storage contract, not analog timing margins."
+      ]
     },
     "state.dff": {
       "motivation": "동기식 시스템은 모든 state가 정해진 순간에만 바뀌어야 reasoning이 쉬워집니다. D Flip-Flop은 clock의 rising edge에서 D를 샘플하고 다음 edge까지 Q를 유지해, 계산 구간과 state update 순간을 분리합니다.",
@@ -252,7 +372,20 @@
         "edge 전에 D가 준비되어 있어야 한다는 개념을 놓치는 것",
         "clock을 data처럼 조합논리로 마구 gate해도 된다고 생각하는 것"
       ],
-      "buildsToward": "Enable Register는 DFF 앞에 MUX를 두어 ‘새 값을 저장할지, 기존 값을 유지할지’를 control signal로 선택합니다."
+      "buildsToward": "Enable Register는 DFF 앞에 MUX를 두어 ‘새 값을 저장할지, 기존 값을 유지할지’를 control signal로 선택합니다.",
+      "formalModel": [
+        "At rising edge tₑ: Q(tₑ⁺) = D(tₑ)",
+        "Between active edges: Q remains constant"
+      ],
+      "designInvariants": [
+        "Q changes only as a consequence of an active clock edge.",
+        "The sampled D value becomes the new state; later D changes do not affect Q until the next edge."
+      ],
+      "timingModel": "Rising-edge-triggered storage. GateOS abstracts setup time, hold time, clock-to-Q, contamination delay, and metastability, but preserves edge-triggered sampling semantics.",
+      "engineeringNotes": [
+        "The master-slave latch construction converts level sensitivity into edge-triggered behavior.",
+        "Synchronous design relies on combinational logic settling before the next active edge."
+      ]
     },
     "state.enable-register": {
       "motivation": "DFF는 edge마다 무조건 D를 저장합니다. 실제 CPU state는 매 cycle마다 모두 바뀌지 않으므로, update가 필요한 순간에만 새 값을 받는 load-enabled register가 필요합니다.",
@@ -272,7 +405,20 @@
         "LOAD를 clock에 AND해 gated clock으로 만드는 것",
         "MUX output이 바뀐 순간 state도 이미 바뀌었다고 생각하는 것"
       ],
-      "buildsToward": "다음 multi-bit 회로에서는 같은 LOAD와 CLK를 여러 bit에 공유해 하나의 word를 atomic하게 갱신합니다."
+      "buildsToward": "다음 multi-bit 회로에서는 같은 LOAD와 CLK를 여러 bit에 공유해 하나의 word를 atomic하게 갱신합니다.",
+      "formalModel": [
+        "DFF.D = LOAD ? D : Q",
+        "At rising edge: Q⁺ = LOAD ? D : Q"
+      ],
+      "designInvariants": [
+        "LOAD=0 preserves state across a rising edge.",
+        "LOAD=1 allows exactly the externally supplied D value to become next state."
+      ],
+      "timingModel": "Combinational next-state selection occurs before the rising edge; the DFF commits that selected value at the edge.",
+      "engineeringNotes": [
+        "Using a data MUX for enable avoids modifying the clock distribution path.",
+        "This MUX+register pattern recurs in counters, PCs, register files, and many synchronous state machines."
+      ]
     },
     "routing.mux4": {
       "motivation": "word-level MUX 자체는 새로운 논리 함수가 아니라 1-bit MUX를 bus 폭만큼 병렬로 확장한 것입니다. 여기서는 bus를 ‘숫자 하나’가 아니라 같은 의미를 공유하는 여러 bit wire의 묶음으로 다루는 감각을 익힙니다.",
@@ -292,7 +438,20 @@
         "각 bit에 서로 다른 SEL을 연결하는 것",
         "bus를 하나의 1-bit wire처럼 연결하려는 것"
       ],
-      "buildsToward": "Adder4에서는 bus 분해/결합은 같지만, 이번에는 carry가 bit 사이를 이동해 bit-slice들이 서로 의존한다는 차이를 보게 됩니다."
+      "buildsToward": "Adder4에서는 bus 분해/결합은 같지만, 이번에는 carry가 bit 사이를 이동해 bit-slice들이 서로 의존한다는 차이를 보게 됩니다.",
+      "formalModel": [
+        "For i∈{0,1,2,3}: OUT[i] = SEL ? B[i] : A[i]",
+        "Equivalent word form: OUT = SEL ? B : A"
+      ],
+      "designInvariants": [
+        "All four bit-slices share the same SEL.",
+        "Bit significance is preserved: bit i of each input maps to bit i of OUT."
+      ],
+      "timingModel": "Combinational word selector; the bus changes as a unit logically, though physical bit paths may have different propagation delays.",
+      "engineeringNotes": [
+        "This widening introduces no new Boolean operation; it demonstrates vectorization of a 1-bit selector.",
+        "Shared control is what gives the four independent MUX cells a single word-level meaning."
+      ]
     },
     "arithmetic.adder4": {
       "motivation": "4-bit 덧셈은 단순히 Full Adder 네 개를 병렬로 놓는 문제가 아닙니다. 낮은 자리의 carry가 높은 자리로 전달되는 방향성과 의존성이 전체 결과를 결정합니다.",
@@ -312,7 +471,20 @@
         "CIN을 모든 Full Adder에 동시에 fan-out하는 것",
         "bit position을 잘못 Join해 숫자 자리값을 바꾸는 것"
       ],
-      "buildsToward": "Incrementer에서는 이 Adder를 새로 재구현하지 않고 상수 1을 더하는 더 높은 수준의 기능으로 재사용합니다."
+      "buildsToward": "Incrementer에서는 이 Adder를 새로 재구현하지 않고 상수 1을 더하는 더 높은 수준의 기능으로 재사용합니다.",
+      "formalModel": [
+        "{COUT,SUM[3:0]} = A[3:0] + B[3:0] + CIN",
+        "For stage i: Cᵢ₊₁ = FA.carry(Aᵢ,Bᵢ,Cᵢ)"
+      ],
+      "designInvariants": [
+        "Carry flows from lower significance to higher significance only.",
+        "SUM[i] must correspond to A[i], B[i], and carry Cᵢ from the immediately lower stage."
+      ],
+      "timingModel": "Combinational ripple-carry structure. Worst-case result validity is limited by carry propagation through all four Full Adders.",
+      "engineeringNotes": [
+        "Ripple carry is simple and compositional but scales linearly in carry-path delay with word width.",
+        "COUT represents arithmetic overflow beyond the fixed 4-bit result, not failure of the circuit."
+      ]
     },
     "arithmetic.incrementer4": {
       "motivation": "좋은 하드웨어 설계는 이미 만든 블록을 다시 풀어헤치지 않습니다. Incrementer는 ‘+1’이라는 기능을 Adder4와 상수로 표현해 abstraction reuse를 연습하는 단계입니다.",
@@ -332,7 +504,20 @@
         "CIN까지 1로 두어 +2가 되는 것",
         "wrap-around와 carry-out을 오류로 보는 것"
       ],
-      "buildsToward": "Register4와 결합하면 ‘현재 state Q → Q+1 후보 → edge에서 저장’이라는 counter 구조를 만들 수 있습니다."
+      "buildsToward": "Register4와 결합하면 ‘현재 state Q → Q+1 후보 → edge에서 저장’이라는 counter 구조를 만들 수 있습니다.",
+      "formalModel": [
+        "{CARRY,OUT} = IN + 1",
+        "OUT = (IN + 1) mod 16"
+      ],
+      "designInvariants": [
+        "Exactly one is added; CIN must remain 0 when B is fixed to 0001.",
+        "1111 increments to 0000 with CARRY=1."
+      ],
+      "timingModel": "Combinational arithmetic inherited from Adder4, including its carry-chain delay.",
+      "engineeringNotes": [
+        "Specialized functions are often obtained by constraining inputs of a general-purpose block.",
+        "Reusing Adder4 preserves abstraction boundaries and avoids duplicating verified arithmetic logic."
+      ]
     },
     "state.register4": {
       "motivation": "CPU의 기본 state 단위는 보통 한 bit가 아니라 word입니다. 4-bit Register는 네 bit를 같은 control과 clock으로 묶어 하나의 값처럼 동시에 저장하는 방법을 보여줍니다.",
@@ -352,7 +537,20 @@
         "Join bit 순서를 뒤집는 것",
         "Q를 combinational result와 같은 것으로 생각하는 것"
       ],
-      "buildsToward": "Counter에서는 이 Register4가 present state를 보존하고 Incrementer/MUX가 next state를 계산합니다."
+      "buildsToward": "Counter에서는 이 Register4가 present state를 보존하고 Incrementer/MUX가 next state를 계산합니다.",
+      "formalModel": [
+        "At rising edge: Q⁺ = LOAD ? D : Q",
+        "Q,D ∈ {0,…,15} represented as 4-bit vectors"
+      ],
+      "designInvariants": [
+        "All four bits share LOAD and CLK, so the word is updated under one control decision.",
+        "Bit ordering must remain consistent from D through storage cells to Q."
+      ],
+      "timingModel": "Four edge-triggered one-bit storage elements act as a word register. GateOS treats the word update as occurring on the same rising edge.",
+      "engineeringNotes": [
+        "A register is a bank of flip-flops with shared timing/control, not a small RAM.",
+        "Atomic word-level reasoning depends on all bit cells obeying the same clock boundary."
+      ]
     },
     "state.counter4": {
       "motivation": "Counter는 state element와 combinational next-state logic이 닫힌 고리를 이루는 첫 명확한 FSM형 회로입니다. ‘증가’ 자체보다 현재 상태와 다음 상태를 분리해 생각하는 법이 핵심입니다.",
@@ -373,7 +571,20 @@
         "synchronous RESET을 즉시 바뀌는 asynchronous reset처럼 해석하는 것",
         "hold feedback path를 빼먹는 것"
       ],
-      "buildsToward": "Program Counter는 같은 구조에 external load와 더 명확한 control priority를 추가합니다."
+      "buildsToward": "Program Counter는 같은 구조에 external load와 더 명확한 control priority를 추가합니다.",
+      "formalModel": [
+        "At rising edge: Q⁺ = RESET ? 0000 : (ENABLE ? (Q+1 mod 16) : Q)",
+        "Present state Q → combinational next-state F(Q,control) → next Q"
+      ],
+      "designInvariants": [
+        "Q is the only stored state; Incrementer and MUX outputs are combinational candidates.",
+        "RESET has higher priority than ENABLE according to the challenge contract."
+      ],
+      "timingModel": "Synchronous state machine. Next-state logic may change during the cycle; Q changes only on the rising edge.",
+      "engineeringNotes": [
+        "This is the canonical register-plus-next-state-logic architecture used for finite-state machines.",
+        "Distinguishing current state from next-state signals prevents off-by-one-cycle design errors."
+      ]
     },
     "state.program-counter4": {
       "motivation": "CPU는 다음 instruction이 어디 있는지 기억해야 합니다. PC는 단순 counter가 아니라 sequential execution, jump/load, reset 중 어떤 next address를 사용할지 control priority로 결정하는 state register입니다.",
@@ -394,7 +605,20 @@
         "current PC와 next PC를 혼동하는 것",
         "PC를 단순 증가 counter로만 이해하는 것"
       ],
-      "buildsToward": "memory addressing과 CPU control에서도 binary control이 ‘어느 대상/경로를 고를지’ 결정하는 같은 패턴이 이어집니다."
+      "buildsToward": "memory addressing과 CPU control에서도 binary control이 ‘어느 대상/경로를 고를지’ 결정하는 같은 패턴이 이어집니다.",
+      "formalModel": [
+        "At rising edge: Q⁺ = RESET ? 0000 : LOAD ? D : INC ? (Q+1 mod 16) : Q",
+        "Priority: RESET > LOAD > INC > HOLD"
+      ],
+      "designInvariants": [
+        "Current PC is the stored Q; next PC is a separate combinational signal.",
+        "Simultaneous control assertions must resolve deterministically according to the specified priority."
+      ],
+      "timingModel": "Synchronous register with combinational next-address selection. PC changes only at the rising edge.",
+      "engineeringNotes": [
+        "MUX nesting is a structural encoding of priority.",
+        "A PC is not merely a counter: external load is what enables non-sequential control flow such as jumps."
+      ]
     },
     "routing.decoder2to4": {
       "motivation": "MUX가 여러 data 중 하나를 읽어 오는 selector라면 Decoder는 binary 번호를 one-hot control로 바꿔 ‘정확히 누구를 활성화할지’를 지정합니다. memory write처럼 한 대상만 갱신해야 할 때 핵심입니다.",
@@ -415,7 +639,21 @@
         "한 주소에서 두 Y가 동시에 1이 되게 만드는 것",
         "Decoder를 data selector로 생각하는 것"
       ],
-      "buildsToward": "RAM4에서는 Decoder가 write destination을 고르고 MUX network가 read source를 고릅니다."
+      "buildsToward": "RAM4에서는 Decoder가 write destination을 고르고 MUX network가 read source를 고릅니다.",
+      "formalModel": [
+        "Y0=¬A1·¬A0; Y1=¬A1·A0",
+        "Y2=A1·¬A0; Y3=A1·A0",
+        "Σ Yi = 1 for known binary ADDR"
+      ],
+      "designInvariants": [
+        "Exactly one output is asserted for each valid 2-bit address.",
+        "Yk corresponds to the binary value k with A1 as MSB and A0 as LSB."
+      ],
+      "timingModel": "Combinational address decode. One-hot outputs settle after inversion and AND paths propagate.",
+      "engineeringNotes": [
+        "A decoder converts an encoded binary index into spatially separated enable signals.",
+        "This is the dual role to a MUX in many memory structures: decoder for destination selection, MUX for source selection."
+      ]
     },
     "memory.ram4": {
       "motivation": "RAM의 핵심은 새로운 저장 cell이 아니라 여러 register를 addressable array로 조직하는 것입니다. 이 과제에서 같은 ADDR가 write path와 read path에서 서로 다른 방식으로 쓰이는 이유를 분명히 봅니다.",
@@ -436,7 +674,20 @@
         "read MUX와 write Decoder 역할을 바꾸는 것",
         "ADDR 변화 자체가 memory contents를 변경한다고 생각하는 것"
       ],
-      "buildsToward": "RAM16에서는 RAM4를 bank로 재사용하고 address를 bank select와 bank-local address로 나누는 계층화를 배웁니다."
+      "buildsToward": "RAM16에서는 RAM4를 bank로 재사용하고 address를 bank select와 bank-local address로 나누는 계층화를 배웁니다.",
+      "formalModel": [
+        "Read: Q = M[ADDR]",
+        "At rising edge: if LOAD=1, M[ADDR]⁺ = D; all other M[j]⁺ = M[j]"
+      ],
+      "designInvariants": [
+        "A write modifies at most one addressed word per active edge.",
+        "Changing ADDR alone never changes stored memory contents."
+      ],
+      "timingModel": "GateOS RAM4 contract: asynchronous/combinational read and synchronous rising-edge write. This is a pedagogical memory model, not a universal SRAM timing specification.",
+      "engineeringNotes": [
+        "Write selection is one-hot decode; read selection is a MUX tree over the same state array.",
+        "Sharing D and CLK across all words is safe because per-word write enable determines which state element commits."
+      ]
     },
     "memory.ram16": {
       "motivation": "저장 위치가 늘어날수록 모든 register를 한 평면에서 직접 선택하는 구조는 복잡해집니다. RAM16은 이미 만든 RAM4를 bank로 보고, 주소 일부는 bank를 고르고 나머지는 bank 내부 위치를 고르게 해 계층적 addressing을 보여줍니다.",
@@ -457,7 +708,21 @@
         "read와 write가 서로 다른 bank-select bit를 쓰는 것",
         "LOAD=0이면 read도 꺼진다고 생각하는 것"
       ],
-      "buildsToward": "memory hierarchy는 충분히 배웠습니다. 다음 Zero Detector부터는 datapath 결과를 control에 필요한 status로 바꾸고 CPU 구성으로 넘어갑니다."
+      "buildsToward": "memory hierarchy는 충분히 배웠습니다. 다음 Zero Detector부터는 datapath 결과를 control에 필요한 status로 바꾸고 CPU 구성으로 넘어갑니다.",
+      "formalModel": [
+        "Read: Q = M[ADDR3:0]",
+        "At rising edge: LOAD=1 ⇒ M[ADDR]⁺ = D",
+        "bank = ADDR[3:2], local = ADDR[1:0]"
+      ],
+      "designInvariants": [
+        "Read-side and write-side bank selection must decode the same high address bits identically.",
+        "Exactly one of sixteen words may change on a legal write edge."
+      ],
+      "timingModel": "Same contract as RAM4: asynchronous read, synchronous write. Hierarchy changes organization, not externally visible timing semantics.",
+      "engineeringNotes": [
+        "Hierarchical address decomposition is an implementation technique; externally ADDR is still a single flat word index.",
+        "Banking scales capacity while reusing verified lower-level memory blocks."
+      ]
     },
     "logic.zero4": {
       "motivation": "CPU control은 4-bit/32-bit 결과 전체보다 ‘0인가?’, ‘같은가?’ 같은 1-bit condition을 필요로 하는 경우가 많습니다. Zero Detector는 multi-bit data를 하나의 predicate로 축약하는 reduction logic입니다.",
@@ -478,7 +743,20 @@
         "bitwise OR와 reduction OR를 혼동하는 것",
         "한 bit를 tree에서 빠뜨리는 것"
       ],
-      "buildsToward": "ALU에서 최종 선택된 OUT을 Zero Detector에 넣어 현재 실행된 연산 결과에 대한 ZERO status를 만듭니다."
+      "buildsToward": "ALU에서 최종 선택된 OUT을 Zero Detector에 넣어 현재 실행된 연산 결과에 대한 ZERO status를 만듭니다.",
+      "formalModel": [
+        "ZERO = ¬(IN[3] ∨ IN[2] ∨ IN[1] ∨ IN[0])",
+        "ZERO=1 ⇔ IN=0000"
+      ],
+      "designInvariants": [
+        "ZERO is a 1-bit predicate, not a 4-bit transformed value.",
+        "Every input bit must participate in the reduction."
+      ],
+      "timingModel": "Combinational reduction tree. Tree depth determines propagation path; GateOS verifies the settled predicate.",
+      "engineeringNotes": [
+        "Reduction operators collapse a vector into a scalar condition and are distinct from bitwise vector operators.",
+        "Status flags translate datapath results into compact signals usable by control logic."
+      ]
     },
     "arithmetic.alu4": {
       "motivation": "ALU에서 새로 배우는 것은 AND를 4번 배선하는 일이 아니라, 여러 기능 블록이 같은 operands를 보고 동시에 후보 결과를 만든 뒤 control signal이 하나를 선택하는 datapath 구조입니다.",
@@ -499,7 +777,20 @@
         "OP bit ordering과 MUX hierarchy를 잘못 연결하는 것",
         "ZERO를 후보 결과 중 하나에서 계산하는 것"
       ],
-      "buildsToward": "Register File의 두 source operand를 ALU에 넣고 결과를 destination register에 write-back하면 CPU의 핵심 실행 고리가 됩니다."
+      "buildsToward": "Register File의 두 source operand를 ALU에 넣고 결과를 destination register에 write-back하면 CPU의 핵심 실행 고리가 됩니다.",
+      "formalModel": [
+        "OP=00: OUT=A∧B; 01: OUT=A∨B; 10: OUT=A⊕B; 11: OUT=(A+B) mod 16",
+        "ZERO = 1 iff OUT=0000"
+      ],
+      "designInvariants": [
+        "OP selects the externally visible result; candidate functional-unit outputs may exist simultaneously.",
+        "ZERO must be derived from final OUT, not from an unselected candidate."
+      ],
+      "timingModel": "Entire ALU is combinational. Result validity is limited by the selected functional unit plus the MUX selection network and Zero Detector.",
+      "engineeringNotes": [
+        "Separating functional units from result selection is the standard datapath/control decomposition.",
+        "Provided AND4/OR4/XOR4 primitives intentionally avoid reteaching trivial bit-width replication."
+      ]
     },
     "memory.register-file4": {
       "motivation": "CPU는 연산마다 RAM에서 값을 꺼내지 않고 작은 register 집합에 working data를 보관합니다. Register File은 RAM처럼 addressable state를 가지지만, 두 operand를 동시에 읽고 한 destination에 쓸 수 있도록 여러 port를 제공한다는 점이 다릅니다.",
@@ -520,7 +811,20 @@
         "WE를 모든 register에 직접 연결하는 것",
         "read address와 write address를 같은 역할로 해석하는 것"
       ],
-      "buildsToward": "Register Transfer에서는 read한 값을 write-back path로 되돌려 Rdst←Rsrc 같은 micro-operation을 만듭니다."
+      "buildsToward": "Register Transfer에서는 read한 값을 write-back path로 되돌려 Rdst←Rsrc 같은 micro-operation을 만듭니다.",
+      "formalModel": [
+        "QA = R[RADDR_A]; QB = R[RADDR_B]",
+        "At rising edge: WE=1 ⇒ R[WADDR]⁺ = D"
+      ],
+      "designInvariants": [
+        "The two read ports are logically independent views of the same register state.",
+        "At most one destination register is updated by a write edge."
+      ],
+      "timingModel": "GateOS model: asynchronous dual-read and synchronous single-write. Read addresses may change without a clock; writes commit on a rising edge.",
+      "engineeringNotes": [
+        "A register file differs from simple RAM primarily in port structure and CPU-oriented access semantics.",
+        "Two read ports are what allow a binary ALU to receive two source operands in one cycle."
+      ]
     },
     "cpu.register-transfer4": {
       "motivation": "복잡한 CPU 동작을 gate 수준이 아니라 ‘어느 register의 값이 어디로 이동하는가’로 설명하면 구조가 훨씬 선명해집니다. register-transfer notation은 instruction 실행을 데이터 이동과 state update로 보는 언어입니다.",
@@ -541,7 +845,21 @@
         "write source select와 write enable을 혼동하는 것",
         "read한 순간 destination도 바뀌었다고 생각하는 것"
       ],
-      "buildsToward": "최종 datapath에서는 source value가 ALU를 통과한 결과도 write-back 후보가 되어 read→execute→write cycle을 만듭니다."
+      "buildsToward": "최종 datapath에서는 source value가 ALU를 통과한 결과도 write-back 후보가 되어 read→execute→write cycle을 만듭니다.",
+      "formalModel": [
+        "MOVE=1 ⇒ writeData = R[SRC], WE=1",
+        "LOAD=1 ∧ MOVE=0 ⇒ writeData = DATA, WE=1",
+        "At rising edge with WE=1: R[DST]⁺ = writeData"
+      ],
+      "designInvariants": [
+        "Source read and destination write are separate operations joined by the write-back path.",
+        "MOVE has priority over LOAD according to the challenge control table."
+      ],
+      "timingModel": "Source data is read combinationally; selected write-back data and destination controls must settle before the rising edge that commits R[DST].",
+      "engineeringNotes": [
+        "Register-transfer notation Rdst←Rsrc abstracts away gate details while preserving data-flow and state-update semantics.",
+        "A write-back MUX plus write-enable control is a recurring CPU microarchitecture pattern."
+      ]
     },
     "cpu.alu-datapath4": {
       "motivation": "이 단계의 목표는 새 부품을 더 만드는 것이 아니라 지금까지 만든 abstraction들이 한 clocked system에서 어떻게 협력하는지 보는 것입니다. CPU의 핵심은 state를 읽고, combinational datapath가 결과를 계산하고, control이 다음 edge에서 바꿀 state를 정하는 것입니다.",
@@ -562,7 +880,22 @@
         "RA/RB와 WADDR를 같은 종류의 address로만 보고 역할 차이를 놓치는 것",
         "combinational result가 안정된 것과 state commit을 같은 순간으로 보는 것"
       ],
-      "buildsToward": "다음 확장은 instruction bits를 decode해 OP, source/destination addresses, write enable, PC select를 자동 생성하는 control unit입니다."
+      "buildsToward": "다음 확장은 instruction bits를 decode해 OP, source/destination addresses, write enable, PC select를 자동 생성하는 control unit입니다.",
+      "formalModel": [
+        "A = R[RA]; B = R[RB]",
+        "RESULT = ALU(A,B,OP)",
+        "EXEC=1 ⇒ writeData=RESULT; LOAD=1∧EXEC=0 ⇒ writeData=DATA",
+        "At rising edge with WE=1: R[WADDR]⁺ = writeData"
+      ],
+      "designInvariants": [
+        "Register File contains architectural state; ALU and MUXes are combinational datapath.",
+        "EXEC has priority over LOAD as specified by the write-back control contract."
+      ],
+      "timingModel": "Single-cycle synchronous model: register reads and combinational execute/write-back settle within the cycle; the next rising edge commits the selected destination write.",
+      "engineeringNotes": [
+        "Datapath defines possible transformations and routes; control chooses which route is active for the current operation.",
+        "This structure is a reduced teaching model of the register-read → execute → write-back portion of a single-cycle processor."
+      ]
     }
   }
 }
