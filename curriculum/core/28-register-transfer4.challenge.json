@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "cpu.register-transfer4",
   "title": "Register-to-Register Transfer",
-  "description": "Register File을 사용해 외부 DATA를 Register에 load하거나, SRC Register의 값을 DST Register로 복사하는 transfer unit을 만드세요. MOVE=1이면 SRC→DST 전송이 LOAD보다 우선합니다.",
+  "description": "Register File의 한 source 값을 다른 destination으로 옮기는 register-transfer datapath를 구현하세요. SRC/DST 주소, write-data 선택, write-enable, clock edge를 분리해 ‘Rdst ← Rsrc’ 같은 CPU micro-operation이 실제 배선으로 어떻게 실행되는지 확인합니다.",
   "interface": {
     "inputs": [
       {
