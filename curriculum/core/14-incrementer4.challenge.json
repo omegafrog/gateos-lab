@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.incrementer4",
   "title": "4-bit Incrementer",
-  "description": "기존 Adder4를 재사용해 IN+1을 계산하는 Incrementer를 구현하세요. 새로운 산술 원리보다 일반 블록을 특수 목적 abstraction으로 감싸고, 4-bit 범위의 wrap-around와 carry를 해석하는 것이 목적입니다.",
+  "description": "Adder4를 재사용해 IN+1을 계산하는 4-bit Incrementer를 만드세요. 이미 만든 general-purpose block에 상수를 넣어 더 구체적인 기능을 만드는 abstraction reuse가 핵심입니다.",
   "interface": {
     "inputs": [
       {
@@ -110,18 +110,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "이미 만든 Adder를 재사용하세요",
-      "body": "Incrementer는 별도의 새로운 산술회로가 아니라 IN + 1을 계산하는 Adder입니다."
+      "title": "Increment는 특별한 산술이 아닙니다",
+      "body": "IN+1은 이미 만든 Adder4에 적절한 두 번째 operand와 CIN을 넣으면 됩니다."
     },
     {
       "level": 2,
-      "title": "상수 0001과 CIN=0",
-      "body": "4-bit Adder의 한 입력에는 IN을, 다른 입력에는 Const4 0001을 넣고 CIN은 Const 0으로 고정하세요."
+      "title": "상수 0001을 더하세요",
+      "body": "Adder4의 A에 IN, B에 Const4 0001, CIN에 Const 0을 넣으면 정확히 +1이 됩니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "Adder4.A=IN, Adder4.B=Const4 0001, Adder4.CIN=Const 0으로 연결하고 SUM→OUT, COUT→CARRY로 연결하세요."
+      "title": "wrap-around도 정상 동작입니다",
+      "body": "Adder4.SUM→OUT, Adder4.COUT→CARRY로 연결하세요. 1111+1은 OUT=0000, CARRY=1이 됩니다."
     }
   ]
 }
