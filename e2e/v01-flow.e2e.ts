@@ -286,6 +286,30 @@ test("4-bit register clock control applies staged D and LOAD and produces a real
   await expect(page.getByTestId("input-load")).toHaveAttribute("data-applied-value", "1");
 });
 
+test("right-click context menu deletes wires and components", async ({ page }) => {
+  await page.getByTestId("palette-builtin.nand").click();
+
+  const component = page.locator('[data-testid^="component-"]').first();
+  const source = page.getByTestId("pin-interface-in");
+  const inputA = component.locator('[data-pin-id="a"]');
+
+  await connect(page, source, inputA);
+  const wire = page.locator("path.wire-hit-target").first();
+  await expect(wire).toBeVisible();
+
+  await wire.click({ button: "right", position: { x: 4, y: 4 } });
+  await expect(page.getByTestId("canvas-context-menu")).toBeVisible();
+  await expect(page.getByTestId("context-delete-wire")).toBeVisible();
+  await page.getByTestId("context-delete-wire").click();
+  await expect(page.locator("path.wire-hit-target")).toHaveCount(0);
+
+  await component.click({ button: "right", position: { x: 24, y: 24 } });
+  await expect(page.getByTestId("canvas-context-menu")).toBeVisible();
+  await expect(page.getByTestId("context-delete-component")).toBeVisible();
+  await page.getByTestId("context-delete-component").click();
+  await expect(page.locator('[data-testid^="component-"]')).toHaveCount(0);
+});
+
 test("selected component can be deleted without dragging", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
