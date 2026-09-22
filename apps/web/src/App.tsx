@@ -4845,7 +4845,7 @@ export function App() {
             </div>
             <div className="test-summary">
               <span>
-                {passedVisualTests}/{visualVerificationItems.length} steps
+                {passedVisualTests}/{visualVerificationItems.length} checks
               </span>
               {testResult ? (
                 <strong
@@ -4940,10 +4940,6 @@ export function App() {
                   <span className="test-case-number">
                     E{index + 1}
                   </span>
-                  <div className="sequence-expect-label">
-                    <small>CHECK</small>
-                    <code>EXPECT</code>
-                  </div>
                   <div>
                     <small>EXPECTED VALUE</small>
                     <code>{expected}</code>
