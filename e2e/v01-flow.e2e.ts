@@ -183,6 +183,109 @@ test("chip state reset control is available beside verification actions", async 
   await expect(reset).toBeEnabled();
 });
 
+test("4-bit register clock control applies staged D and LOAD and produces a real rising edge", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const publishedEnableRegister = {
+      schema: "gateos.circuit/v1",
+      id: "artifact.state.enable-register",
+      name: "1-bit Enable Register",
+      pins: [
+        { id: "d", name: "D", direction: "input", width: 1 },
+        { id: "load", name: "LOAD", direction: "input", width: 1 },
+        { id: "clk", name: "CLK", direction: "input", width: 1 },
+        { id: "q", name: "Q", direction: "output", width: 1 },
+      ],
+      instances: [],
+      connections: [],
+    };
+
+    const register4 = {
+      schema: "gateos.circuit/v1",
+      id: "submission.state.register4",
+      name: "4-bit Enable Register",
+      pins: [
+        { id: "d", name: "D", direction: "input", width: 4 },
+        { id: "load", name: "LOAD", direction: "input", width: 1 },
+        { id: "clk", name: "CLK", direction: "input", width: 1 },
+        { id: "q", name: "Q", direction: "output", width: 4 },
+      ],
+      instances: [
+        { id: "split", componentId: "builtin.split4" },
+        { id: "join", componentId: "builtin.join4" },
+        { id: "r0", componentId: "user.enable-register" },
+        { id: "r1", componentId: "user.enable-register" },
+        { id: "r2", componentId: "user.enable-register" },
+        { id: "r3", componentId: "user.enable-register" },
+      ],
+      connections: [
+        { id: "d-split", from: { kind: "interface", pinId: "d" }, to: { kind: "instance", instanceId: "split", pinId: "in" } },
+        { id: "b0-d", from: { kind: "instance", instanceId: "split", pinId: "b0" }, to: { kind: "instance", instanceId: "r0", pinId: "d" } },
+        { id: "b1-d", from: { kind: "instance", instanceId: "split", pinId: "b1" }, to: { kind: "instance", instanceId: "r1", pinId: "d" } },
+        { id: "b2-d", from: { kind: "instance", instanceId: "split", pinId: "b2" }, to: { kind: "instance", instanceId: "r2", pinId: "d" } },
+        { id: "b3-d", from: { kind: "instance", instanceId: "split", pinId: "b3" }, to: { kind: "instance", instanceId: "r3", pinId: "d" } },
+        { id: "load0", from: { kind: "interface", pinId: "load" }, to: { kind: "instance", instanceId: "r0", pinId: "load" } },
+        { id: "load1", from: { kind: "interface", pinId: "load" }, to: { kind: "instance", instanceId: "r1", pinId: "load" } },
+        { id: "load2", from: { kind: "interface", pinId: "load" }, to: { kind: "instance", instanceId: "r2", pinId: "load" } },
+        { id: "load3", from: { kind: "interface", pinId: "load" }, to: { kind: "instance", instanceId: "r3", pinId: "load" } },
+        { id: "clk0", from: { kind: "interface", pinId: "clk" }, to: { kind: "instance", instanceId: "r0", pinId: "clk" } },
+        { id: "clk1", from: { kind: "interface", pinId: "clk" }, to: { kind: "instance", instanceId: "r1", pinId: "clk" } },
+        { id: "clk2", from: { kind: "interface", pinId: "clk" }, to: { kind: "instance", instanceId: "r2", pinId: "clk" } },
+        { id: "clk3", from: { kind: "interface", pinId: "clk" }, to: { kind: "instance", instanceId: "r3", pinId: "clk" } },
+        { id: "q0", from: { kind: "instance", instanceId: "r0", pinId: "q" }, to: { kind: "instance", instanceId: "join", pinId: "b0" } },
+        { id: "q1", from: { kind: "instance", instanceId: "r1", pinId: "q" }, to: { kind: "instance", instanceId: "join", pinId: "b1" } },
+        { id: "q2", from: { kind: "instance", instanceId: "r2", pinId: "q" }, to: { kind: "instance", instanceId: "join", pinId: "b2" } },
+        { id: "q3", from: { kind: "instance", instanceId: "r3", pinId: "q" }, to: { kind: "instance", instanceId: "join", pinId: "b3" } },
+        { id: "join-q", from: { kind: "instance", instanceId: "join", pinId: "out" }, to: { kind: "interface", pinId: "q" } },
+      ],
+    };
+
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        circuits: { "state.register4": register4 },
+        published: { "user.enable-register": publishedEnableRegister },
+        completed: [
+          "logic.not",
+          "logic.and",
+          "logic.or",
+          "logic.xor",
+          "routing.mux2",
+          "arithmetic.half-adder",
+          "arithmetic.full-adder",
+          "state.sr-latch",
+          "state.d-latch",
+          "state.dff",
+          "state.enable-register",
+          "routing.mux4",
+          "arithmetic.adder4",
+          "arithmetic.incrementer4",
+        ],
+      }),
+    );
+  });
+  await page.reload();
+
+  await expect(page.getByRole("heading", { name: "4-bit Enable Register" })).toBeVisible();
+  await expect(page.getByTestId("output-q")).toHaveAttribute("data-value", "XXXX");
+
+  page.once("dialog", (dialog) => dialog.accept("10"));
+  await page.getByTestId("input-d").locator("rect.interface-terminal-body").click();
+  await page.getByTestId("input-load").locator("rect.interface-terminal-body").click();
+
+  await expect(page.getByTestId("input-d")).toHaveAttribute("data-draft-value", "1010");
+  await expect(page.getByTestId("input-load")).toHaveAttribute("data-draft-value", "1");
+
+  await page.getByTestId("clock-rising").click();
+
+  await expect(page.getByTestId("output-q")).toHaveAttribute("data-value", "1010");
+  await expect(page.getByTestId("input-clk")).toHaveAttribute("data-applied-value", "1");
+  await expect(page.getByTestId("input-d")).toHaveAttribute("data-applied-value", "1010");
+  await expect(page.getByTestId("input-load")).toHaveAttribute("data-applied-value", "1");
+});
+
 test("selected component can be deleted without dragging", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
