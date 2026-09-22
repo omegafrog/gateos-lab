@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.adder4",
   "title": "4-bit Ripple Carry Adder",
-  "description": "네 Full Adder를 LSB→MSB carry chain으로 연결해 A+B+CIN을 계산하는 4-bit Adder를 구현하세요. bitwise 연산과 달리 낮은 자리의 carry가 높은 자리 결과에 영향을 주는 multi-bit arithmetic의 의존성을 이해합니다.",
+  "description": "Full Adder 네 개를 LSB→MSB carry chain으로 연결해 4-bit Ripple Carry Adder를 만드세요. multi-bit arithmetic에서 bit-slice가 독립적이지 않고 carry로 연결된다는 점이 핵심입니다.",
   "interface": {
     "inputs": [
       {
@@ -143,18 +143,18 @@
   "hints": [
     {
       "level": 1,
-      "title": "carry가 다음 bit로 이동합니다",
-      "body": "LSB의 Full Adder가 만든 COUT을 다음 bit의 CIN으로 넘기는 과정을 MSB까지 반복하면 됩니다."
+      "title": "carry는 낮은 자리에서 높은 자리로",
+      "body": "bit 0의 COUT이 bit 1의 CIN이 되고, 같은 방식으로 bit 3까지 이어져야 합니다."
     },
     {
       "level": 2,
-      "title": "B0부터 B3까지 ripple",
-      "body": "A/B를 Split4로 나누고 B0 쪽 Full Adder부터 연결하세요. 각 단계의 COUT은 바로 다음 단계의 CIN으로 연결합니다."
+      "title": "data는 병렬, carry는 직렬",
+      "body": "A/B 각 bit는 자기 stage로 바로 들어가지만 carry만 stage 사이를 순서대로 통과합니다."
     },
     {
       "level": 3,
-      "title": "연결 방향",
-      "body": "FA0(A0,B0,CIN)→S0,C1, FA1(A1,B1,C1)→S1,C2, FA2→S2,C3, FA3→S3,COUT 순서입니다. S0~S3는 Join4로 SUM에 묶으세요."
+      "title": "연결 순서",
+      "body": "FA0(A0,B0,CIN)→S0,C1; FA1(A1,B1,C1)→S1,C2; FA2→S2,C3; FA3→S3,COUT으로 연결하고 S0~S3를 Join4에 같은 순서로 묶으세요."
     }
   ]
 }
