@@ -406,7 +406,6 @@ describe("extended curriculum", () => {
       "18-decoder2to4.challenge.json",
       "19-ram4.challenge.json",
       "20-ram16.challenge.json",
-      "22-logic-unit4.challenge.json",
       "25-zero4.challenge.json",
       "26-alu4.challenge.json",
       "27-register-file4.challenge.json",
@@ -498,25 +497,24 @@ describe("extended curriculum", () => {
     ]);
   });
 
-  it("moves from RAM16 through one combined Logic Unit into CPU datapath capabilities", () => {
+  it("moves from RAM16 into Zero Detector and an ALU built from provided bitwise gates", () => {
     const ram16 = readChallenge("20-ram16.challenge.json");
-    const logicUnit = readChallenge("22-logic-unit4.challenge.json");
     const alu = readChallenge("26-alu4.challenge.json");
     const registerFile = readChallenge("27-register-file4.challenge.json");
     const transfer = readChallenge("28-register-transfer4.challenge.json");
     const datapath = readChallenge("29-alu-datapath4.challenge.json");
 
-    expect(ram16.unlocks).toContain("logic.logic-unit4");
-    expect(logicUnit.interface.outputs.map((pin) => pin.id)).toEqual([
-      "and",
-      "or",
-      "xor",
-    ]);
-    expect(logicUnit.allowedComponents).toEqual(
-      expect.arrayContaining(["user.and", "user.or", "user.xor"]),
+    expect(ram16.unlocks).toContain("logic.zero4");
+    expect(alu.allowedComponents).toEqual(
+      expect.arrayContaining([
+        "builtin.and4",
+        "builtin.or4",
+        "builtin.xor4",
+        "user.adder4",
+        "user.zero4",
+      ]),
     );
-    expect(logicUnit.unlocks).toContain("logic.zero4");
-    expect(alu.allowedComponents).toContain("user.logic-unit4");
+    expect(alu.allowedComponents).not.toContain("user.logic-unit4");
     expect(alu.allowedComponents).not.toContain("user.and4");
     expect(alu.allowedComponents).not.toContain("user.or4");
     expect(alu.allowedComponents).not.toContain("user.xor4");
@@ -555,26 +553,27 @@ describe("extended curriculum", () => {
     expect(datapath.validators.some((validator) => validator.type === "sequence")).toBe(true);
   });
 
-  it("loads the guided curriculum in order through 26 focused challenges", () => {
+  it("loads the guided curriculum in order through 25 focused challenges", () => {
     const manifest = readManifest();
-    expect(manifest.challenges).toHaveLength(26);
+    expect(manifest.challenges).toHaveLength(25);
     expect(manifest.challenges[19]).toEqual({
       id: "memory.ram16",
       file: "20-ram16.challenge.json",
     });
     expect(manifest.challenges[20]).toEqual({
-      id: "logic.logic-unit4",
-      file: "22-logic-unit4.challenge.json",
+      id: "logic.zero4",
+      file: "25-zero4.challenge.json",
     });
-    expect(manifest.challenges[22]).toEqual({
+    expect(manifest.challenges[21]).toEqual({
       id: "arithmetic.alu4",
       file: "26-alu4.challenge.json",
     });
-    expect(manifest.challenges[25]).toEqual({
+    expect(manifest.challenges[24]).toEqual({
       id: "cpu.alu-datapath4",
       file: "29-alu-datapath4.challenge.json",
     });
     expect(manifest.challenges.some((entry) => entry.id === "memory.ram64")).toBe(false);
+    expect(manifest.challenges.some((entry) => entry.id === "logic.logic-unit4")).toBe(false);
     expect(manifest.challenges.some((entry) => entry.id === "logic.and4")).toBe(false);
     expect(manifest.challenges.some((entry) => entry.id === "logic.or4")).toBe(false);
     expect(manifest.challenges.some((entry) => entry.id === "logic.xor4")).toBe(false);
