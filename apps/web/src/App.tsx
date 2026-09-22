@@ -5048,8 +5048,8 @@ export function App() {
             <div>
               <strong>Verification</strong>
               <p className="muted">
-                테스트를 실행하면 각 입력 조합이 회로에 실제로 적용되고,
-                신호가 전파된 뒤 결과를 비교합니다.
+                테스트를 실행하면 입력이 적용된 뒤 결과를 비교합니다. Sequence 검증은
+                ▾를 눌러 그 EXPECT 전에 적용되는 입력과 clock/edge 동작을 확인할 수 있습니다.
               </p>
             </div>
             <div className="test-summary">
