@@ -302,7 +302,8 @@
         "Split6의 B0가 LSB, B5가 MSB입니다.",
         "B0~B3를 Join4로 묶어 모든 RAM16.ADDR에 공통으로 연결합니다.",
         "B4~B5는 Join2로 묶어 bank decoder에 넣습니다."
-      ]
+      ],
+      "kind": "address"
     }
   ],
   "hints": [
