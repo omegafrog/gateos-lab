@@ -3832,7 +3832,13 @@ export function App() {
                   </p>
                 ) : null}
               </div>
-              <span>상태표 (State / Characteristic Table)</span>
+              <span>
+                {table.kind === "operation"
+                  ? "동작표 (Operation Table)"
+                  : table.kind === "address"
+                    ? "주소표 (Address Map)"
+                    : "상태표 (State / Characteristic Table)"}
+              </span>
             </div>
 
             <div className="reference-table-scroll">
