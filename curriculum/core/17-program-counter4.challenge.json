@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "state.program-counter4",
   "title": "4-bit Program Counter",
-  "description": "RESET, LOAD, INC를 지원하는 4-bit Program Counter를 만드세요. 우선순위는 RESET > LOAD > INC > HOLD이며 rising edge에서만 Q가 바뀝니다.",
+  "description": "RESET > LOAD > INC > HOLD 우선순위를 갖는 4-bit Program Counter를 구현하세요. PC를 단순 counter가 아니라 현재 instruction address를 저장하고 여러 next-address 후보를 control 우선순위로 선택하는 state register로 이해합니다.",
   "interface": {
     "inputs": [
       {
