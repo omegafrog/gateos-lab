@@ -108,7 +108,7 @@ interface WireNodeMoveState {
 interface WireGestureCandidate {
   mode: "branch" | "move-node";
   connectionId: string;
-  existingNodeIndex?: number;
+  existingNodeIndex: number | undefined;
   pointerId: number;
   clientX: number;
   clientY: number;
@@ -588,12 +588,83 @@ function getEndpointPoint(
   );
 }
 
-function wirePath(points: readonly Point[]): string {
+function isSingleCellDiagonal(start: Point, end: Point): boolean {
+  return (
+    Math.abs(end.x - start.x) === PLACEMENT_GRID &&
+    Math.abs(end.y - start.y) === PLACEMENT_GRID
+  );
+}
+
+function constrainedSegmentPoints(start: Point, end: Point): readonly Point[] {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+
+  if (
+    dx === 0 ||
+    dy === 0 ||
+    isSingleCellDiagonal(start, end)
+  ) {
+    return [end];
+  }
+
+  const xSteps = Math.abs(dx) / PLACEMENT_GRID;
+  const ySteps = Math.abs(dy) / PLACEMENT_GRID;
+
+  // Long diagonal runs are not allowed. Route on the hidden grid and only
+  // preserve a diagonal when it crosses exactly one hidden cell.
+  if (xSteps >= 2) {
+    const midX =
+      start.x +
+      Math.sign(dx) *
+        Math.max(1, Math.floor(xSteps / 2)) *
+        PLACEMENT_GRID;
+    return [
+      { x: midX, y: start.y },
+      { x: midX, y: end.y },
+      end,
+    ];
+  }
+
+  if (ySteps >= 2) {
+    const midY =
+      start.y +
+      Math.sign(dy) *
+        Math.max(1, Math.floor(ySteps / 2)) *
+        PLACEMENT_GRID;
+    return [
+      { x: start.x, y: midY },
+      { x: end.x, y: midY },
+      end,
+    ];
+  }
+
+  return [end];
+}
+
+function constrainedWirePoints(points: readonly Point[]): readonly Point[] {
   const first = points[0];
+  if (!first) return [];
+
+  const result: Point[] = [first];
+  for (const end of points.slice(1)) {
+    const start = result[result.length - 1]!;
+    for (const point of constrainedSegmentPoints(start, end)) {
+      const previous = result[result.length - 1];
+      if (!previous || previous.x !== point.x || previous.y !== point.y) {
+        result.push(point);
+      }
+    }
+  }
+  return result;
+}
+
+function wirePath(points: readonly Point[]): string {
+  const routed = constrainedWirePoints(points);
+  const first = routed[0];
   if (!first) return "";
   return [
     `M ${first.x} ${first.y}`,
-    ...points.slice(1).map((point) => `L ${point.x} ${point.y}`),
+    ...routed.slice(1).map((point) => `L ${point.x} ${point.y}`),
   ].join(" ");
 }
 
@@ -648,14 +719,25 @@ function routeInsertionIndex(
     const end = points[index + 1];
     if (!start || !end) continue;
 
-    const distance = pointToSegmentDistanceSquared(
-      point,
-      start,
-      end,
-    );
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestIndex = index;
+    const rendered = [start, ...constrainedSegmentPoints(start, end)];
+    for (
+      let segmentIndex = 0;
+      segmentIndex < rendered.length - 1;
+      segmentIndex += 1
+    ) {
+      const segmentStart = rendered[segmentIndex];
+      const segmentEnd = rendered[segmentIndex + 1];
+      if (!segmentStart || !segmentEnd) continue;
+
+      const distance = pointToSegmentDistanceSquared(
+        point,
+        segmentStart,
+        segmentEnd,
+      );
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
     }
   }
 
