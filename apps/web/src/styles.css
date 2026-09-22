@@ -2893,8 +2893,112 @@ button:disabled {
 
 
 /* Verification shows assertions, not sequence setup noise. */
-.sequence-step-row {
-  grid-template-columns: 34px 1fr 1fr 38px;
+.sequence-check {
+  border-bottom: 1px solid #edf0f4;
+}
+
+.sequence-check:last-child {
+  border-bottom: 0;
+}
+
+.sequence-check .sequence-step-row {
+  grid-template-columns: 34px 1fr 1fr 38px 34px;
+  border-bottom: 0;
+}
+
+.sequence-details-toggle {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #d8dde6;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #5f6978;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.sequence-details-toggle:hover {
+  border-color: #9ca8bd;
+  background: #f7f8fb;
+}
+
+.sequence-check.expanded .sequence-details-toggle {
+  background: #eef1fb;
+  color: #4053bd;
+}
+
+.sequence-details {
+  padding: 0 12px 12px 46px;
+  background: #fafbfc;
+}
+
+.sequence-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 8px;
+  color: #5a6473;
+  font-size: 11px;
+}
+
+.sequence-details-header span {
+  color: #8a93a0;
+  font-size: 10px;
+}
+
+.sequence-operation-list {
+  overflow: hidden;
+  border: 1px solid #e0e4eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sequence-operation-row {
+  display: grid;
+  grid-template-columns: 28px 62px 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  padding: 5px 9px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.sequence-operation-row:last-child {
+  border-bottom: 0;
+}
+
+.sequence-operation-row > span {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  background: #f0f2f5;
+  color: #7a8492;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.sequence-operation-row strong {
+  color: #5d6878;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.sequence-operation-row code {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.sequence-details-hidden {
+  margin: 0;
+  padding: 10px;
+  border: 1px dashed #d8dde6;
+  border-radius: 8px;
 }
 
 .run-actions [data-testid="reset-chip-state"] {
