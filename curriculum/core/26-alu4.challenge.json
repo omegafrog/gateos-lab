@@ -2,7 +2,7 @@
   "schema": "gateos.challenge/v1",
   "id": "arithmetic.alu4",
   "title": "4-bit ALU",
-  "description": "A, B, OP를 받아 AND, OR, XOR, ADD 중 하나를 선택하는 4-bit ALU를 만드세요. 4-bit AND/OR/XOR는 이미 제공되는 word-level 기본 부품이고, Adder4는 앞에서 만든 산술 부품입니다. OP=00 AND, 01 OR, 10 XOR, 11 ADD이며 ZERO는 최종 선택된 결과가 0000일 때 1이어야 합니다.",
+  "description": "A, B, OP를 받아 AND, OR, XOR, ADD 중 하나를 선택하는 4-bit ALU를 구현하세요. bitwise 연산 블록은 기본 제공 부품으로 사용하고, 여러 후보 결과를 병렬로 계산한 뒤 OP라는 control signal로 최종 datapath를 선택하는 데 집중합니다.",
   "interface": {
     "inputs": [
       {
