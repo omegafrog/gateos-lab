@@ -32,6 +32,7 @@ import { TraceRecorder } from "@gateos/trace-engine";
 import { JourneyView, StageCompletionReveal } from "./Journey.js";
 
 const STORAGE_KEY = "gateos-lab:v0.1";
+const STORAGE_BACKUP_KEY = "gateos-lab:v0.1:backup";
 const VIEW_KEY = "gateos-lab:view";
 const STAGE_REVEAL_KEY = "gateos-lab:stage-reveals";
 const PROJECT_SCHEMA = "gateos.project/v1";
@@ -81,6 +82,7 @@ interface ProjectState {
 interface ProjectLoadResult {
   project: ProjectState;
   error?: string;
+  blockAutosave?: boolean;
 }
 
 interface Point {
@@ -345,25 +347,68 @@ function normalizeProjectGrid(project: ProjectState): ProjectState {
   };
 }
 
+function parseStoredProject(raw: string): ProjectState {
+  return normalizeProjectGrid(normalizeProject(JSON.parse(raw)));
+}
+
 function loadProject(): ProjectLoadResult {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return { project: emptyProject() };
+  if (!raw) {
+    const backup = localStorage.getItem(STORAGE_BACKUP_KEY);
+    if (!backup) return { project: emptyProject() };
+
+    try {
+      return {
+        project: parseStoredProject(backup),
+        error:
+          "Primary browser save was missing, so GateOS recovered the last local backup.",
+      };
+    } catch {
+      return { project: emptyProject() };
+    }
+  }
 
   try {
-    return {
-      project: normalizeProjectGrid(
-        normalizeProject(JSON.parse(raw)),
-      ),
-    };
+    return { project: parseStoredProject(raw) };
   } catch (error) {
+    const backup = localStorage.getItem(STORAGE_BACKUP_KEY);
+    if (backup) {
+      try {
+        return {
+          project: parseStoredProject(backup),
+          error:
+            "Primary browser save could not be loaded. GateOS recovered the last valid local backup instead.",
+        };
+      } catch {
+        // Preserve both invalid values for manual recovery.
+      }
+    }
+
     return {
       project: emptyProject(),
+      blockAutosave: true,
       error:
         error instanceof Error
-          ? `Saved project could not be loaded: ${error.message}`
-          : "Saved project could not be loaded.",
+          ? `Saved project could not be loaded: ${error.message}. The original browser data was preserved and autosave has been stopped.`
+          : "Saved project could not be loaded. The original browser data was preserved and autosave has been stopped.",
     };
   }
+}
+
+function persistProject(project: ProjectState): void {
+  const serialized = JSON.stringify(project);
+  const current = localStorage.getItem(STORAGE_KEY);
+
+  if (current && current !== serialized) {
+    try {
+      parseStoredProject(current);
+      localStorage.setItem(STORAGE_BACKUP_KEY, current);
+    } catch {
+      // Never replace a known-good backup with an unreadable primary save.
+    }
+  }
+
+  localStorage.setItem(STORAGE_KEY, serialized);
 }
 
 function createSubmission(challenge: ChallengeDefinition): CircuitDefinition {
@@ -931,6 +976,9 @@ export function App() {
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [curriculumOpen, setCurriculumOpen] = useState(false);
   const [project, setProject] = useState<ProjectState>(initialProject.project);
+  const [autosaveBlocked, setAutosaveBlocked] = useState(
+    initialProject.blockAutosave ?? false,
+  );
   const [projectError, setProjectError] = useState(initialProject.error ?? "");
   const [pendingPin, setPendingPin] = useState<CircuitEndpoint | null>(null);
   const [wirePointer, setWirePointer] = useState<Point | null>(null);
@@ -1045,8 +1093,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-  }, [project]);
+    if (autosaveBlocked) return;
+    persistProject(project);
+  }, [project, autosaveBlocked]);
 
   useEffect(() => {
     localStorage.setItem(VIEW_KEY, appMode);
@@ -2752,6 +2801,7 @@ export function App() {
         normalizeProject(parsed, true),
       );
       setProject(imported);
+      setAutosaveBlocked(false);
       setProjectError("");
       setSelectedInstance(null);
       setSelectedInstances([]);
