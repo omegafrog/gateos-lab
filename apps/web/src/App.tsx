@@ -453,6 +453,101 @@ function buildRegistry(project: ProjectState): ComponentRegistry {
   return registry;
 }
 
+function recoverProjectProgress(
+  project: ProjectState,
+  challenges: readonly ChallengeDefinition[],
+): {
+  project: ProjectState;
+  recoveredIds: readonly string[];
+} {
+  const recoveredCompleted = new Set(project.completed);
+  const recoveredPublished: Record<string, CircuitDefinition> = {
+    ...project.published,
+  };
+  const registry = buildRegistry({
+    ...project,
+    published: recoveredPublished,
+  });
+  const primitives = createBuiltinPrimitiveRegistry();
+  const recoveredIds: string[] = [];
+
+  for (const challenge of challenges) {
+    const id = challenge.id;
+    const artifactId = publishedId(id);
+    const circuit = project.circuits[id];
+    const alreadyPublished = recoveredPublished[artifactId];
+
+    if (alreadyPublished) {
+      recoveredCompleted.add(id);
+      continue;
+    }
+
+    if (
+      recoveredCompleted.has(id) &&
+      circuit &&
+      (circuit.instances.length > 0 || circuit.connections.length > 0)
+    ) {
+      const artifact: CircuitDefinition = {
+        ...circuit,
+        id: `artifact.${id}`,
+        name: challenge.title,
+      };
+      recoveredPublished[artifactId] = artifact;
+      registry.register({
+        kind: "composite",
+        id: artifactId,
+        name: artifact.name,
+        circuit: artifact,
+      });
+      recoveredIds.push(id);
+      continue;
+    }
+
+    if (
+      !circuit ||
+      (circuit.instances.length === 0 && circuit.connections.length === 0)
+    ) {
+      continue;
+    }
+
+    try {
+      const result = runChallenge(challenge, circuit, registry, primitives);
+      if (!result.passed) continue;
+
+      const artifact: CircuitDefinition = {
+        ...circuit,
+        id: `artifact.${id}`,
+        name: challenge.title,
+      };
+      recoveredCompleted.add(id);
+      recoveredPublished[artifactId] = artifact;
+      registry.register({
+        kind: "composite",
+        id: artifactId,
+        name: artifact.name,
+        circuit: artifact,
+      });
+      recoveredIds.push(id);
+    } catch {
+      // A draft circuit or a circuit whose dependencies are unavailable
+      // should not be promoted into completed curriculum progress.
+    }
+  }
+
+  const normalizedCompleted = challenges
+    .map((challenge) => challenge.id)
+    .filter((id) => recoveredCompleted.has(id));
+
+  return {
+    project: {
+      ...project,
+      published: recoveredPublished,
+      completed: normalizedCompleted,
+    },
+    recoveredIds,
+  };
+}
+
 function endpointKey(endpoint: CircuitEndpoint): string {
   return endpoint.kind === "interface"
     ? `interface:${endpoint.pinId}`
@@ -1073,36 +1168,26 @@ export function App() {
         setLearning(loadedLearning);
         setChallenges(loadedChallenges);
 
-        const recoveredCompleted = new Set(initialProject.project.completed);
-        let furthestPublishedIndex = -1;
-        loadedChallenges.forEach((item, index) => {
-          if (initialProject.project.published[publishedId(item.id)]) {
-            furthestPublishedIndex = Math.max(furthestPublishedIndex, index);
-          }
-        });
-        for (let index = 0; index <= furthestPublishedIndex; index += 1) {
-          const id = loadedChallenges[index]?.id;
-          if (id) recoveredCompleted.add(id);
-        }
-
-        const normalizedCompleted = loadedChallenges
-          .map((item) => item.id)
-          .filter((id) => recoveredCompleted.has(id));
+        const recovery = recoverProjectProgress(
+          initialProject.project,
+          loadedChallenges,
+        );
+        const normalizedCompleted = recovery.project.completed;
 
         if (
-          normalizedCompleted.length !== initialProject.project.completed.length ||
-          normalizedCompleted.some(
-            (id, index) => initialProject.project.completed[index] !== id,
-          )
+          JSON.stringify(recovery.project) !==
+          JSON.stringify(initialProject.project)
         ) {
-          setProject((current) => ({
-            ...current,
-            completed: normalizedCompleted,
-          }));
-          if (furthestPublishedIndex >= 0) {
+          setProject(recovery.project);
+          if (recovery.recoveredIds.length > 0) {
+            const lastRecoveredId =
+              recovery.recoveredIds[recovery.recoveredIds.length - 1];
+            const lastRecovered = loadedChallenges.find(
+              (item) => item.id === lastRecoveredId,
+            );
             setProjectError((current) =>
               current ||
-              `Recovered curriculum progress through ${loadedChallenges[furthestPublishedIndex]?.title ?? "the last published chip"} from published circuits.`,
+              `Recovered curriculum progress through ${lastRecovered?.title ?? lastRecoveredId} from saved circuit work.`,
             );
           }
         }
