@@ -868,12 +868,26 @@ function JourneyMotionStage({
   activeIndex: number;
   playing: boolean;
 }) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    if (playing) svg.unpauseAnimations();
+    else svg.pauseAnimations();
+  }, [playing]);
+
   return (
     <div
       className={`journey-motion-stage ${playing ? "playing" : "paused"}`}
       data-testid="journey-assembly"
     >
-      <svg viewBox="0 0 880 480" role="img" aria-label="GateOS 전체 계층 모션 그래픽">
+      <svg
+        ref={svgRef}
+        viewBox="0 0 880 480"
+        role="img"
+        aria-label="GateOS 전체 계층 모션 그래픽"
+      >
         <defs>
           <pattern id="journey-motion-grid" width="28" height="28" patternUnits="userSpaceOnUse">
             <path d="M28 0H0V28" className="journey-motion-grid-line" />
