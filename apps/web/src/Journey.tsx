@@ -237,7 +237,7 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
     future: true,
     parts: [
       { id: "cpu", label: "CPU", kind: "chip", requires: ["cpu.alu-datapath4"] },
-      { id: "ram", label: "RAM", kind: "memory", requires: ["memory.ram64"] },
+      { id: "ram", label: "RAM16", kind: "memory", requires: ["memory.ram16"] },
       { id: "bus", label: "SYSTEM BUS", kind: "chip" },
       { id: "io", label: "I/O", kind: "chip" },
     ],
@@ -613,6 +613,293 @@ function JourneyAssembly({
   );
 }
 
+function MotionSignal({
+  path,
+  delay = 0,
+}: {
+  path: string;
+  delay?: number;
+}) {
+  return (
+    <circle r="4.5" className="journey-motion-signal" aria-hidden="true">
+      <animateMotion
+        path={path}
+        begin={`${delay}s`}
+        dur="2.4s"
+        repeatCount="indefinite"
+      />
+    </circle>
+  );
+}
+
+function MotionSceneDiagram({ scene }: { scene: JourneyScene }) {
+  if (scene.id === "logic") {
+    return (
+      <>
+        <text x="92" y="92" className="journey-motion-caption">PRIMITIVE</text>
+        <g className="journey-motion-node" transform="translate(120 210)">
+          <path d="M-58-42H-18Q42 0-18 42H-58Z" className="journey-motion-gate" />
+          <circle cx="8" cy="0" r="7" className="journey-motion-gate" />
+          <text x="-18" y="70" textAnchor="middle">NAND</text>
+        </g>
+        <path d="M172 210H286" className="journey-motion-wire" />
+        <MotionSignal path="M172 210 H286" />
+        <g className="journey-motion-cluster">
+          <rect x="286" y="125" width="158" height="170" rx="20" className="journey-motion-card" />
+          <text x="365" y="165" textAnchor="middle" className="journey-motion-title">BOOLEAN LOGIC</text>
+          <text x="365" y="202" textAnchor="middle" className="journey-motion-chip">NOT · AND · OR · XOR</text>
+          <path d="M314 235H416" className="journey-motion-miniwire" />
+          <circle cx="330" cy="235" r="7" className="journey-motion-port" />
+          <circle cx="400" cy="235" r="7" className="journey-motion-port" />
+        </g>
+        <path d="M444 210H558" className="journey-motion-wire" />
+        <MotionSignal path="M444 210 H558" delay={0.7} />
+        <g className="journey-motion-cluster" transform="translate(0 0)">
+          <rect x="558" y="150" width="170" height="120" rx="18" className="journey-motion-card journey-motion-card--strong" />
+          <text x="643" y="200" textAnchor="middle" className="journey-motion-title">FULL ADDER</text>
+          <text x="643" y="229" textAnchor="middle" className="journey-motion-muted">SUM + CARRY</text>
+        </g>
+      </>
+    );
+  }
+
+  if (scene.id === "state") {
+    return (
+      <>
+        <text x="94" y="92" className="journey-motion-caption">FEEDBACK CREATES STATE</text>
+        <g>
+          <rect x="86" y="155" width="180" height="126" rx="18" className="journey-motion-card" />
+          <text x="176" y="194" textAnchor="middle" className="journey-motion-title">SR LATCH</text>
+          <path d="M126 229H226 M226 229C260 229 260 318 176 318C92 318 92 251 126 251" className="journey-motion-wire journey-motion-wire--feedback" />
+          <MotionSignal path="M126 229 H226 C260 229 260 318 176 318 C92 318 92 251 126 251" />
+        </g>
+        <path d="M266 218H370" className="journey-motion-wire" />
+        <g>
+          <rect x="370" y="142" width="174" height="154" rx="20" className="journey-motion-card" />
+          <text x="457" y="184" textAnchor="middle" className="journey-motion-title">D FLIP-FLOP</text>
+          <path d="M399 236H514" className="journey-motion-clock" />
+          <path d="M399 236v-22h22v44h22v-44h22v44h29" className="journey-motion-clock-pulse" />
+          <text x="457" y="278" textAnchor="middle" className="journey-motion-muted">sample on ↑ edge</text>
+        </g>
+        <path d="M544 218H622" className="journey-motion-wire" />
+        <MotionSignal path="M544 218 H622" delay={0.4} />
+        <g>
+          <rect x="622" y="155" width="138" height="126" rx="18" className="journey-motion-card journey-motion-card--strong" />
+          <text x="691" y="204" textAnchor="middle" className="journey-motion-title">REGISTER</text>
+          <text x="691" y="235" textAnchor="middle" className="journey-motion-muted">Q(t+1)</text>
+        </g>
+      </>
+    );
+  }
+
+  if (scene.id === "multibit") {
+    return (
+      <>
+        <text x="92" y="92" className="journey-motion-caption">BITS BECOME WORDS</text>
+        {[0,1,2,3].map((bit) => (
+          <g key={bit}>
+            <path d={`M92 ${157 + bit * 42} H250`} className="journey-motion-wire journey-motion-wire--bus" />
+            <circle cx="108" cy={157 + bit * 42} r="5" className="journey-motion-port" />
+            <text x="72" y={162 + bit * 42} textAnchor="end" className="journey-motion-bit">B{bit}</text>
+          </g>
+        ))}
+        <rect x="250" y="132" width="160" height="174" rx="20" className="journey-motion-card" />
+        <text x="330" y="185" textAnchor="middle" className="journey-motion-title">ADDER4</text>
+        <text x="330" y="219" textAnchor="middle" className="journey-motion-muted">carry ripples →</text>
+        <path d="M282 253H378" className="journey-motion-miniwire" />
+        <MotionSignal path="M282 253 H378" />
+        <path d="M410 219H516" className="journey-motion-wire" />
+        <rect x="516" y="148" width="138" height="142" rx="18" className="journey-motion-card" />
+        <text x="585" y="199" textAnchor="middle" className="journey-motion-title">REG4</text>
+        <text x="585" y="233" textAnchor="middle" className="journey-motion-muted">word state</text>
+        <path d="M654 219H720" className="journey-motion-wire" />
+        <rect x="720" y="165" width="92" height="108" rx="16" className="journey-motion-card journey-motion-card--strong" />
+        <text x="766" y="207" textAnchor="middle" className="journey-motion-title">PC</text>
+        <text x="766" y="236" textAnchor="middle" className="journey-motion-muted">+1</text>
+      </>
+    );
+  }
+
+  if (scene.id === "memory") {
+    return (
+      <>
+        <text x="92" y="92" className="journey-motion-caption">ADDRESS SELECTS STATE</text>
+        <g>
+          <rect x="88" y="155" width="140" height="126" rx="18" className="journey-motion-card" />
+          <text x="158" y="195" textAnchor="middle" className="journey-motion-title">DECODER</text>
+          {[0,1,2,3].map((row) => (
+            <path key={row} d={`M198 ${220 + row * 14} H244`} className="journey-motion-miniwire" />
+          ))}
+          <text x="158" y="250" textAnchor="middle" className="journey-motion-muted">one-hot write</text>
+        </g>
+        <path d="M228 218H342" className="journey-motion-wire" />
+        <MotionSignal path="M228 218 H342" />
+        <g>
+          <rect x="342" y="112" width="294" height="218" rx="24" className="journey-motion-card journey-motion-card--strong" />
+          {Array.from({length:4},(_,row)=>
+            Array.from({length:4},(_,col)=>(
+              <rect
+                key={`${row}-${col}`}
+                x={376+col*58}
+                y={145+row*38}
+                width="44"
+                height="26"
+                rx="6"
+                className={`journey-motion-cell ${row===2&&col===1?"active":""}`}
+              />
+            ))
+          )}
+          <text x="489" y="313" textAnchor="middle" className="journey-motion-title">RAM16</text>
+        </g>
+        <path d="M636 218H756" className="journey-motion-wire" />
+        <MotionSignal path="M636 218 H756" delay={0.8} />
+        <text x="700" y="195" textAnchor="middle" className="journey-motion-muted">READ DATA</text>
+      </>
+    );
+  }
+
+  if (scene.id === "cpu") {
+    return (
+      <>
+        <text x="92" y="92" className="journey-motion-caption">READ → EXECUTE → WRITE BACK</text>
+        <rect x="82" y="142" width="190" height="170" rx="22" className="journey-motion-card" />
+        <text x="177" y="184" textAnchor="middle" className="journey-motion-title">REGISTER FILE</text>
+        <text x="177" y="218" textAnchor="middle" className="journey-motion-muted">2 read · 1 write</text>
+        <path d="M272 188H406 M272 250H406" className="journey-motion-wire" />
+        <MotionSignal path="M272 188 H406" />
+        <MotionSignal path="M272 250 H406" delay={0.45} />
+        <path d="M406 162L532 218L406 274Z" className="journey-motion-alu" />
+        <text x="454" y="223" textAnchor="middle" className="journey-motion-title">ALU</text>
+        <path d="M532 218H694" className="journey-motion-wire" />
+        <MotionSignal path="M532 218 H694" delay={0.9} />
+        <rect x="694" y="166" width="120" height="104" rx="16" className="journey-motion-card journey-motion-card--strong" />
+        <text x="754" y="207" textAnchor="middle" className="journey-motion-title">RESULT</text>
+        <text x="754" y="237" textAnchor="middle" className="journey-motion-muted">ZERO flag</text>
+        <path d="M754 270V354H177V312" className="journey-motion-wire journey-motion-wire--feedback" />
+        <MotionSignal path="M754 270 V354 H177 V312" delay={1.2} />
+        <text x="470" y="377" textAnchor="middle" className="journey-motion-muted">write-back</text>
+      </>
+    );
+  }
+
+  if (scene.id === "computer") {
+    return (
+      <>
+        <text x="92" y="92" className="journey-motion-caption">SYSTEM INTEGRATION</text>
+        <rect x="98" y="150" width="176" height="126" rx="20" className="journey-motion-card journey-motion-card--strong" />
+        <text x="186" y="202" textAnchor="middle" className="journey-motion-title">CPU</text>
+        <rect x="604" y="150" width="176" height="126" rx="20" className="journey-motion-card" />
+        <text x="692" y="202" textAnchor="middle" className="journey-motion-title">RAM16</text>
+        <rect x="352" y="132" width="170" height="164" rx="22" className="journey-motion-card" />
+        <text x="437" y="185" textAnchor="middle" className="journey-motion-title">SYSTEM BUS</text>
+        <text x="437" y="219" textAnchor="middle" className="journey-motion-muted">address · data · control</text>
+        <path d="M274 213H352 M522 213H604" className="journey-motion-wire journey-motion-wire--bus" />
+        <MotionSignal path="M274 213 H352" />
+        <MotionSignal path="M522 213 H604" delay={0.6} />
+        <rect x="374" y="326" width="126" height="70" rx="16" className="journey-motion-card" />
+        <text x="437" y="368" textAnchor="middle" className="journey-motion-title">I/O</text>
+        <path d="M437 296V326" className="journey-motion-wire" />
+      </>
+    );
+  }
+
+  if (scene.id === "boot") {
+    return (
+      <>
+        <text x="92" y="92" className="journey-motion-caption">RESET VECTOR → FIRST INSTRUCTION</text>
+        <rect x="170" y="116" width="548" height="286" rx="28" className="journey-motion-monitor" />
+        <rect x="196" y="142" width="496" height="226" rx="16" className="journey-motion-screen" />
+        <text x="228" y="190" className="journey-motion-terminal">GateOS firmware monitor</text>
+        <text x="228" y="228" className="journey-motion-terminal journey-motion-terminal--delay1">PC ← 0000</text>
+        <text x="228" y="266" className="journey-motion-terminal journey-motion-terminal--delay2">FETCH  [0000]  1101 0010</text>
+        <text x="228" y="304" className="journey-motion-terminal journey-motion-terminal--delay3">DECODE → EXECUTE</text>
+        <text x="228" y="342" className="journey-motion-terminal journey-motion-terminal--cursor">kernel _</text>
+      </>
+    );
+  }
+
+  if (scene.id === "os") {
+    return (
+      <>
+        <text x="92" y="92" className="journey-motion-caption">KERNEL SERVICES COME ONLINE</text>
+        <circle cx="440" cy="220" r="82" className="journey-motion-kernel" />
+        <text x="440" y="215" textAnchor="middle" className="journey-motion-title journey-motion-title--light">GateOS</text>
+        <text x="440" y="242" textAnchor="middle" className="journey-motion-muted journey-motion-muted--light">KERNEL</text>
+        {[
+          ["SYSCALL",220,134],
+          ["SCHED",660,134],
+          ["MEMORY",220,326],
+          ["FILES",660,326],
+        ].map(([label,x,y],index)=>(
+          <g key={String(label)}>
+            <path d={`M440 220 L${x} ${y}`} className="journey-motion-wire" />
+            <circle cx={Number(x)} cy={Number(y)} r="58" className="journey-motion-service" />
+            <text x={Number(x)} y={Number(y)+5} textAnchor="middle" className="journey-motion-chip">{label}</text>
+            <MotionSignal path={`M440 220 L${x} ${y}`} delay={index*0.35} />
+          </g>
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <text x="92" y="92" className="journey-motion-caption">THE WHOLE STACK BECOMES USEFUL</text>
+      <rect x="128" y="102" width="624" height="316" rx="30" className="journey-motion-monitor" />
+      <rect x="154" y="128" width="572" height="264" rx="18" className="journey-motion-screen" />
+      <rect x="184" y="164" width="178" height="188" rx="16" className="journey-motion-app" />
+      <text x="273" y="204" textAnchor="middle" className="journey-motion-title">EDITOR</text>
+      <path d="M210 236H332 M210 262H308 M210 288H324 M210 314H276" className="journey-motion-code" />
+      <rect x="390" y="164" width="306" height="82" rx="16" className="journey-motion-app" />
+      <text x="420" y="196" className="journey-motion-terminal">$ ./hello</text>
+      <text x="420" y="224" className="journey-motion-terminal">hello from GateOS _</text>
+      <rect x="390" y="268" width="142" height="84" rx="16" className="journey-motion-app" />
+      <rect x="554" y="268" width="142" height="84" rx="16" className="journey-motion-app" />
+      <text x="461" y="317" textAnchor="middle" className="journey-motion-chip">RUNTIME</text>
+      <text x="625" y="317" textAnchor="middle" className="journey-motion-chip">APP</text>
+    </>
+  );
+}
+
+function JourneyMotionStage({
+  activeIndex,
+  playing,
+}: {
+  activeIndex: number;
+  playing: boolean;
+}) {
+  return (
+    <div
+      className={`journey-motion-stage ${playing ? "playing" : "paused"}`}
+      data-testid="journey-assembly"
+    >
+      <svg viewBox="0 0 880 480" role="img" aria-label="GateOS 전체 계층 모션 그래픽">
+        <defs>
+          <pattern id="journey-motion-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+            <path d="M28 0H0V28" className="journey-motion-grid-line" />
+          </pattern>
+          <radialGradient id="journey-motion-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="880" height="480" fill="url(#journey-motion-grid)" className="journey-motion-grid" />
+        <circle cx="440" cy="230" r="250" fill="url(#journey-motion-glow)" className="journey-motion-ambient" />
+        {JOURNEY_SCENES.map((scene, index) => (
+          <g
+            key={scene.id}
+            className={`journey-motion-layer ${index === activeIndex ? "active" : ""}`}
+            data-motion-scene={scene.id}
+            aria-hidden={index === activeIndex ? undefined : true}
+          >
+            <MotionSceneDiagram scene={scene} />
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 export function JourneyView({
   completed,
   challenges,
@@ -620,96 +907,91 @@ export function JourneyView({
   onEnterLab,
 }: JourneyViewProps) {
   const completedSet = useMemo(() => new Set(completed), [completed]);
-  const currentScene = useMemo(() => {
-    const found = JOURNEY_SCENES.find((scene) => {
+  const currentSceneIndex = useMemo(() => {
+    const found = JOURNEY_SCENES.findIndex((scene) => {
       if (scene.future || scene.challengeIds.length === 0) return false;
-      const incomplete = scene.challengeIds.some((id) => !completedSet.has(id));
-      if (!incomplete) return false;
-      const firstIncomplete = scene.challengeIds.find((id) => !completedSet.has(id));
-      return firstIncomplete
-        ? isChallengeUnlocked(firstIncomplete, challenges, completedSet)
-        : false;
+      return scene.challengeIds.some((id) => !completedSet.has(id));
     });
-    return found ?? JOURNEY_SCENES.find((scene) => scene.id === "cpu") ?? JOURNEY_SCENES[0]!;
-  }, [challenges, completedSet]);
+    return found >= 0 ? found : JOURNEY_SCENES.findIndex((scene) => scene.id === "cpu");
+  }, [completedSet]);
 
-  const [activeSceneId, setActiveSceneId] = useState(currentScene.id);
-  const [replayToken, setReplayToken] = useState(0);
-  const sectionsRef = useRef(new Map<string, HTMLElement>());
-  const activeSceneRef = useRef(currentScene.id);
-  const pendingSceneTimerRef = useRef<number | null>(null);
-  const activeScene =
-    JOURNEY_SCENES.find((scene) => scene.id === activeSceneId) ?? currentScene;
+  const [activeIndex, setActiveIndex] = useState(() =>
+    Math.max(currentSceneIndex, 0),
+  );
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false,
+  );
+  const [playing, setPlaying] = useState(() => !reducedMotion);
+  const [sceneProgress, setSceneProgress] = useState(0);
+  const sceneStartedAtRef = useRef<number>(performance.now());
+  const activeScene = JOURNEY_SCENES[activeIndex] ?? JOURNEY_SCENES[0]!;
+  const sceneDurationMs = 6800;
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter(
-            (entry) =>
-              entry.isIntersecting &&
-              entry.intersectionRatio >= 0.36,
-          )
-          .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
-        const id = visible?.target.getAttribute("data-journey-scene");
-        if (!id || id === activeSceneRef.current) return;
-
-        if (pendingSceneTimerRef.current !== null) {
-          window.clearTimeout(pendingSceneTimerRef.current);
-        }
-
-        pendingSceneTimerRef.current = window.setTimeout(() => {
-          activeSceneRef.current = id;
-          setActiveSceneId(id);
-          setReplayToken((value) => value + 1);
-          pendingSceneTimerRef.current = null;
-        }, 260);
-      },
-      {
-        rootMargin: "-27% 0px -27% 0px",
-        threshold: [0.36, 0.48],
-      },
-    );
-
-    for (const element of sectionsRef.current.values()) {
-      observer.observe(element);
-    }
-
-    return () => {
-      observer.disconnect();
-      if (pendingSceneTimerRef.current !== null) {
-        window.clearTimeout(pendingSceneTimerRef.current);
-      }
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = () => {
+      setReducedMotion(media.matches);
+      if (media.matches) setPlaying(false);
     };
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
   }, []);
+
+  useEffect(() => {
+    sceneStartedAtRef.current = performance.now();
+    setSceneProgress(0);
+  }, [activeIndex]);
+
+  useEffect(() => {
+    if (!playing || reducedMotion) return;
+    const timer = window.setInterval(() => {
+      const progress = Math.min(
+        (performance.now() - sceneStartedAtRef.current) / sceneDurationMs,
+        1,
+      );
+      setSceneProgress(progress);
+      if (progress >= 1) {
+        setActiveIndex((index) => (index + 1) % JOURNEY_SCENES.length);
+      }
+    }, 80);
+    return () => window.clearInterval(timer);
+  }, [playing, reducedMotion]);
 
   const overallPercent =
     challenges.length === 0
       ? 0
       : Math.round((completed.length / challenges.length) * 100);
 
-  function scrollToCurrent(): void {
-    sectionsRef.current.get(currentScene.id)?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
+  function selectScene(index: number): void {
+    setActiveIndex(index);
+    sceneStartedAtRef.current = performance.now();
+    setSceneProgress(0);
   }
 
-  function renderSceneAction(scene: JourneyScene) {
-    if (scene.future) {
+  function previousScene(): void {
+    selectScene((activeIndex - 1 + JOURNEY_SCENES.length) % JOURNEY_SCENES.length);
+  }
+
+  function nextScene(): void {
+    selectScene((activeIndex + 1) % JOURNEY_SCENES.length);
+  }
+
+  function sceneAction() {
+    if (activeScene.future) {
       return (
         <button type="button" className="journey-scene-action" disabled>
-          앞의 컴퓨터 계층을 완성하면 열립니다
+          Future layer
         </button>
       );
     }
 
-    const nextChallenge = scene.challengeIds.find(
+    const nextChallenge = activeScene.challengeIds.find(
       (id) =>
         !completedSet.has(id) &&
         isChallengeUnlocked(id, challenges, completedSet),
     );
-
     if (nextChallenge) {
       const challenge = challenges.find((item) => item.id === nextChallenge);
       return (
@@ -718,200 +1000,176 @@ export function JourneyView({
           className="journey-scene-action primary"
           onClick={() => onOpenChallenge(nextChallenge)}
         >
-          {challenge ? `${challenge.title} 만들기` : "계속 만들기"} →
+          {challenge?.title ?? "계속 만들기"} 실습 →
         </button>
       );
     }
 
-    const stageComplete = scene.challengeIds.every((id) => completedSet.has(id));
-    if (stageComplete && scene.challengeIds.length > 0) {
-      return (
-        <button
-          type="button"
-          className="journey-scene-action"
-          onClick={() => setReplayToken((value) => value + 1)}
-        >
-          조립 연출 다시 보기
-        </button>
-      );
-    }
-
-    return (
+    const lastChallenge = [...activeScene.challengeIds].reverse().find((id) =>
+      completedSet.has(id),
+    );
+    return lastChallenge ? (
+      <button
+        type="button"
+        className="journey-scene-action"
+        onClick={() => onOpenChallenge(lastChallenge)}
+      >
+        완성한 레이어 Lab에서 보기
+      </button>
+    ) : (
       <button type="button" className="journey-scene-action" disabled>
-        이전 부품을 먼저 완성하세요
+        이전 레이어를 먼저 완성하세요
       </button>
     );
   }
 
+  const completedInScene = activeScene.challengeIds.filter((id) =>
+    completedSet.has(id),
+  ).length;
+  const sceneBuildPercent =
+    activeScene.challengeIds.length === 0
+      ? 0
+      : Math.round(
+          (completedInScene / activeScene.challengeIds.length) * 100,
+        );
+
   return (
-    <main className="journey-page" data-testid="journey-page">
-      <header className="journey-header">
-        <button type="button" className="journey-brand" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+    <main className="journey-page journey-motion-page" data-testid="journey-page">
+      <header className="journey-header journey-motion-header">
+        <button
+          type="button"
+          className="journey-brand"
+          onClick={() => selectScene(0)}
+        >
           <strong>GateOS</strong>
-          <span>Build every layer</span>
+          <span>Motion Journey</span>
         </button>
         <div className="journey-header-actions">
-          <span className="journey-progress-label">{completed.length}/{challenges.length} built</span>
-          <button type="button" className="journey-open-lab" data-testid="journey-enter-lab" onClick={onEnterLab}>
+          <span className="journey-progress-label">
+            {completed.length}/{challenges.length} built
+          </span>
+          <button
+            type="button"
+            className="journey-open-lab"
+            data-testid="journey-enter-lab"
+            onClick={onEnterLab}
+          >
             Open Lab
           </button>
         </div>
       </header>
 
-      <section className="journey-hero">
-        <div className="journey-hero-copy">
-          <p className="journey-kicker">FROM NAND TO APP</p>
+      <section className="journey-motion-shell">
+        <div className="journey-motion-copy">
+          <p className="journey-kicker">FROM NAND TO APP · MOTION JOURNEY</p>
           <h1>
             컴퓨터의 모든 층을
             <br />
-            직접 만들어 올라갑니다.
+            하나의 흐름으로 봅니다.
           </h1>
           <p className="journey-hero-description">
-            소자를 만들고, 그 소자들이 다음 시스템의 재료가 됩니다.
-            Gate에서 Register로, RAM과 CPU로, 컴퓨터와 OS를 거쳐 마지막에는
-            직접 만든 기계 위에서 앱을 실행합니다.
+            NAND에서 시작한 신호가 state와 memory가 되고, CPU의 datapath를 지나
+            컴퓨터를 부팅하고 OS와 application까지 올라가는 과정을 하나의
+            모션 그래픽으로 이어서 보여줍니다.
           </p>
-          <div className="journey-hero-actions">
-            <button type="button" className="journey-primary-cta" data-testid="journey-continue" onClick={scrollToCurrent}>
-              현재 빌드로 이동
-            </button>
-            <button type="button" className="journey-secondary-cta" onClick={onEnterLab}>
-              회로 Lab 열기
-            </button>
-          </div>
-          <div className="journey-overall-progress" aria-label={`현재 전체 진행률 ${overallPercent}%`}>
-            <span style={{ width: `${overallPercent}%` }} />
-          </div>
-          <small>{overallPercent}% of the current hardware curriculum assembled</small>
-        </div>
 
-        <div className="journey-hero-machine" aria-hidden="true">
-          <svg viewBox="0 0 620 450">
-            <path d="M102 98 C190 98 198 190 272 190" className="journey-hero-wire" />
-            <path d="M102 330 C190 330 198 250 272 250" className="journey-hero-wire delay" />
-            <path d="M348 220 H508" className="journey-hero-wire later" />
-            <g transform="translate(72 98)">
-              <path d="M-40-24H-12Q28 0-12 24H-40Z" className="journey-hero-gate" />
-              <circle cx="3" cy="0" r="5" className="journey-hero-gate" />
-              <text x="-8" y="50" textAnchor="middle">NAND</text>
-            </g>
-            <g transform="translate(72 330)">
-              <rect x="-45" y="-31" width="90" height="62" rx="9" className="journey-hero-chip" />
-              <text x="0" y="5" textAnchor="middle">RAM</text>
-            </g>
-            <g transform="translate(310 220)">
-              <rect x="-62" y="-50" width="124" height="100" rx="15" className="journey-hero-chip strong" />
-              <text x="0" y="-2" textAnchor="middle" className="big">CPU</text>
-              <text x="0" y="21" textAnchor="middle" className="small">ALU · REG · PC</text>
-            </g>
-            <g transform="translate(522 220)">
-              <rect x="-65" y="-54" width="130" height="108" rx="12" className="journey-hero-screen-frame" />
-              <rect x="-51" y="-40" width="102" height="75" rx="6" className="journey-hero-screen" />
-              <text x="0" y="-3" textAnchor="middle" className="big">GateOS</text>
-              <text x="0" y="19" textAnchor="middle" className="small">$ app _</text>
-            </g>
-          </svg>
-        </div>
-      </section>
-
-      <section className="journey-story">
-        <div className="journey-sticky-visual">
-          <div className="journey-visual-meta">
+          <div className="journey-motion-scene-copy" aria-live="polite">
             <span>{activeScene.eyebrow}</span>
-            <strong>{activeScene.title}</strong>
+            <h2>{activeScene.title}</h2>
+            <p>{activeScene.statement}</p>
+            <small>{activeScene.explanation}</small>
           </div>
-          <JourneyAssembly
-            scene={activeScene}
-            completed={completedSet}
-            replayToken={replayToken}
-          />
-          <div className="journey-visual-payoff">{activeScene.payoff}</div>
+
+          <div className="journey-motion-actions">
+            {sceneAction()}
+            <button type="button" className="journey-secondary-cta" onClick={onEnterLab}>
+              전체 Lab 열기
+            </button>
+          </div>
+
+          <div className="journey-motion-build-progress">
+            <div>
+              <span>{activeScene.future ? "Future layer" : activeScene.artifact}</span>
+              <strong>
+                {activeScene.future
+                  ? "planned"
+                  : `${completedInScene}/${activeScene.challengeIds.length} · ${sceneBuildPercent}%`}
+              </strong>
+            </div>
+            <i>
+              <b style={{ width: `${sceneBuildPercent}%` }} />
+            </i>
+          </div>
         </div>
 
-        <div className="journey-story-copy">
+        <div className="journey-motion-visual">
+          <JourneyMotionStage activeIndex={activeIndex} playing={playing} />
+          <div className="journey-motion-playback">
+            <button type="button" onClick={previousScene} aria-label="이전 장면">
+              ←
+            </button>
+            <button
+              type="button"
+              data-testid="journey-play-toggle"
+              className="journey-motion-play"
+              aria-pressed={playing}
+              onClick={() => {
+                if (reducedMotion) return;
+                if (!playing) sceneStartedAtRef.current = performance.now() - sceneProgress * sceneDurationMs;
+                setPlaying((value) => !value);
+              }}
+              disabled={reducedMotion}
+            >
+              {reducedMotion ? "Reduced motion" : playing ? "Pause" : "Play"}
+            </button>
+            <button type="button" onClick={nextScene} aria-label="다음 장면">
+              →
+            </button>
+            <div className="journey-motion-time" aria-hidden="true">
+              <span style={{ width: `${sceneProgress * 100}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <nav className="journey-motion-rail" aria-label="Journey 장면">
           {JOURNEY_SCENES.map((scene, index) => {
-            const complete =
+            const built =
               scene.challengeIds.length > 0 &&
               scene.challengeIds.every((id) => completedSet.has(id));
-            const completedInScene = scene.challengeIds.filter((id) =>
-              completedSet.has(id),
-            ).length;
             return (
-              <section
+              <button
                 key={scene.id}
-                ref={(element) => {
-                  if (element) sectionsRef.current.set(scene.id, element);
-                  else sectionsRef.current.delete(scene.id);
-                }}
-                data-journey-scene={scene.id}
+                type="button"
                 data-testid={`journey-scene-${scene.id}`}
-                className={`journey-scene-copy ${scene.id === activeSceneId ? "active" : ""}`}
+                className={[
+                  index === activeIndex ? "active" : "",
+                  built ? "built" : "",
+                  scene.future ? "future" : "",
+                ].filter(Boolean).join(" ")}
+                onClick={() => selectScene(index)}
+                aria-current={index === activeIndex ? "step" : undefined}
               >
-                <div className="journey-scene-number">{String(index + 1).padStart(2, "0")}</div>
-                <p className="journey-kicker">{scene.eyebrow}</p>
-                <h2>{scene.title}</h2>
-                <p className="journey-scene-statement">{scene.statement}</p>
-                <p className="journey-scene-explanation">{scene.explanation}</p>
-
-                <div className="journey-part-list" aria-label="조립 재료">
-                  {scene.parts.map((part) => {
-                    const status = partStatus(part, completedSet);
-                    const canOpen =
-                      Boolean(part.challengeId) &&
-                      isChallengeUnlocked(part.challengeId!, challenges, completedSet);
-                    return (
-                      <button
-                        key={part.id}
-                        type="button"
-                        className={`journey-part-pill ${status}`}
-                        disabled={!canOpen}
-                        onClick={() => part.challengeId && onOpenChallenge(part.challengeId)}
-                        title={canOpen ? `${part.label} 과제 열기` : undefined}
-                      >
-                        <span aria-hidden="true">{status === "built" ? "✓" : "◇"}</span>
-                        {part.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {!scene.future && scene.challengeIds.length > 0 ? (
-                  <div className="journey-scene-progress">
-                    <span>
-                      {complete
-                        ? `${scene.artifact} 완성`
-                        : `${completedInScene}/${scene.challengeIds.length} parts built`}
-                    </span>
-                    <i>
-                      <b
-                        style={{
-                          width: `${(completedInScene / scene.challengeIds.length) * 100}%`,
-                        }}
-                      />
-                    </i>
-                  </div>
-                ) : (
-                  <div className="journey-future-label">Future curriculum layer</div>
-                )}
-
-                {renderSceneAction(scene)}
-              </section>
+                <i aria-hidden="true" />
+                <span>
+                  <small>{String(index + 1).padStart(2, "0")}</small>
+                  <strong>{scene.artifact}</strong>
+                </span>
+              </button>
             );
           })}
-        </div>
+        </nav>
       </section>
 
-      <section className="journey-finale">
-        <p className="journey-kicker">THE WHOLE STACK</p>
-        <h2>It started with one NAND gate.</h2>
-        <p>
-          작은 논리 소자가 상태가 되고, 상태가 메모리와 CPU가 되고,
-          컴퓨터가 부팅되어 OS와 앱으로 이어집니다.
-        </p>
-        <button type="button" className="journey-primary-cta" onClick={onEnterLab}>
-          계속 만들기
-        </button>
-      </section>
+      <footer className="journey-motion-footer">
+        <div>
+          <span>CURRICULUM BUILD</span>
+          <strong>{overallPercent}%</strong>
+        </div>
+        <div className="journey-overall-progress" aria-label={`현재 전체 진행률 ${overallPercent}%`}>
+          <span style={{ width: `${overallPercent}%` }} />
+        </div>
+        <p>{activeScene.payoff}</p>
+      </footer>
     </main>
   );
 }
