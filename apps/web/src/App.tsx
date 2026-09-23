@@ -1073,7 +1073,41 @@ export function App() {
         setLearning(loadedLearning);
         setChallenges(loadedChallenges);
 
-        const completed = new Set(initialProject.project.completed);
+        const recoveredCompleted = new Set(initialProject.project.completed);
+        let furthestPublishedIndex = -1;
+        loadedChallenges.forEach((item, index) => {
+          if (initialProject.project.published[publishedId(item.id)]) {
+            furthestPublishedIndex = Math.max(furthestPublishedIndex, index);
+          }
+        });
+        for (let index = 0; index <= furthestPublishedIndex; index += 1) {
+          const id = loadedChallenges[index]?.id;
+          if (id) recoveredCompleted.add(id);
+        }
+
+        const normalizedCompleted = loadedChallenges
+          .map((item) => item.id)
+          .filter((id) => recoveredCompleted.has(id));
+
+        if (
+          normalizedCompleted.length !== initialProject.project.completed.length ||
+          normalizedCompleted.some(
+            (id, index) => initialProject.project.completed[index] !== id,
+          )
+        ) {
+          setProject((current) => ({
+            ...current,
+            completed: normalizedCompleted,
+          }));
+          if (furthestPublishedIndex >= 0) {
+            setProjectError((current) =>
+              current ||
+              `Recovered curriculum progress through ${loadedChallenges[furthestPublishedIndex]?.title ?? "the last published chip"} from published circuits.`,
+            );
+          }
+        }
+
+        const completed = new Set(normalizedCompleted);
         let nextIndex = loadedChallenges.findIndex((item, index) => {
           if (completed.has(item.id)) return false;
           return index === 0 || completed.has(loadedChallenges[index - 1]?.id ?? "");
