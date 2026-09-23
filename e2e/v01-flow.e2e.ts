@@ -100,6 +100,56 @@ test("curriculum is split into stage pages instead of one long list", async ({
   await expect(page.getByTestId("stage-cpu")).toBeDisabled();
 });
 
+test("recovers curriculum progress when completed metadata is lost but published work remains", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const notCircuit = {
+      schema: "gateos.circuit/v1",
+      id: "artifact.logic.not",
+      name: "NOT",
+      pins: [
+        { id: "in", name: "IN", direction: "input", width: 1 },
+        { id: "out", name: "OUT", direction: "output", width: 1 },
+      ],
+      instances: [{ id: "nand-1", componentId: "builtin.nand" }],
+      connections: [
+        {
+          id: "in-a",
+          from: { kind: "interface", pinId: "in" },
+          to: { kind: "instance", instanceId: "nand-1", pinId: "a" },
+        },
+        {
+          id: "in-b",
+          from: { kind: "interface", pinId: "in" },
+          to: { kind: "instance", instanceId: "nand-1", pinId: "b" },
+        },
+        {
+          id: "nand-out",
+          from: { kind: "instance", instanceId: "nand-1", pinId: "out" },
+          to: { kind: "interface", pinId: "out" },
+        },
+      ],
+    };
+
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        circuits: { "logic.not": notCircuit },
+        published: { "user.not": notCircuit },
+        completed: [],
+      }),
+    );
+  });
+  await page.reload();
+
+  await expect(page.locator(".progress")).toHaveText("1/25 complete");
+  await openCurriculum(page);
+  await expect(page.getByTestId("challenge-logic.not")).toHaveClass(/complete/);
+  await expect(page.getByTestId("challenge-logic.and")).toBeEnabled();
+});
+
 test("builds NOT, verifies it, publishes it, and persists progression", async ({
   page,
 }) => {
