@@ -61,6 +61,35 @@ test("fresh visitors enter the interactive NAND-to-App journey", async ({ page }
   await expect(page.getByTestId("palette-builtin.nand")).toBeVisible();
 });
 
+test("journey motion graphic supports scene navigation and playback controls", async ({
+  page,
+}) => {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await expect(page.getByTestId("journey-scene-logic")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await expect(page.getByTestId("journey-play-toggle")).toHaveText("Pause");
+
+  await page.getByRole("button", { name: "다음 장면" }).click();
+  await expect(page.getByTestId("journey-scene-state")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+
+  await page.getByTestId("journey-play-toggle").click();
+  await expect(page.getByTestId("journey-play-toggle")).toHaveText("Play");
+
+  await page.getByTestId("journey-scene-cpu").click();
+  await expect(page.getByTestId("journey-scene-cpu")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await expect(page.getByText("READ → EXECUTE → WRITE BACK", { exact: true })).toBeVisible();
+});
+
 test("journey reflows on a phone viewport without page-level horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => localStorage.clear());
