@@ -864,9 +864,11 @@ function MotionSceneDiagram({ scene }: { scene: JourneyScene }) {
 function JourneyMotionStage({
   activeIndex,
   playing,
+  completed,
 }: {
   activeIndex: number;
   playing: boolean;
+  completed: ReadonlySet<string>;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -899,16 +901,27 @@ function JourneyMotionStage({
         </defs>
         <rect width="880" height="480" fill="url(#journey-motion-grid)" className="journey-motion-grid" />
         <circle cx="440" cy="230" r="250" fill="url(#journey-motion-glow)" className="journey-motion-ambient" />
-        {JOURNEY_SCENES.map((scene, index) => (
-          <g
-            key={scene.id}
-            className={`journey-motion-layer ${index === activeIndex ? "active" : ""}`}
-            data-motion-scene={scene.id}
-            aria-hidden={index === activeIndex ? undefined : true}
-          >
-            <MotionSceneDiagram scene={scene} />
-          </g>
-        ))}
+        {JOURNEY_SCENES.map((scene, index) => {
+          const built =
+            scene.challengeIds.length > 0 &&
+            scene.challengeIds.every((id) => completed.has(id));
+          const classes = [
+            "journey-motion-layer",
+            index === activeIndex ? "active" : "",
+            built ? "built" : "",
+            scene.future ? "future" : "",
+          ].filter(Boolean).join(" ");
+          return (
+            <g
+              key={scene.id}
+              className={classes}
+              data-motion-scene={scene.id}
+              aria-hidden={index === activeIndex ? undefined : true}
+            >
+              <MotionSceneDiagram scene={scene} />
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
@@ -967,11 +980,18 @@ export function JourneyView({
       );
       setSceneProgress(progress);
       if (progress >= 1) {
-        setActiveIndex((index) => (index + 1) % JOURNEY_SCENES.length);
+        if (activeIndex >= JOURNEY_SCENES.length - 1) {
+          setSceneProgress(1);
+          setPlaying(false);
+          return;
+        }
+        setActiveIndex((index) =>
+          Math.min(index + 1, JOURNEY_SCENES.length - 1),
+        );
       }
     }, 80);
     return () => window.clearInterval(timer);
-  }, [playing, reducedMotion]);
+  }, [activeIndex, playing, reducedMotion]);
 
   const overallPercent =
     challenges.length === 0
@@ -985,12 +1005,47 @@ export function JourneyView({
   }
 
   function previousScene(): void {
-    selectScene((activeIndex - 1 + JOURNEY_SCENES.length) % JOURNEY_SCENES.length);
+    selectScene(Math.max(activeIndex - 1, 0));
   }
 
   function nextScene(): void {
-    selectScene((activeIndex + 1) % JOURNEY_SCENES.length);
+    selectScene(Math.min(activeIndex + 1, JOURNEY_SCENES.length - 1));
   }
+
+  function replayScene(): void {
+    sceneStartedAtRef.current = performance.now();
+    setSceneProgress(0);
+    if (!reducedMotion) setPlaying(true);
+  }
+
+  useEffect(() => {
+    function handleKeyboard(event: KeyboardEvent): void {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest("button, a, input, textarea, select, [contenteditable='true']")
+      ) {
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        previousScene();
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        nextScene();
+      } else if (event.key === " " && !reducedMotion) {
+        event.preventDefault();
+        if (!playing) {
+          sceneStartedAtRef.current =
+            performance.now() - sceneProgress * sceneDurationMs;
+        }
+        setPlaying((value) => !value);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [activeIndex, playing, reducedMotion, sceneProgress]);
 
   function sceneAction() {
     if (activeScene.future) {
@@ -1117,9 +1172,22 @@ export function JourneyView({
         </div>
 
         <div className="journey-motion-visual">
-          <JourneyMotionStage activeIndex={activeIndex} playing={playing} />
+          <div className="journey-motion-scene-tag" aria-hidden="true">
+            <span>{String(activeIndex + 1).padStart(2, "0")}</span>
+            <strong>{activeScene.artifact}</strong>
+          </div>
+          <JourneyMotionStage
+            activeIndex={activeIndex}
+            playing={playing}
+            completed={completedSet}
+          />
           <div className="journey-motion-playback">
-            <button type="button" onClick={previousScene} aria-label="이전 장면">
+            <button
+              type="button"
+              onClick={previousScene}
+              aria-label="이전 장면"
+              disabled={activeIndex === 0}
+            >
               ←
             </button>
             <button
@@ -1136,8 +1204,21 @@ export function JourneyView({
             >
               {reducedMotion ? "Reduced motion" : playing ? "Pause" : "Play"}
             </button>
-            <button type="button" onClick={nextScene} aria-label="다음 장면">
+            <button
+              type="button"
+              onClick={nextScene}
+              aria-label="다음 장면"
+              disabled={activeIndex === JOURNEY_SCENES.length - 1}
+            >
               →
+            </button>
+            <button
+              type="button"
+              className="journey-motion-replay"
+              data-testid="journey-replay-scene"
+              onClick={replayScene}
+            >
+              Replay
             </button>
             <div className="journey-motion-time" aria-hidden="true">
               <span style={{ width: `${sceneProgress * 100}%` }} />
@@ -1167,6 +1248,11 @@ export function JourneyView({
                 <span>
                   <small>{String(index + 1).padStart(2, "0")}</small>
                   <strong>{scene.artifact}</strong>
+                  {index === activeIndex ? (
+                    <em className="journey-motion-rail-progress" aria-hidden="true">
+                      <b style={{ width: `${sceneProgress * 100}%` }} />
+                    </em>
+                  ) : null}
                 </span>
               </button>
             );
