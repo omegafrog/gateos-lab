@@ -3289,8 +3289,34 @@ button:disabled {
 }
 
 .journey-motion-visual {
+  position: relative;
   min-width: 0;
   align-self: center;
+}
+
+.journey-motion-scene-tag {
+  position: absolute;
+  z-index: 4;
+  top: 16px;
+  left: 18px;
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  pointer-events: none;
+}
+
+.journey-motion-scene-tag span {
+  color: #7185ef;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.journey-motion-scene-tag strong {
+  color: #dce4f6;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
 }
 
 .journey-motion-stage {
@@ -3355,6 +3381,15 @@ button:disabled {
 .journey-motion-layer.active {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+.journey-motion-layer.built.active .journey-motion-card--strong,
+.journey-motion-layer.built.active .journey-motion-kernel {
+  filter: drop-shadow(0 0 18px rgb(94 195 178 / 26%));
+}
+
+.journey-motion-layer.future.active {
+  filter: saturate(0.82);
 }
 
 .journey-motion-layer.active .journey-motion-cluster,
@@ -3551,7 +3586,7 @@ button:disabled {
 
 .journey-motion-playback {
   display: grid;
-  grid-template-columns: 42px minmax(104px, auto) 42px 1fr;
+  grid-template-columns: 42px minmax(104px, auto) 42px minmax(70px, auto) 1fr;
   gap: 8px;
   align-items: center;
   margin-top: 12px;
@@ -3576,11 +3611,16 @@ button:disabled {
   opacity: 0.58;
 }
 
-.journey-motion-play {
+.journey-motion-play,
+.journey-motion-replay {
   padding: 0 13px;
   font-size: 11px;
   font-weight: 850;
   letter-spacing: 0.04em;
+}
+
+.journey-motion-replay {
+  color: #9eabc1 !important;
 }
 
 .journey-motion-time {
@@ -3672,6 +3712,24 @@ button:disabled {
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.journey-motion-rail-progress {
+  display: block;
+  width: 100%;
+  height: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(129 148 183 / 16%);
+}
+
+.journey-motion-rail-progress b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #8193ff;
+  transition: width 90ms linear;
 }
 
 .journey-motion-footer {
@@ -3838,7 +3896,16 @@ button:disabled {
   }
 
   .journey-motion-playback {
-    grid-template-columns: 38px minmax(98px, auto) 38px 1fr;
+    grid-template-columns: 38px minmax(86px, auto) 38px minmax(64px, auto);
+  }
+
+  .journey-motion-time {
+    grid-column: 1 / -1;
+  }
+
+  .journey-motion-scene-tag {
+    top: 11px;
+    left: 13px;
   }
 
   .journey-motion-rail {
@@ -3854,7 +3921,8 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .journey-motion-layer,
   .journey-motion-build-progress > i > b,
-  .journey-motion-rail button {
+  .journey-motion-rail button,
+  .journey-motion-rail-progress b {
     transition: none;
   }
 
