@@ -61,23 +61,28 @@ test("fresh visitors enter the interactive NAND-to-App journey", async ({ page }
   await expect(page.getByTestId("palette-builtin.nand")).toBeVisible();
 });
 
-test("journey motion graphic supports scene navigation and playback controls", async ({
+test("journey motion graphic supports linear scene navigation replay and playback", async ({
   page,
 }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+
+  const previous = page.getByRole("button", { name: "이전 장면" });
+  const next = page.getByRole("button", { name: "다음 장면" });
 
   await expect(page.getByTestId("journey-scene-logic")).toHaveAttribute(
     "aria-current",
     "step",
   );
   await expect(page.getByTestId("journey-play-toggle")).toHaveText("Pause");
+  await expect(previous).toBeDisabled();
 
-  await page.getByRole("button", { name: "다음 장면" }).click();
+  await next.click();
   await expect(page.getByTestId("journey-scene-state")).toHaveAttribute(
     "aria-current",
     "step",
   );
+  await expect(previous).toBeEnabled();
 
   await page.getByTestId("journey-play-toggle").click();
   await expect(page.getByTestId("journey-play-toggle")).toHaveText("Play");
@@ -88,6 +93,28 @@ test("journey motion graphic supports scene navigation and playback controls", a
     "step",
   );
   await expect(page.getByText("READ → EXECUTE → WRITE BACK", { exact: true })).toBeVisible();
+
+  await page.getByTestId("journey-replay-scene").click();
+  await expect(page.getByTestId("journey-play-toggle")).toHaveText("Pause");
+
+  await page.getByTestId("journey-scene-app").click();
+  await expect(page.getByTestId("journey-scene-app")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await expect(next).toBeDisabled();
+});
+
+test("journey respects reduced-motion preference", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await expect(page.getByTestId("journey-play-toggle")).toHaveText(
+    "Reduced motion",
+  );
+  await expect(page.getByTestId("journey-play-toggle")).toBeDisabled();
+  await expect(page.getByTestId("journey-assembly")).toBeVisible();
 });
 
 test("journey reflows on a phone viewport without page-level horizontal overflow", async ({ page }) => {
