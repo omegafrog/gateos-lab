@@ -1124,8 +1124,6 @@ export function App() {
   const interfaceDragGestureRef = useRef<InterfaceDragState | null>(null);
   const panGestureRef = useRef<PanState | null>(null);
   const marqueeGestureRef = useRef<MarqueeState | null>(null);
-  const marqueeMovedRef = useRef(false);
-  const suppressCanvasClickRef = useRef(false);
   const pendingWireRef = useRef<CircuitEndpoint | null>(null);
   const wireDraggingRef = useRef(false);
   const wireRoutePointsRef = useRef<Point[]>([]);
@@ -3061,8 +3059,6 @@ export function App() {
       additive: event.shiftKey,
       baseSelection: event.shiftKey ? selectedInstances : [],
     };
-    marqueeMovedRef.current = false;
-    suppressCanvasClickRef.current = false;
     marqueeGestureRef.current = nextMarquee;
     setMarquee(nextMarquee);
     setSelectedConnection(null);
@@ -3214,17 +3210,10 @@ export function App() {
   function moveDrag(event: ReactPointerEvent<SVGElement>): void {
     const activeMarquee = marqueeGestureRef.current ?? marquee;
     if (activeMarquee) {
-      const current = clientToCanvasPoint(event.clientX, event.clientY);
       const nextMarquee = {
         ...activeMarquee,
-        current,
+        current: clientToCanvasPoint(event.clientX, event.clientY),
       };
-      if (
-        Math.abs(current.x - activeMarquee.start.x) >= 2 ||
-        Math.abs(current.y - activeMarquee.start.y) >= 2
-      ) {
-        marqueeMovedRef.current = true;
-      }
       marqueeGestureRef.current = nextMarquee;
       setMarquee(nextMarquee);
       const nextIds = selectedIdsInMarquee(nextMarquee);
@@ -4439,35 +4428,18 @@ export function App() {
             }}
             onPointerUp={(event) => {
               const wireCandidate = wireGestureCandidateRef.current;
-              const activeMarquee = marqueeGestureRef.current;
-              const didMarqueeMove =
-                activeMarquee !== null && marqueeMovedRef.current;
-
-              if (activeMarquee && didMarqueeMove) {
-                const finalMarquee = {
-                  ...activeMarquee,
-                  current: clientToCanvasPoint(event.clientX, event.clientY),
-                };
-                const finalSelection = selectedIdsInMarquee(finalMarquee);
-                setSelectedInstances(finalSelection);
-                setSelectedInstance(finalSelection[0] ?? null);
-                setSelectedConnection(null);
-                suppressCanvasClickRef.current = true;
-              }
-
               wireGestureCandidateRef.current = null;
               dragGestureRef.current = null;
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
               marqueeGestureRef.current = null;
-              marqueeMovedRef.current = false;
               wireNodeMoveRef.current = null;
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
               setMarquee(null);
 
-              if (wireCandidate || didMarqueeMove) {
+              if (wireCandidate) {
                 event.stopPropagation();
                 return;
               }
@@ -4480,19 +4452,11 @@ export function App() {
               interfaceDragGestureRef.current = null;
               panGestureRef.current = null;
               marqueeGestureRef.current = null;
-              marqueeMovedRef.current = false;
-              suppressCanvasClickRef.current = false;
               wireNodeMoveRef.current = null;
               setDrag(null);
               setInterfaceDrag(null);
               setPan(null);
               setMarquee(null);
-            }}
-            onClickCapture={(event) => {
-              if (!suppressCanvasClickRef.current) return;
-              suppressCanvasClickRef.current = false;
-              event.preventDefault();
-              event.stopPropagation();
             }}
             onClick={() => {
               if (drag || interfaceDrag || pan || marquee || pendingPin) return;
