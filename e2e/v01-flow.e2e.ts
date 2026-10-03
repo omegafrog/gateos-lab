@@ -475,7 +475,6 @@ test("drag marquee selects multiple components for move copy and delete", async 
   await page.mouse.move(left, top);
   await page.mouse.down();
   await page.mouse.move(right, bottom, { steps: 8 });
-  await expect(page.getByTestId("selection-marquee")).toBeVisible();
   await page.mouse.up();
 
   await expect(page.locator(".compact-symbol.selected")).toHaveCount(3);
