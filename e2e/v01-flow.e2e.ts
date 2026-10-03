@@ -456,12 +456,15 @@ test("drag marquee selects multiple components for move copy and delete", async 
   const components = page.locator('g.component[data-testid^="component-"]');
   await expect(components).toHaveCount(3);
 
+  const canvas = page.locator("svg.circuit-canvas");
+  await canvas.scrollIntoViewIfNeeded();
+
   const boxes = await Promise.all(
     [0, 1, 2].map((index) => components.nth(index).boundingBox()),
   );
   if (boxes.some((box) => !box)) throw new Error("missing component geometry");
   const concrete = boxes as NonNullable<(typeof boxes)[number]>[];
-  const canvasBox = await page.locator("svg.circuit-canvas").boundingBox();
+  const canvasBox = await canvas.boundingBox();
   if (!canvasBox) throw new Error("missing circuit canvas geometry");
   const left = canvasBox.x + 12;
   const top = canvasBox.y + 12;
@@ -472,39 +475,10 @@ test("drag marquee selects multiple components for move copy and delete", async 
     ...concrete.map((box) => box.y + box.height / 2),
   );
 
-  console.log(
-    "marquee-debug",
-    JSON.stringify({
-      canvasBox,
-      componentBoxes: concrete,
-      componentPositions: await Promise.all(
-        [0, 1, 2].map(async (index) => ({
-          x: await components.nth(index).getAttribute("data-position-x"),
-          y: await components.nth(index).getAttribute("data-position-y"),
-        })),
-      ),
-      start: { x: left, y: top },
-      end: { x: right, y: bottom },
-      startTarget: await page.evaluate(
-        ({ x, y }) =>
-          document.elementFromPoint(x, y)?.getAttribute("data-testid") ?? null,
-        { x: left, y: top },
-      ),
-    }),
-  );
-
   await page.mouse.move(left, top);
   await page.mouse.down();
   await page.mouse.move(right, bottom, { steps: 8 });
-  console.log(
-    "marquee-during-selection",
-    await page.locator(".compact-symbol.selected").count(),
-  );
   await page.mouse.up();
-  console.log(
-    "marquee-after-selection",
-    await page.locator(".compact-symbol.selected").count(),
-  );
 
   await expect(page.locator(".compact-symbol.selected")).toHaveCount(3);
 
