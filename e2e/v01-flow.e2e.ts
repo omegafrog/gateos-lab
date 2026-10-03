@@ -391,8 +391,11 @@ test("4-bit register clock control applies staged D and LOAD and produces a real
     );
   });
   await page.reload();
+  await selectChallenge(page, "state.register4");
 
-  await expect(page.getByRole("heading", { name: "4-bit Enable Register" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "4-bit Enable Register", exact: true }),
+  ).toBeVisible();
   await expect(page.getByTestId("output-q")).toHaveAttribute("data-value", "XXXX");
 
   page.once("dialog", (dialog) => dialog.accept("10"));
@@ -863,6 +866,7 @@ test("interface terminals can move and connected wires follow their position", a
   const persistedY = await inputTerminal.getAttribute("data-terminal-y");
   await page.waitForTimeout(100);
   await page.reload();
+  await selectChallenge(page, "logic.not");
 
   await expect(page.getByTestId("input-in")).toHaveAttribute(
     "data-terminal-x",
