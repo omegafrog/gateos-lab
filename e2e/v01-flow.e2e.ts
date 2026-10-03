@@ -398,7 +398,7 @@ test("4-bit register clock control applies staged D and LOAD and produces a real
   ).toBeVisible();
   await expect(page.getByTestId("output-q")).toHaveAttribute("data-value", "XXXX");
 
-  page.once("dialog", (dialog) => dialog.accept("10"));
+  page.once("dialog", (dialog) => dialog.accept("1010"));
   await page.getByTestId("input-d").locator("rect.interface-terminal-body").click();
   await page.getByTestId("input-load").locator("rect.interface-terminal-body").click();
 
@@ -461,8 +461,10 @@ test("drag marquee selects multiple components for move copy and delete", async 
   );
   if (boxes.some((box) => !box)) throw new Error("missing component geometry");
   const concrete = boxes as NonNullable<(typeof boxes)[number]>[];
-  const left = Math.min(...concrete.map((box) => box.x)) - 18;
-  const top = Math.min(...concrete.map((box) => box.y)) - 18;
+  const canvasBox = await page.locator("svg.circuit-canvas").boundingBox();
+  if (!canvasBox) throw new Error("missing circuit canvas geometry");
+  const left = canvasBox.x + 12;
+  const top = canvasBox.y + 12;
   const right = Math.max(...concrete.map((box) => box.x + box.width)) + 18;
   const bottom = Math.max(...concrete.map((box) => box.y + box.height)) + 18;
 
