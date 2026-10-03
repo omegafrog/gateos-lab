@@ -92,7 +92,11 @@ test("journey motion graphic supports linear scene navigation replay and playbac
     "aria-current",
     "step",
   );
-  await expect(\n    page\n      .getByTestId("journey-assembly")\n      .getByText("READ → EXECUTE → WRITE BACK", { exact: true }),\n  ).toBeVisible();
+  await expect(
+    page
+      .getByTestId("journey-assembly")
+      .getByText("READ → EXECUTE → WRITE BACK", { exact: true }),
+  ).toBeVisible();
 
   await page.getByTestId("journey-replay-scene").click();
   await expect(page.getByTestId("journey-play-toggle")).toHaveText("Pause");
@@ -417,7 +421,8 @@ test("right-click context menu deletes wires and components", async ({ page }) =
   const wire = page.locator("path.wire-hit-target").first();
   await expect(wire).toBeVisible();
 
-  const wirePoint = await pointOnSvgPath(wire);\n  await page.mouse.click(wirePoint.x, wirePoint.y, { button: "right" });
+  const wirePoint = await pointOnSvgPath(wire);
+  await page.mouse.click(wirePoint.x, wirePoint.y, { button: "right" });
   await expect(page.getByTestId("canvas-context-menu")).toBeVisible();
   await expect(page.getByTestId("context-delete-wire")).toBeVisible();
   await page.getByTestId("context-delete-wire").click();
