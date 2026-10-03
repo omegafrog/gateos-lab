@@ -466,42 +466,27 @@ test("drag marquee selects multiple components for move copy and delete", async 
   const concrete = boxes as NonNullable<(typeof boxes)[number]>[];
   const canvasBox = await canvas.boundingBox();
   if (!canvasBox) throw new Error("missing circuit canvas geometry");
-  const left = canvasBox.x + 12;
-  const top = canvasBox.y + 12;
-  const right = Math.max(
-    ...concrete.map((box) => box.x + box.width / 2),
+  const left = Math.max(
+    canvasBox.x + 8,
+    Math.min(...concrete.map((box) => box.x)) - 18,
   );
-  const bottom = Math.max(
-    ...concrete.map((box) => box.y + box.height / 2),
+  const top = Math.max(
+    canvasBox.y + 8,
+    Math.min(...concrete.map((box) => box.y)) - 18,
   );
-
-  console.log(
-    "marquee-visible-debug",
-    JSON.stringify({
-      canvasBox,
-      componentBoxes: concrete,
-      start: { x: left, y: top },
-      end: { x: right, y: bottom },
-      startTarget: await page.evaluate(
-        ({ x, y }) =>
-          document.elementFromPoint(x, y)?.getAttribute("data-testid") ?? null,
-        { x: left, y: top },
-      ),
-    }),
+  const right = Math.min(
+    canvasBox.x + canvasBox.width - 8,
+    Math.max(...concrete.map((box) => box.x + box.width)) + 18,
+  );
+  const bottom = Math.min(
+    canvasBox.y + canvasBox.height - 8,
+    Math.max(...concrete.map((box) => box.y + box.height)) + 18,
   );
 
   await page.mouse.move(left, top);
   await page.mouse.down();
   await page.mouse.move(right, bottom, { steps: 8 });
-  console.log(
-    "marquee-visible-during",
-    await page.locator(".compact-symbol.selected").count(),
-  );
   await page.mouse.up();
-  console.log(
-    "marquee-visible-after",
-    await page.locator(".compact-symbol.selected").count(),
-  );
 
   await expect(page.locator(".compact-symbol.selected")).toHaveCount(3);
 
