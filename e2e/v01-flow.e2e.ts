@@ -92,7 +92,7 @@ test("journey motion graphic supports linear scene navigation replay and playbac
     "aria-current",
     "step",
   );
-  await expect(page.getByText("READ → EXECUTE → WRITE BACK", { exact: true })).toBeVisible();
+  await expect(\n    page\n      .getByTestId("journey-assembly")\n      .getByText("READ → EXECUTE → WRITE BACK", { exact: true }),\n  ).toBeVisible();
 
   await page.getByTestId("journey-replay-scene").click();
   await expect(page.getByTestId("journey-play-toggle")).toHaveText("Pause");
@@ -209,11 +209,11 @@ test("recovers curriculum progress when completed metadata is lost but published
 test("builds NOT, verifies it, publishes it, and persists progression", async ({
   page,
 }) => {
-  await expect(page.getByRole("heading", { name: "NOT" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "NOT", exact: true })).toBeVisible();
 
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   await expect(component).toBeVisible();
 
   const input = page.getByTestId("pin-interface-in");
@@ -409,7 +409,7 @@ test("4-bit register clock control applies staged D and LOAD and produces a real
 test("right-click context menu deletes wires and components", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const source = page.getByTestId("pin-interface-in");
   const inputA = component.locator('[data-pin-id="a"]');
 
@@ -417,7 +417,7 @@ test("right-click context menu deletes wires and components", async ({ page }) =
   const wire = page.locator("path.wire-hit-target").first();
   await expect(wire).toBeVisible();
 
-  await wire.click({ button: "right", position: { x: 4, y: 4 } });
+  const wirePoint = await pointOnSvgPath(wire);\n  await page.mouse.click(wirePoint.x, wirePoint.y, { button: "right" });
   await expect(page.getByTestId("canvas-context-menu")).toBeVisible();
   await expect(page.getByTestId("context-delete-wire")).toBeVisible();
   await page.getByTestId("context-delete-wire").click();
@@ -427,13 +427,13 @@ test("right-click context menu deletes wires and components", async ({ page }) =
   await expect(page.getByTestId("canvas-context-menu")).toBeVisible();
   await expect(page.getByTestId("context-delete-component")).toBeVisible();
   await page.getByTestId("context-delete-component").click();
-  await expect(page.locator('[data-testid^="component-"]')).toHaveCount(0);
+  await expect(page.locator('g.component[data-testid^="component-"]')).toHaveCount(0);
 });
 
 test("selected component can be deleted without dragging", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   await component.click();
 
   await page.keyboard.press("Delete");
@@ -445,7 +445,7 @@ test("drag marquee selects multiple components for move copy and delete", async 
   await page.getByTestId("palette-builtin.nand").click();
   await page.getByTestId("palette-builtin.nand").click();
 
-  const components = page.locator('[data-testid^="component-"]');
+  const components = page.locator('g.component[data-testid^="component-"]');
   await expect(components).toHaveCount(3);
 
   const boxes = await Promise.all(
@@ -520,7 +520,7 @@ test("drag marquee selects multiple components for move copy and delete", async 
 test("component dragging snaps to the hidden placement grid", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   await expect(component).toBeVisible();
 
   const beforeX = Number(await component.getAttribute("data-position-x"));
@@ -654,7 +654,7 @@ test("canvas input and output terminals keep wiring ports and show values", asyn
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const inputTerminal = page.getByTestId("input-in");
   const inputPort = page.getByTestId("pin-interface-in");
   const outputTerminal = page.getByTestId("output-out");
@@ -677,7 +677,7 @@ test("canvas input and output terminals keep wiring ports and show values", asyn
 test("placed components render as compact circuit symbols", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   await expect(component).toBeVisible();
 
   const box = await component.boundingBox();
@@ -794,7 +794,7 @@ test("interface terminals can move and connected wires follow their position", a
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const inputPort = page.getByTestId("pin-interface-in");
   const outputPort = page.getByTestId("pin-interface-out");
 
@@ -874,7 +874,7 @@ test("wire routing keeps long runs orthogonal and limits diagonals to one hidden
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   await connect(
     page,
     page.getByTestId("pin-interface-in"),
@@ -912,7 +912,7 @@ test("an explicit wire segment may cross exactly one hidden cell diagonally", as
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const source = page.getByTestId("pin-interface-in");
   await connect(page, source, component.locator('[data-pin-id="a"]'));
 
@@ -949,7 +949,7 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const from = page.getByTestId("pin-interface-in");
   const to = component.locator('[data-pin-id="a"]');
 
@@ -1017,7 +1017,7 @@ test("wire routing can pause at a grid node and resume to a pin", async ({
 test("clicking a wire does not create a branch or joint", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const source = page.getByTestId("pin-interface-in");
   const inputA = component.locator('[data-pin-id="a"]');
 
@@ -1052,7 +1052,7 @@ test("dragging from an existing wire creates a branch immediately", async ({
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const source = page.getByTestId("pin-interface-in");
   const inputA = component.locator('[data-pin-id="a"]');
   const inputB = component.locator('[data-pin-id="b"]');
@@ -1094,7 +1094,7 @@ test("alt-dragging a wire segment inserts and moves a joint", async ({
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const source = page.getByTestId("pin-interface-in");
   const inputA = component.locator('[data-pin-id="a"]');
 
@@ -1129,7 +1129,7 @@ test("alt-dragging a wire segment inserts and moves a joint", async ({
 
   const wire = page.locator("path.wire:not(.wire-preview)").first();
   const path = (await wire.getAttribute("d")) ?? "";
-  expect((path.match(/ L /g) ?? []).length).toBe(2);
+  expect(path).toContain(`${jointX} ${jointY}`);
 });
 
 test("dragging a connected wire endpoint moves that wire to another pin", async ({
@@ -1137,7 +1137,7 @@ test("dragging a connected wire endpoint moves that wire to another pin", async 
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const source = page.getByTestId("pin-interface-in");
   const inputA = component.locator('[data-pin-id="a"]');
   const inputB = component.locator('[data-pin-id="b"]');
@@ -1165,7 +1165,7 @@ test("dragging a connected wire endpoint moves that wire to another pin", async 
 
 test("wire probes are removed from the inspector", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
 
   await connect(
     page,
@@ -1255,7 +1255,7 @@ test("4-bit zero constant is known immediately and stays known after selecting t
 test("all component ports land on the same hidden 12-unit grid", async ({ page }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   const pins = component.locator("circle.pin");
   const count = await pins.count();
   expect(count).toBeGreaterThan(0);
@@ -1282,7 +1282,7 @@ test("saved pre-grid coordinates migrate onto the current hidden grid", async ({
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   await connect(
     page,
     page.getByTestId("pin-interface-in"),
@@ -1309,7 +1309,7 @@ test("saved pre-grid coordinates migrate onto the current hidden grid", async ({
 
   await page.reload();
 
-  const migrated = page.locator('[data-testid^="component-"]').first();
+  const migrated = page.locator('g.component[data-testid^="component-"]').first();
   const componentX = Number(await migrated.getAttribute("data-position-x"));
   const componentY = Number(await migrated.getAttribute("data-position-y"));
   expect(componentX % 12).toBe(0);
@@ -1362,7 +1362,7 @@ test("component pin names live in the inspector instead of the canvas", async ({
 }) => {
   await page.getByTestId("palette-builtin.nand").click();
 
-  const component = page.locator('[data-testid^="component-"]').first();
+  const component = page.locator('g.component[data-testid^="component-"]').first();
   await component.click();
 
   await expect(component.locator(".compact-pin-name")).toHaveCount(0);
