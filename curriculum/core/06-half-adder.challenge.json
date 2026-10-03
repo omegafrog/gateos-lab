@@ -94,17 +94,17 @@
     {
       "level": 1,
       "title": "네 경우를 2-bit 결과로 써보세요",
-      "body": "0+0=00, 0+1=01, 1+0=01, 1+1=10입니다. 낮은 bit와 높은 bit의 pattern을 따로 보세요."
+      "body": "먼저 0+0=00, 0+1=01, 1+0=01, 1+1=10으로 적어 보세요. 각 결과의 낮은 bit가 SUM, 높은 bit가 CARRY라는 관점에서 두 출력의 패턴을 서로 분리해 관찰하세요."
     },
     {
       "level": 2,
-      "title": "이미 만든 gate와 같은 pattern",
-      "body": "SUM의 pattern은 XOR, CARRY의 pattern은 AND와 같습니다."
+      "title": "출력 패턴을 이미 만든 gate와 비교하세요",
+      "body": "SUM은 두 입력이 서로 다를 때만 1이므로 XOR과 동일하고, CARRY는 두 입력이 모두 1일 때만 1이므로 AND와 동일합니다. 진리표의 각 열을 기존 gate의 진리표와 직접 대조해 보세요."
     },
     {
       "level": 3,
-      "title": "배선 확인",
-      "body": "A/B를 XOR과 AND에 동시에 fan-out하고 XOR.OUT→SUM, AND.OUT→CARRY로 연결하세요."
+      "title": "두 gate가 같은 입력을 공유하도록 배선하세요",
+      "body": "A와 B를 XOR과 AND 양쪽 입력으로 각각 fan-out한 뒤 XOR.OUT을 SUM에, AND.OUT을 CARRY에 연결하세요. 마지막으로 A=B=1에서 SUM=0, CARRY=1이 되는지 확인하면 배선 방향까지 검증할 수 있습니다."
     }
   ]
 }
