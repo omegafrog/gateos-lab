@@ -472,10 +472,39 @@ test("drag marquee selects multiple components for move copy and delete", async 
     ...concrete.map((box) => box.y + box.height / 2),
   );
 
+  console.log(
+    "marquee-debug",
+    JSON.stringify({
+      canvasBox,
+      componentBoxes: concrete,
+      componentPositions: await Promise.all(
+        [0, 1, 2].map(async (index) => ({
+          x: await components.nth(index).getAttribute("data-position-x"),
+          y: await components.nth(index).getAttribute("data-position-y"),
+        })),
+      ),
+      start: { x: left, y: top },
+      end: { x: right, y: bottom },
+      startTarget: await page.evaluate(
+        ({ x, y }) =>
+          document.elementFromPoint(x, y)?.getAttribute("data-testid") ?? null,
+        { x: left, y: top },
+      ),
+    }),
+  );
+
   await page.mouse.move(left, top);
   await page.mouse.down();
   await page.mouse.move(right, bottom, { steps: 8 });
+  console.log(
+    "marquee-during-selection",
+    await page.locator(".compact-symbol.selected").count(),
+  );
   await page.mouse.up();
+  console.log(
+    "marquee-after-selection",
+    await page.locator(".compact-symbol.selected").count(),
+  );
 
   await expect(page.locator(".compact-symbol.selected")).toHaveCount(3);
 
