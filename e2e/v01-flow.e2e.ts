@@ -465,8 +465,12 @@ test("drag marquee selects multiple components for move copy and delete", async 
   if (!canvasBox) throw new Error("missing circuit canvas geometry");
   const left = canvasBox.x + 12;
   const top = canvasBox.y + 12;
-  const right = Math.max(...concrete.map((box) => box.x + box.width)) + 18;
-  const bottom = Math.max(...concrete.map((box) => box.y + box.height)) + 18;
+  const right = Math.max(
+    ...concrete.map((box) => box.x + box.width / 2),
+  );
+  const bottom = Math.max(
+    ...concrete.map((box) => box.y + box.height / 2),
+  );
 
   await page.mouse.move(left, top);
   await page.mouse.down();
