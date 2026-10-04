@@ -46,6 +46,10 @@ function readLearning(): {
     applications: readonly string[];
     commonMistakes: readonly string[];
     buildsToward: string;
+    formalModel: readonly string[];
+    designInvariants: readonly string[];
+    timingModel: string;
+    engineeringNotes: readonly string[];
   }>>;
 } {
   return JSON.parse(
@@ -580,9 +584,9 @@ describe("extended curriculum", () => {
     expect(datapath.validators.some((validator) => validator.type === "sequence")).toBe(true);
   });
 
-  it("loads the guided curriculum in order through 25 focused challenges", () => {
+  it("loads the guided curriculum in order through 26 focused challenges", () => {
     const manifest = readManifest();
-    expect(manifest.challenges).toHaveLength(25);
+    expect(manifest.challenges).toHaveLength(26);
     expect(manifest.challenges[19]).toEqual({
       id: "memory.ram16",
       file: "20-ram16.challenge.json",
@@ -599,11 +603,41 @@ describe("extended curriculum", () => {
       id: "cpu.alu-datapath4",
       file: "29-alu-datapath4.challenge.json",
     });
+    expect(manifest.challenges[25]).toEqual({
+      id: "cpu.instruction-register4",
+      file: "30-instruction-register4.challenge.json",
+    });
     expect(manifest.challenges.some((entry) => entry.id === "memory.ram64")).toBe(false);
     expect(manifest.challenges.some((entry) => entry.id === "logic.logic-unit4")).toBe(false);
     expect(manifest.challenges.some((entry) => entry.id === "logic.and4")).toBe(false);
     expect(manifest.challenges.some((entry) => entry.id === "logic.or4")).toBe(false);
     expect(manifest.challenges.some((entry) => entry.id === "logic.xor4")).toBe(false);
     expect(manifest.title).toContain("CPU Datapath");
+  });
+
+  it("adds Instruction Register as the next complete CPU chapter", () => {
+    const manifest = readManifest();
+    const chapter = manifest.challenges.at(-1);
+    expect(chapter).toEqual({
+      id: "cpu.instruction-register4",
+      file: "30-instruction-register4.challenge.json",
+    });
+
+    const challenge = readChallenge(chapter!.file);
+    expect(challenge.interface.inputs.map((pin) => pin.id)).toEqual([
+      "instruction",
+      "load",
+      "clk",
+    ]);
+    expect(challenge.interface.outputs.map((pin) => pin.id)).toEqual(["q"]);
+    expect(challenge.allowedComponents).toEqual(["user.register4"]);
+    expect(challenge.validators.filter((item) => item.type === "sequence")).toHaveLength(2);
+    expect(challenge.referenceTables?.some((table) => table.id === "ir-transfer")).toBe(true);
+
+    const lesson = readLearning().challenges[chapter!.id];
+    expect(lesson.formalModel.length).toBeGreaterThanOrEqual(2);
+    expect(lesson.designInvariants.length).toBeGreaterThanOrEqual(2);
+    expect(lesson.timingModel.length).toBeGreaterThan(50);
+    expect(lesson.engineeringNotes.length).toBeGreaterThanOrEqual(2);
   });
 });

@@ -102,6 +102,10 @@
     {
       "id": "cpu.alu-datapath4",
       "file": "29-alu-datapath4.challenge.json"
+    },
+    {
+      "id": "cpu.instruction-register4",
+      "file": "30-instruction-register4.challenge.json"
     }
   ]
 }

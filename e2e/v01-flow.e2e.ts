@@ -1470,3 +1470,73 @@ test("challenge 11 completion unlocks the multi-bit curriculum slice", async ({
     "Multi-bit Building Blocks",
   );
 });
+
+test("opens the next CPU chapter and shows Instruction Register learning content", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "gateos-lab:v0.1",
+      JSON.stringify({
+        schema: "gateos.project/v1",
+        circuits: {},
+        published: {
+          "user.register4": {
+            schema: "gateos.circuit/v1",
+            id: "artifact.state.register4",
+            name: "4-bit Enable Register",
+            pins: [
+              { id: "d", name: "D", direction: "input", width: 4 },
+              { id: "load", name: "LOAD", direction: "input", width: 1 },
+              { id: "clk", name: "CLK", direction: "input", width: 1 },
+              { id: "q", name: "Q", direction: "output", width: 4 },
+            ],
+            instances: [],
+            connections: [],
+          },
+        },
+        completed: [
+          "logic.not",
+          "logic.and",
+          "logic.or",
+          "logic.xor",
+          "routing.mux2",
+          "arithmetic.half-adder",
+          "arithmetic.full-adder",
+          "state.sr-latch",
+          "state.d-latch",
+          "state.dff",
+          "state.enable-register",
+          "routing.mux4",
+          "arithmetic.adder4",
+          "arithmetic.incrementer4",
+          "state.register4",
+          "state.counter4",
+          "state.program-counter4",
+          "routing.decoder2to4",
+          "memory.ram4",
+          "memory.ram16",
+          "logic.zero4",
+          "arithmetic.alu4",
+          "memory.register-file4",
+          "cpu.register-transfer4",
+          "cpu.alu-datapath4",
+        ],
+      }),
+    );
+  });
+  await page.reload();
+
+  await openCurriculum(page);
+  await page.getByTestId("stage-cpu").click();
+
+  await expect(
+    page.getByRole("heading", { name: "4-bit Instruction Register", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("palette-user.register4")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Formal specification", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Timing model", exact: true })).toBeVisible();
+  await expect(page.getByText(/IR⁺ = INSTRUCTION/)).toBeVisible();
+});

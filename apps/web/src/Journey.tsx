@@ -185,9 +185,9 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
     id: "cpu",
     eyebrow: "READ → EXECUTE → WRITE BACK",
     title: "부품들이 CPU가 됩니다",
-    statement: "PC, ALU, Register File과 데이터 선택 회로가 하나의 순환 경로로 합쳐집니다.",
+    statement: "Instruction Register, PC, ALU, Register File과 데이터 선택 회로가 하나의 순환 경로로 합쳐집니다.",
     explanation:
-      "ALU가 여러 word-level 논리·산술 결과를 OP로 선택합니다. Register File에서 읽은 값은 계산 후 write-back 경로로 다시 저장됩니다.",
+      "Instruction Register는 현재 instruction word를 edge에서 보존하고, ALU는 Register File에서 읽은 operand를 계산해 write-back 경로로 돌려보냅니다.",
     payoff: "여기서부터 소자 모음이 아니라 실제로 계산을 수행하는 CPU가 보이기 시작합니다.",
     artifact: "CPU Core",
     challengeIds: [
@@ -196,6 +196,7 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
       "memory.register-file4",
       "cpu.register-transfer4",
       "cpu.alu-datapath4",
+      "cpu.instruction-register4",
     ],
     parts: [
       {
@@ -221,6 +222,12 @@ export const JOURNEY_SCENES: readonly JourneyScene[] = [
         label: "DATAPATH",
         kind: "chip",
         challengeId: "cpu.alu-datapath4",
+      },
+      {
+        id: "ir",
+        label: "INSTRUCTION REGISTER",
+        kind: "chip",
+        challengeId: "cpu.instruction-register4",
       },
     ],
   },
