@@ -1538,10 +1538,13 @@ test("opens the next CPU chapter and shows Instruction Register learning content
     page.getByRole("heading", { name: "Formal specification", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Timing model", exact: true })).toBeVisible();
-  await expect(page.getByText(/IR⁺ = INSTRUCTION/)).toBeVisible();
+  await expect(
+    page.getByText(/At rising edge: IR⁺ = LOAD \? INSTRUCTION\[3:0\] : IR/),
+  ).toBeVisible();
 
   await expect(page.getByText(/LOAD=1인 rising edge에서는/)).toBeVisible();
   await expect(page.getByText(/LOAD=0인 rising edge에서는/)).toBeVisible();
+  await page.getByRole("button", { name: "커리큘럼 닫기" }).click();
   await page.getByTestId("palette-user.register4").click();
 
   const register = page.locator('g.component[data-component-id="user.register4"]').first();

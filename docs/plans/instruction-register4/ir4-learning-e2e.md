@@ -4,7 +4,7 @@ kind: split-plan
 issue: 2
 parent_issue: 1
 plan_id: ir4-learning-e2e
-status: blocked
+status: completed
 plan_set_id: instruction-register4
 ---
 
@@ -12,7 +12,7 @@ plan_set_id: instruction-register4
 
 ## 상태
 
-blocked
+completed
 
 ## 의존성
 
