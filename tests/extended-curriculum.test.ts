@@ -640,4 +640,60 @@ describe("extended curriculum", () => {
     expect(lesson.timingModel.length).toBeGreaterThan(50);
     expect(lesson.engineeringNotes.length).toBeGreaterThanOrEqual(2);
   });
+
+  it("teaches the Instruction Register capture and hold contract", () => {
+    const challenge = readChallenge("30-instruction-register4.challenge.json");
+    const lesson = readLearning().challenges["cpu.instruction-register4"];
+
+    expect(lesson.motivation).toContain("저장");
+    expect(lesson.howItWorks.join(" ")).toMatch(/LOAD=1/);
+    expect(lesson.howItWorks.join(" ")).toMatch(/LOAD=0/);
+    expect(lesson.howItWorks.join(" ")).toMatch(/rising edge/);
+    expect(lesson.applications.length).toBeGreaterThanOrEqual(3);
+    expect(lesson.commonMistakes.length).toBeGreaterThanOrEqual(3);
+    expect(lesson.buildsToward.length).toBeGreaterThan(50);
+    expect(lesson.formalModel.join(" ")).toMatch(/rising edge/);
+    expect(lesson.designInvariants.join(" ")).toMatch(/LOAD=0/);
+    expect(lesson.timingModel).toMatch(/LOAD=1/);
+
+    expect(challenge.interface.inputs.map((pin) => pin.id)).toEqual([
+      "instruction",
+      "load",
+      "clk",
+    ]);
+    expect(challenge.interface.outputs.map((pin) => pin.id)).toEqual(["q"]);
+    expect(challenge.allowedComponents).toEqual(["user.register4"]);
+    expect(challenge.validators.some((validator) => validator.type === "truthTable")).toBe(false);
+
+    for (const validator of challenge.validators) {
+      if (validator.type !== "sequence") continue;
+      const firstExpectation = validator.steps.findIndex((step) => "expect" in step);
+      expect(firstExpectation).toBeGreaterThan(0);
+      const initialCapture = validator.steps.slice(0, firstExpectation);
+      expect(initialCapture.some((step) => "set" in step && step.set.load === 1)).toBe(true);
+      expect(initialCapture.some((step) => "set" in step && step.set.clk === 1)).toBe(true);
+      for (const step of validator.steps) {
+        if ("set" in step) {
+          expect(Object.keys(step.set).every((key) => ["instruction", "load", "clk"].includes(key))).toBe(true);
+        } else {
+          expect(Object.keys(step.expect)).toEqual(["q"]);
+        }
+      }
+    }
+
+    const visibleSequence = challenge.validators.find(
+      (validator) => validator.type === "sequence" && validator.visibility === "visible",
+    );
+    expect(visibleSequence?.steps).toEqual([
+      { set: { instruction: 10, load: 1, clk: 0 } },
+      { set: { clk: 1 } },
+      { expect: { q: 10 } },
+      { set: { clk: 0, instruction: 5, load: 0 } },
+      { set: { clk: 1 } },
+      { expect: { q: 10 } },
+      { set: { clk: 0, load: 1 } },
+      { set: { clk: 1 } },
+      { expect: { q: 5 } },
+    ]);
+  });
 });

@@ -1539,4 +1539,34 @@ test("opens the next CPU chapter and shows Instruction Register learning content
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Timing model", exact: true })).toBeVisible();
   await expect(page.getByText(/IR⁺ = INSTRUCTION/)).toBeVisible();
+
+  await expect(page.getByText(/LOAD=1인 rising edge에서는/)).toBeVisible();
+  await expect(page.getByText(/LOAD=0인 rising edge에서는/)).toBeVisible();
+  await page.getByTestId("palette-user.register4").click();
+
+  const register = page.locator('g.component[data-component-id="user.register4"]').first();
+  await connect(
+    page,
+    page.getByTestId("pin-interface-instruction"),
+    register.locator('[data-pin-id="d"]'),
+  );
+  await connect(
+    page,
+    page.getByTestId("pin-interface-load"),
+    register.locator('[data-pin-id="load"]'),
+  );
+  await connect(
+    page,
+    page.getByTestId("pin-interface-clk"),
+    register.locator('[data-pin-id="clk"]'),
+  );
+  await connect(
+    page,
+    register.locator('[data-pin-id="q"]'),
+    page.getByTestId("pin-interface-q"),
+  );
+
+  await expect(page.locator("path.wire:not(.wire-preview)")).toHaveCount(4);
+  await page.getByTestId("run-tests").click();
+  await expect(page.getByTestId("test-overall-result")).toHaveText("ALL TESTS PASSED");
 });

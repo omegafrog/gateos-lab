@@ -896,6 +896,42 @@
         "Datapath defines possible transformations and routes; control chooses which route is active for the current operation.",
         "This structure is a reduced teaching model of the register-read → execute → write-back portion of a single-cycle processor."
       ]
+    },
+    "cpu.instruction-register4": {
+      "motivation": "CPU는 현재 처리할 instruction word를 잠시 보관해야 다음 단계가 같은 bit pattern을 안정적으로 읽을 수 있습니다. Instruction Register(IR)는 이 word를 저장하지만 bit의 의미를 해석하지는 않습니다.",
+      "mentalModel": "IR은 INSTRUCTION[3:0]을 보관하는 4-bit state입니다. LOAD가 켜진 rising edge에서 입력을 캡처하고, LOAD가 꺼진 rising edge에서는 직전에 캡처한 값을 유지합니다.",
+      "howItWorks": [
+        "INSTRUCTION의 네 bit와 LOAD가 안정된 뒤 CLK의 low-to-high rising edge가 발생하면 저장 여부가 결정됩니다.",
+        "LOAD=1인 rising edge에서는 그 순간의 INSTRUCTION word를 IR이 캡처하고 Q에서 새 값을 관찰할 수 있습니다.",
+        "첫 캡처 뒤 입력을 다른 word로 바꾸어도 LOAD=0인 rising edge에서는 IR이 직전 캡처 값을 유지합니다.",
+        "IR은 instruction을 저장하는 경계입니다. 어떤 opcode인지 해석하는 동작은 이 챕터의 저장 동작에 포함되지 않습니다."
+      ],
+      "applications": [
+        "현재 실행할 instruction word 보관",
+        "fetch와 이후 실행 단계 사이의 안정된 state 경계",
+        "control logic이 읽을 instruction bit 제공"
+      ],
+      "commonMistakes": [
+        "LOAD가 켜진 동안 입력이 계속 출력에 통과한다고 생각하는 것",
+        "rising edge가 아니라 입력 변경 순간에 IR 값이 바뀐다고 생각하는 것",
+        "LOAD=0일 때 입력의 새 값이 이전에 캡처한 값을 덮어쓴다고 생각하는 것",
+        "instruction word의 opcode 의미 해석을 저장 동작과 혼동하는 것"
+      ],
+      "buildsToward": "이후 제어 단계는 IR에 보관된 bit pattern을 읽어 필요한 control signal을 만들 수 있습니다. 여기서는 먼저 저장된 word가 edge 사이에 안정적으로 보존되는지 확인합니다.",
+      "formalModel": [
+        "At rising edge: IR⁺ = LOAD ? INSTRUCTION[3:0] : IR",
+        "IR and INSTRUCTION are 4-bit words; the first pre-capture IR value is unspecified."
+      ],
+      "designInvariants": [
+        "IR changes only at a rising edge: LOAD selects capture or hold at that edge.",
+        "LOAD=0 preserves the previously captured word even when INSTRUCTION changes.",
+        "The stored word is not decoded by this chapter."
+      ],
+      "timingModel": "INSTRUCTION and LOAD must settle before CLK rises. LOAD=1 captures the 4-bit input at that rising edge; LOAD=0 keeps the preceding captured word across the edge.",
+      "engineeringNotes": [
+        "An instruction register is a timing boundary that keeps the fetched word stable for later processing.",
+        "Separating storage from decoding lets each stage own a clear responsibility and clock boundary."
+      ]
     }
   }
 }
