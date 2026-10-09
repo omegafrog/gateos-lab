@@ -2278,7 +2278,28 @@ export function App() {
     let nearestDistance = Number.POSITIVE_INFINITY;
     const maxDistanceSquared = 18 * 18;
 
+    // At one grid-cell distance (12px diagonally = ~17px), the
+    // 18px pin hit radius overlaps the starting pin. Do not resolve the
+    // starting pin as the drop target when the pointer snapped to a
+    // different grid vertex: that gesture is placing a wire corner.
+    const pendingStart = pendingWireRef.current;
+    const pendingStartPoint = pendingStart
+      ? getEndpointPoint(pendingStart, displayCircuit, registry)
+      : null;
+    const snappedDrop = snapPoint(point);
+    const movedOffStart =
+      pendingStartPoint !== null &&
+      (snappedDrop.x !== pendingStartPoint.x ||
+        snappedDrop.y !== pendingStartPoint.y);
+
     for (const candidate of candidates) {
+      if (
+        movedOffStart &&
+        pendingStart &&
+        endpointKey(candidate.endpoint) === endpointKey(pendingStart)
+      ) {
+        continue;
+      }
       const dx = candidate.point.x - point.x;
       const dy = candidate.point.y - point.y;
       const distance = dx * dx + dy * dy;
