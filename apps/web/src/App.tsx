@@ -773,47 +773,23 @@ function isSingleCellDiagonal(start: Point, end: Point): boolean {
 function constrainedSegmentPoints(start: Point, end: Point): readonly Point[] {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
 
-  if (
-    dx === 0 ||
-    dy === 0 ||
-    isSingleCellDiagonal(start, end)
-  ) {
+  if (dx === 0 || dy === 0 || absX === absY) {
+    // Keep horizontal, vertical, and 45-degree diagonals intact.
+    // In particular, a diagonal may begin and end in adjacent grid cells.
     return [end];
   }
 
-  const xSteps = Math.abs(dx) / PLACEMENT_GRID;
-  const ySteps = Math.abs(dy) / PLACEMENT_GRID;
-
-  // Long diagonal runs are not allowed. Route on the hidden grid and only
-  // preserve a diagonal when it crosses exactly one hidden cell.
-  if (xSteps >= 2) {
-    const midX =
-      start.x +
-      Math.sign(dx) *
-        Math.max(1, Math.floor(xSteps / 2)) *
-        PLACEMENT_GRID;
-    return [
-      { x: midX, y: start.y },
-      { x: midX, y: end.y },
-      end,
-    ];
-  }
-
-  if (ySteps >= 2) {
-    const midY =
-      start.y +
-      Math.sign(dy) *
-        Math.max(1, Math.floor(ySteps / 2)) *
-        PLACEMENT_GRID;
-    return [
-      { x: start.x, y: midY },
-      { x: end.x, y: midY },
-      end,
-    ];
-  }
-
-  return [end];
+  // Preserve a 45-degree run before finishing the remaining distance
+  // orthogonally. This avoids turning diagonal gestures into boxy paths.
+  const diagonal = Math.min(absX, absY);
+  const corner = {
+    x: start.x + Math.sign(dx) * diagonal,
+    y: start.y + Math.sign(dy) * diagonal,
+  };
+  return [corner, end];
 }
 
 function constrainedWirePoints(points: readonly Point[]): readonly Point[] {
